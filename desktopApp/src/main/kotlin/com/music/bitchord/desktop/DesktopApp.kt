@@ -6,7 +6,9 @@ import com.music.bitchord.ui.components.ShelfRowChrome
 import com.music.bitchord.ui.components.ShelfRow
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.input.pointer.isBackPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -1837,6 +1839,10 @@ fun BitChordDesktopApp() {
             }
         }
     }
+    val rootFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        rootFocusRequester.requestFocus()
+    }
     val playback by playbackEngine.state.collectAsState()
 
     // The shared player reads the playhead off this one object, and only where it
@@ -3164,11 +3170,24 @@ fun BitChordDesktopApp() {
                         transparentBase = transparentBase,
                     )
                 },
-                modifier = Modifier.onPreviewKeyEvent { event ->
+                modifier = Modifier
+                    .focusRequester(rootFocusRequester)
+                    .focusable()
+                    .onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
+                    val isModifierPressed = event.isCtrlPressed || event.isMetaPressed
                     when {
+                        // Media keys from keyboard / OS
                         event.key == Key.MediaPlayPause -> {
                             if (selectedSong != null) togglePlayPauseFromUser()
+                            true
+                        }
+                        event.key == Key.MediaPlay -> {
+                            playFromUser()
+                            true
+                        }
+                        event.key == Key.MediaPause || event.key == Key.MediaStop -> {
+                            pauseFromUser()
                             true
                         }
                         event.key == Key.MediaNext -> {
@@ -3179,7 +3198,54 @@ fun BitChordDesktopApp() {
                             playPrevious()
                             true
                         }
-                        event.key == Key.F11 -> {
+                        // Spacebar: Play / Pause (when not actively typing search query)
+                        event.key == Key.Spacebar && (overlays.nowPlaying || destination != DesktopDestination.SEARCH) -> {
+                            if (selectedSong != null) togglePlayPauseFromUser()
+                            true
+                        }
+                        // Next / Previous track with Ctrl/Cmd + Right/Left
+                        (event.key == Key.DirectionRight && isModifierPressed) -> {
+                            playNext()
+                            true
+                        }
+                        (event.key == Key.DirectionLeft && isModifierPressed) -> {
+                            playPrevious()
+                            true
+                        }
+                        // Seeking +/- 5 seconds with Arrow keys
+                        (event.key == Key.DirectionRight && (event.isAltPressed || overlays.nowPlaying)) -> {
+                            val duration = playbackEngine.state.value.durationMs
+                            val target = (playbackEngine.state.value.positionMs + 5_000L).coerceAtMost(if (duration > 0) duration else Long.MAX_VALUE)
+                            seekPlayer(target)
+                            true
+                        }
+                        (event.key == Key.DirectionLeft && (event.isAltPressed || overlays.nowPlaying)) -> {
+                            val target = (playbackEngine.state.value.positionMs - 5_000L).coerceAtLeast(0L)
+                            seekPlayer(target)
+                            true
+                        }
+                        // Volume +/- 5% with Arrow Up/Down
+                        (event.key == Key.DirectionUp && (isModifierPressed || event.isAltPressed || overlays.nowPlaying)) -> {
+                            val newVol = (volume + 0.05f).coerceIn(0f, 1f)
+                            volume = newVol
+                            persistence.saveString("volume", newVol.toString())
+                            true
+                        }
+                        (event.key == Key.DirectionDown && (isModifierPressed || event.isAltPressed || overlays.nowPlaying)) -> {
+                            val newVol = (volume - 0.05f).coerceIn(0f, 1f)
+                            volume = newVol
+                            persistence.saveString("volume", newVol.toString())
+                            true
+                        }
+                        // Mute toggle with M
+                        (event.key == Key.M && (overlays.nowPlaying || destination != DesktopDestination.SEARCH)) -> {
+                            val newVol = if (volume > 0f) 0f else 1f
+                            volume = newVol
+                            persistence.saveString("volume", newVol.toString())
+                            true
+                        }
+                        // Fullscreen toggle via F11 or F
+                        event.key == Key.F11 || (event.key == Key.F && overlays.nowPlaying) -> {
                             DesktopWindowMode.toggle()
                             true
                         }
@@ -3187,19 +3253,20 @@ fun BitChordDesktopApp() {
                             goBack()
                             true
                         }
-                        DesktopPlatform.isMac && event.isMetaPressed && event.key == Key.Comma -> {
+                        isModifierPressed && event.key == Key.Comma -> {
                             openSettings()
                             true
                         }
-                        DesktopPlatform.isMac && event.isMetaPressed && event.key == Key.F -> {
+                        isModifierPressed && event.key == Key.F -> {
+                            destination = DesktopDestination.SEARCH
                             searchFocusRequested = true
                             true
                         }
-                        DesktopPlatform.isMac && event.isMetaPressed && event.key == Key.W -> {
+                        isModifierPressed && event.key == Key.W -> {
                             windowActions?.close?.invoke()
                             true
                         }
-                        DesktopPlatform.isMac && event.isMetaPressed && event.key == Key.M -> {
+                        isModifierPressed && event.key == Key.M -> {
                             windowActions?.minimize?.invoke()
                             true
                         }

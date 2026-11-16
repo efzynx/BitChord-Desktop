@@ -40,10 +40,10 @@ internal data class MprisCapabilities(
         fun from(playback: DesktopPlaybackState): MprisCapabilities {
             val hasTrack = playback.song != null
             return MprisCapabilities(
-                canGoNext = hasTrack,
-                canGoPrevious = hasTrack,
-                canPlay = hasTrack && playback.error == null,
-                canPause = hasTrack,
+                canGoNext = true,
+                canGoPrevious = true,
+                canPlay = true,
+                canPause = playback.isPlaying,
                 canSeek = hasTrack && durationMs(playback.song, playback.durationMs) > 0L,
             )
         }
@@ -151,8 +151,13 @@ internal class DesktopMprisController(
             runCatching {
                 // Not shared.
                 val bus = DBusConnectionBuilder.forSessionBus().withShared(false).build()
-                bus.requestBusName(MPRIS_BUS_NAME)
                 bus.exportObject(MPRIS_OBJECT_PATH, ExportedPlayer(this@DesktopMprisController))
+                val reply = bus.requestBusName(MPRIS_BUS_NAME)
+                DesktopTrackLog.log("BitChord MPRIS: requested '$MPRIS_BUS_NAME' -> $reply")
+                runCatching {
+                    val pid = ProcessHandle.current().pid()
+                    bus.requestBusName("$MPRIS_BUS_NAME.instance$pid")
+                }
                 synchronized(lock) { connection = bus }
                 publish(force = true)
             }.onFailure { failure ->
@@ -161,7 +166,7 @@ internal class DesktopMprisController(
                     connection = null
                     started = false
                 }
-                System.err.println("BitChord MPRIS unavailable: ${failure.message}")
+                DesktopTrackLog.log("BitChord MPRIS unavailable: ${failure.message}")
             }
         }
     }
