@@ -440,6 +440,12 @@ val windowsPortableAssemble by tasks.registering {
             },
         )
 
+        // Silent launcher for Windows (runs without persistent command prompt window)
+        File(target, "BitChord.vbs").writeText(
+            "CreateObject(\"Wscript.Shell\").Run \"\"\"\" & CreateObject(\"Scripting.FileSystemObject\").GetParentFolderName(WScript.ScriptFullName) & \"\\BitChord.bat\"\"\", 0, False\r\n"
+        )
+        project.file("packaging/icons/AppIcon.ico").takeIf { it.isFile }?.copyTo(File(target, "BitChord.ico"), overwrite = true)
+
         // What "it builds" is not the same as "it runs", and the difference is exactly what shipped
         // a broken archive.
         val jars = lib.listFiles { file: File -> file.name.endsWith(".jar") }.orEmpty()

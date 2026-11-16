@@ -1,0 +1,26 @@
+[Desktop Entry]
+Name=BitChord
+GenericName=Music Player
+Comment=Aesthetic YouTube Music client with lossless audio and synchronized lyrics
+Exec=bitchord %U
+Icon=bitchord
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Player;
+MimeType=x-scheme-handler/bitchord;
+StartupWMClass=com-music-bitchord-desktop-MainKt
+Keywords=music;player;youtube;audio;streaming;lossless;lyrics;
+
+Actions=PlayPause;Next;Previous;
+
+[Desktop Action PlayPause]
+Name=Play/Pause
+Exec=bitchord --play-pause
+
+[Desktop Action Next]
+Name=Next Track
+Exec=bitchord --next
+
+[Desktop Action Previous]
+Name=Previous Track
+Exec=bitchord --previous
