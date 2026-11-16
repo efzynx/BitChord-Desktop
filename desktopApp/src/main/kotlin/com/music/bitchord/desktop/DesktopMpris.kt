@@ -40,10 +40,10 @@ internal data class MprisCapabilities(
         fun from(playback: DesktopPlaybackState): MprisCapabilities {
             val hasTrack = playback.song != null
             return MprisCapabilities(
-                canGoNext = true,
-                canGoPrevious = true,
-                canPlay = true,
-                canPause = playback.isPlaying,
+                canGoNext = hasTrack,
+                canGoPrevious = hasTrack,
+                canPlay = hasTrack && playback.error == null,
+                canPause = hasTrack,
                 canSeek = hasTrack && durationMs(playback.song, playback.durationMs) > 0L,
             )
         }

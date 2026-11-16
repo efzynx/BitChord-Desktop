@@ -4311,8 +4311,8 @@ fun BitChordDesktopApp() {
                             onHistoryClear = DesktopSearchHistory::clear,
                             onTypeaheadLongPress = ::openMenu,
                             contentPadding = sharedPagePadding,
-                            topPadding = 0.dp,
-                            showField = false,
+                            topPadding = if (LocalDesktopCompact.current) 12.dp else 0.dp,
+                            showField = LocalDesktopCompact.current,
                         )
                         destination == DesktopDestination.LIBRARY && libraryShowAll != null -> Column(Modifier.fillMaxSize()) {
                             // The phone keeps the grid's sort beside it, in the bar above; here it sits
@@ -5216,6 +5216,8 @@ internal fun DesktopSearchField(
     }
 }
 
+internal val LocalDesktopCompact = compositionLocalOf { false }
+
 @Composable
 private fun DesktopFrame(
     containerColor: Color,
@@ -5263,53 +5265,55 @@ private fun DesktopFrame(
                 Box(Modifier.fillMaxWidth().weight(1f)) {
                     BoxWithConstraints(Modifier.fillMaxSize()) {
                         val compact = maxWidth < 980.dp
-                        // The sidebar runs the full height of the window, its head the window's
-                        // caption; the player's bar and the page share the column beside it.
-                        Row(Modifier.fillMaxSize()) {
-                            if (!compact) sidebar()
-                            Column(Modifier.weight(1f).fillMaxHeight()) {
-                            topBar(compact)
-                            Row(Modifier.fillMaxWidth().weight(1f)) {
-                                Box(
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .then(
-                                            if (glass && !materialBehindApp) {
-                                                Modifier.background(containerColor)
-                                            } else {
-                                                Modifier
-                                            },
-                                        ),
-                                ) {
-                                    Box(Modifier.fillMaxSize().hazeSource(haze)) {
-                                        if (glass) backdrop(materialBehindApp)
-                                        content(
-                                            PaddingValues(
-                                                start = 0.dp,
-                                                end = 0.dp,
-                                                // Room for the bar that floats over this, so the
-                                                // last row can still be scrolled clear of it.
-                                                bottom = if (compact) 128.dp else 16.dp,
+                        CompositionLocalProvider(LocalDesktopCompact provides compact) {
+                            // The sidebar runs the full height of the window, its head the window's
+                            // caption; the player's bar and the page share the column beside it.
+                            Row(Modifier.fillMaxSize()) {
+                                if (!compact) sidebar()
+                                Column(Modifier.weight(1f).fillMaxHeight()) {
+                                topBar(compact)
+                                Row(Modifier.fillMaxWidth().weight(1f)) {
+                                    Box(
+                                        Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .then(
+                                                if (glass && !materialBehindApp) {
+                                                    Modifier.background(containerColor)
+                                                } else {
+                                                    Modifier
+                                                },
                                             ),
-                                        )
+                                    ) {
+                                        Box(Modifier.fillMaxSize().hazeSource(haze)) {
+                                            if (glass) backdrop(materialBehindApp)
+                                            content(
+                                                PaddingValues(
+                                                    start = 0.dp,
+                                                    end = 0.dp,
+                                                    // Room for the bar that floats over this, so the
+                                                    // last row can still be scrolled clear of it.
+                                                    bottom = if (compact) 128.dp else 16.dp,
+                                                ),
+                                            )
+                                        }
+                                        if (compact) {
+                                            Box(Modifier.align(Alignment.BottomCenter)) { bottomBar(true) }
+                                        }
                                     }
-                                    if (compact) {
-                                        Box(Modifier.align(Alignment.BottomCenter)) { bottomBar(true) }
-                                    }
+                                    Box(
+                                        Modifier
+                                            .fillMaxHeight()
+                                            .then(
+                                                if (glass && !materialBehindApp) {
+                                                    Modifier.background(containerColor)
+                                                } else {
+                                                    Modifier
+                                                },
+                                            ),
+                                    ) { trailing() }
                                 }
-                                Box(
-                                    Modifier
-                                        .fillMaxHeight()
-                                        .then(
-                                            if (glass && !materialBehindApp) {
-                                                Modifier.background(containerColor)
-                                            } else {
-                                                Modifier
-                                            },
-                                        ),
-                                ) { trailing() }
-                            }
+                                }
                             }
                         }
                     }
