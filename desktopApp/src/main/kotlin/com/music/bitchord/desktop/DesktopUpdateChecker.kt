@@ -6,6 +6,7 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -13,29 +14,42 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 
 /**
- * Looks at the repo's "latest release" on GitHub once per launch and says whether it is newer
- * than the running build. The installer is not run from here: the dialog opens the asset in the
- * browser, so the user installs it the way they installed the first one.
- *
- * GitHub's "latest" skips pre-releases and drafts, so a `-beta` desktop build is only ever
- * nudged toward a published release.
+ * Memeriksa pembaruan rilis terbaru BitChord Desktop dari repository GitHub efzynx/BitChord-Desktop.
  */
 internal object DesktopUpdateChecker {
+
+    data class ReleaseAsset(
+        val name: String,
+        val downloadUrl: String,
+        val sizeBytes: Long?,
+    )
 
     data class UpdateInfo(
         val version: String,
         val releaseUrl: String,
-        /** The installer for this platform, or null when the release has none. */
         val downloadUrl: String?,
         val notes: String?,
+        val assets: List<ReleaseAsset> = emptyList(),
     )
 
-    private const val LATEST_RELEASE_URL =
-        "https://api.github.com/repos/kushagrasinghx/BitChord/releases/latest"
+    sealed interface UpdateCheckStatus {
+        object Idle : UpdateCheckStatus
+        object Checking : UpdateCheckStatus
+        data class UpToDate(val currentVersion: String, val releaseUrl: String? = null) : UpdateCheckStatus
+        data class UpdateAvailable(val update: UpdateInfo) : UpdateCheckStatus
+        data class Error(val message: String) : UpdateCheckStatus
+    }
 
-    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.8-beta1"
+    /**
+     * Endpoint API rilis GitHub BitChord-Desktop milik pengguna.
+     */
+    const val LATEST_RELEASE_URL =
+        "https://api.github.com/repos/efzynx/BitChord-Desktop/releases/latest"
+
+    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.9.1"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -46,45 +60,94 @@ internal object DesktopUpdateChecker {
         }
     }
 
+    /**
+     * Pengecekan otomatis saat aplikasi pertama kali dibuka (hanya mengembalikan jika ada update baru).
+     */
     suspend fun check(): UpdateInfo? = runCatching {
-        val response = http.get(LATEST_RELEASE_URL) {
-            header("Accept", "application/vnd.github+json")
+        when (val res = checkManual()) {
+            is UpdateCheckStatus.UpdateAvailable -> res.update
+            else -> null
         }
-        if (!response.status.isSuccess()) return@runCatching null
-        val release = json.parseToJsonElement(response.bodyAsText()) as? JsonObject
-            ?: return@runCatching null
-        val tag = release["tag_name"]?.jsonPrimitive?.contentOrNull ?: return@runCatching null
-        val url = release["html_url"]?.jsonPrimitive?.contentOrNull ?: return@runCatching null
-        val latest = tag.removePrefix("v")
-        if (!isNewer(latest, currentVersion)) return@runCatching null
-        UpdateInfo(
-            version = latest,
-            releaseUrl = url,
-            downloadUrl = installerUrl(release),
-            notes = release["body"]?.jsonPrimitive?.contentOrNull,
-        )
     }.getOrNull()
 
     /**
-     * The release names its files `BitChord-<version>-windows-x64-setup.exe` and
-     * `BitChord-<version>-linux-x86_64.AppImage` (see .github/workflows/release.yml); match on the
-     * platform part so a version change does not matter.
+     * Pengecekan manual untuk tampilan menu Updater di Settings.
      */
-    private fun installerUrl(release: JsonObject): String? {
-        val suffixes = when {
-            DesktopPlatform.isWindows -> listOf("-windows-x64-setup.exe")
-            DesktopPlatform.isLinux -> listOf(".AppImage", "-linux-amd64.deb")
-            else -> return null
+    suspend fun checkManual(): UpdateCheckStatus = runCatching {
+        val response = http.get(LATEST_RELEASE_URL) {
+            header("Accept", "application/vnd.github+json")
         }
-        val assets = release["assets"]?.jsonArray?.mapNotNull { it as? JsonObject }.orEmpty()
-        for (suffix in suffixes) {
-            val hit = assets.firstOrNull { asset ->
-                asset["name"]?.jsonPrimitive?.contentOrNull?.endsWith(suffix, ignoreCase = true) == true &&
-                    asset["state"]?.jsonPrimitive?.contentOrNull == "uploaded"
-            }
-            hit?.get("browser_download_url")?.jsonPrimitive?.contentOrNull?.let { return it }
+
+        if (response.status == HttpStatusCode.NotFound) {
+            return UpdateCheckStatus.UpToDate(
+                currentVersion = currentVersion,
+                releaseUrl = "https://github.com/efzynx/BitChord-Desktop/releases",
+            )
         }
-        return null
+
+        if (!response.status.isSuccess()) {
+            return UpdateCheckStatus.Error("Gagal menghubungi server GitHub (${response.status.value}).")
+        }
+
+        val release = json.parseToJsonElement(response.bodyAsText()) as? JsonObject
+            ?: return UpdateCheckStatus.Error("Respon rilis GitHub tidak valid.")
+
+        val tag = release["tag_name"]?.jsonPrimitive?.contentOrNull
+            ?: return UpdateCheckStatus.Error("Tag rilis tidak ditemukan.")
+        val url = release["html_url"]?.jsonPrimitive?.contentOrNull
+            ?: "https://github.com/efzynx/BitChord-Desktop/releases"
+        val latest = tag.removePrefix("v")
+
+        val assets = release["assets"]?.jsonArray?.mapNotNull { el ->
+            val obj = el as? JsonObject ?: return@mapNotNull null
+            val name = obj["name"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+            val dlUrl = obj["browser_download_url"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+            val size = obj["size"]?.jsonPrimitive?.longOrNull
+            ReleaseAsset(name, dlUrl, size)
+        }.orEmpty()
+
+        val updateInfo = UpdateInfo(
+            version = latest,
+            releaseUrl = url,
+            downloadUrl = preferredInstallerUrl(assets),
+            notes = release["body"]?.jsonPrimitive?.contentOrNull,
+            assets = assets,
+        )
+
+        if (isNewer(latest, currentVersion)) {
+            UpdateCheckStatus.UpdateAvailable(updateInfo)
+        } else {
+            UpdateCheckStatus.UpToDate(currentVersion, url)
+        }
+    }.getOrElse {
+        UpdateCheckStatus.Error(it.message ?: "Terjadi kesalahan saat memeriksa pembaruan.")
+    }
+
+    /**
+     * Memilih URL installer yang paling sesuai dengan metode instalasi dan OS pengguna.
+     */
+    private fun preferredInstallerUrl(assets: List<ReleaseAsset>): String? {
+        if (assets.isEmpty()) return null
+        val type = DesktopSystemInfo.installType
+
+        // Cari berdasarkan jenis instalasi saat ini
+        val preferred = when (type) {
+            InstallType.APPIMAGE -> assets.firstOrNull { it.name.endsWith(".AppImage", ignoreCase = true) }
+            InstallType.DEB -> assets.firstOrNull { it.name.endsWith(".deb", ignoreCase = true) }
+            InstallType.RPM -> assets.firstOrNull { it.name.endsWith(".rpm", ignoreCase = true) }
+            InstallType.WINDOWS_PORTABLE -> assets.firstOrNull { it.name.contains("windows-portable", ignoreCase = true) || it.name.endsWith(".zip", ignoreCase = true) }
+            InstallType.WINDOWS_INSTALLED -> assets.firstOrNull { it.name.endsWith("-setup.exe", ignoreCase = true) || it.name.endsWith(".msi", ignoreCase = true) }
+            else -> null
+        }
+        if (preferred != null) return preferred.downloadUrl
+
+        // Fallback berdasarkan OS
+        val fallback = when {
+            DesktopPlatform.isWindows -> assets.firstOrNull { it.name.endsWith("-setup.exe", ignoreCase = true) || it.name.endsWith(".zip", ignoreCase = true) }
+            DesktopPlatform.isLinux -> assets.firstOrNull { it.name.endsWith(".AppImage", ignoreCase = true) || it.name.endsWith(".deb", ignoreCase = true) }
+            else -> assets.firstOrNull()
+        }
+        return fallback?.downloadUrl
     }
 
     private class Parsed(val parts: List<Int>, val preRelease: Boolean)
@@ -95,7 +158,7 @@ internal object DesktopUpdateChecker {
         return Parsed(base.split('.').map { it.toIntOrNull() ?: 0 }, dash >= 0)
     }
 
-    /** Numeric comparison, with a `-betaN` build counted as older than the plain release it leads up to. */
+    /** Perbandingan versi numerik. */
     internal fun isNewer(latest: String, current: String): Boolean {
         val l = parse(latest)
         val c = parse(current)

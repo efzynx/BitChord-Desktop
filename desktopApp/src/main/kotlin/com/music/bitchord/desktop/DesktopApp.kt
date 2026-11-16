@@ -3980,6 +3980,7 @@ fun BitChordDesktopApp() {
                                     },
                                     onOpenIntegrations = { overlays.settingsPage = DesktopSettingsPage.INTEGRATIONS },
                                     onOpenLicenses = { overlays.settingsPage = DesktopSettingsPage.LICENSES },
+                                    onOpenUpdates = { overlays.settingsPage = DesktopSettingsPage.UPDATES },
                                 )
                                 DesktopSettingsPage.EQUALIZER -> DesktopEqualizerDialog(onDismiss = ::goBack)
                                 DesktopSettingsPage.AUDIO_OUTPUT -> DesktopAudioOutputDialog(onDismiss = ::goBack)
@@ -4038,6 +4039,7 @@ fun BitChordDesktopApp() {
                                     onDismiss = ::goBack,
                                 )
                                 DesktopSettingsPage.LICENSES -> DesktopLicensesPage(onDismiss = ::goBack)
+                                DesktopSettingsPage.UPDATES -> DesktopUpdatesPage(onDismiss = ::goBack)
                             }
                             }
                         }
@@ -5938,6 +5940,7 @@ private fun DesktopSettingsScreen(
     onTestSource: (DesktopSourceConfig) -> Unit,
     onOpenIntegrations: () -> Unit,
     onOpenLicenses: () -> Unit,
+    onOpenUpdates: () -> Unit,
 ) {
     var editingSource by remember { mutableStateOf<DesktopSourceConfig?>(null) }
     val sourceProbeKey = sourceConfigs
@@ -6605,7 +6608,17 @@ private fun DesktopSettingsScreen(
             }
             }
             item {
-                DesktopSettingsFooter(onLicenses = onOpenLicenses)
+                SettingsGroup(DesktopStrings["d_about", "About & Updates"]) {
+                    SettingsRow(
+                        Icons.Rounded.Download,
+                        "Pembaruan & Info Sistem",
+                        "Versi ${DesktopSystemInfo.appVersion} (${DesktopSystemInfo.installType.label}) · Cek update & metode instalasi",
+                        onOpenUpdates,
+                    )
+                }
+            }
+            item {
+                DesktopSettingsFooter(onLicenses = onOpenLicenses, onUpdates = onOpenUpdates)
             }
         }
         }
@@ -6634,30 +6647,26 @@ private fun DesktopSettingsScreen(
 
 /** The line at the foot of the settings sheet, as Android has it. */
 @Composable
-private fun DesktopSettingsFooter(onLicenses: () -> Unit) {
-    val version = remember { System.getProperty("bitchord.version") ?: "1.8-beta1" }
+private fun DesktopSettingsFooter(onLicenses: () -> Unit, onUpdates: () -> Unit) {
+    val version = remember { System.getProperty("bitchord.version") ?: "1.9.1" }
     val linkStyles = TextLinkStyles(
         style = SpanStyle(color = DesktopAccent, textDecoration = TextDecoration.Underline),
     )
     Text(
         text = buildAnnotatedString {
-            append("bitchord $version  ")
-            withLink(LinkAnnotation.Url("https://github.com/kushagrasinghx/BitChord", linkStyles)) {
+            append("BitChord Desktop v$version  ")
+            withLink(LinkAnnotation.Url("https://github.com/efzynx/BitChord-Desktop", linkStyles)) {
                 append("GitHub")
             }
             append("  ")
-            withLink(LinkAnnotation.Url("https://github.com/kushagrasinghx", linkStyles)) {
-                append("Developer")
-            }
-            append("  ")
-            withLink(LinkAnnotation.Url("https://discord.gg/pDdKfrdHY6", linkStyles)) {
-                append("Discord")
+            withLink(LinkAnnotation.Clickable("updates", linkStyles) { onUpdates() }) {
+                append("Pembaruan")
             }
             append("  ")
             withLink(LinkAnnotation.Clickable("licenses", linkStyles) { onLicenses() }) {
                 append("Licenses")
             }
-            append("\n~YouTube Music Backend")
+            append("\n~YouTube Music Client")
         },
         style = MaterialTheme.typography.labelSmall,
         color = DesktopSecondary,
