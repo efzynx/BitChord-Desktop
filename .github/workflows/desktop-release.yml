@@ -69,21 +69,21 @@ jobs:
       - name: Package Linux Tar.gz Portable
         run: |
           mkdir -p dist/linux
-          cd desktopApp/build/compose/binaries/main/app
-          tar -czvf "../../../../../dist/linux/BitChord-${{ env.VERSION }}-linux-x64.tar.gz" BitChord
-          cd -
+          tar -czvf dist/linux/BitChord-${{ env.VERSION }}-linux-x64.tar.gz -C desktopApp/build/compose/binaries/main/app BitChord
 
       - name: Package AppImage
         run: |
+          mkdir -p dist/linux
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
           ./desktopApp/packaging/appimage.sh \
             desktopApp/build/compose/binaries/main/app/BitChord \
             dist/linux/BitChord-${{ env.VERSION }}-x86_64.AppImage \
-            ./appimagetool
+            "$PWD/appimagetool"
 
       - name: Collect DEB and RPM packages
         run: |
+          mkdir -p dist/linux
           find desktopApp/build/compose/binaries/main/deb -name "*.deb" -exec cp {} dist/linux/ \; || true
           find desktopApp/build/compose/binaries/main/rpm -name "*.rpm" -exec cp {} dist/linux/ \; || true
           ls -lh dist/linux/
@@ -179,17 +179,65 @@ jobs:
       - name: Determine Release Tag and Title
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
             TAG_NAME="v${{ github.event.inputs.version }}"
             RELEASE_TITLE="BitChord Desktop v${{ github.event.inputs.version }}"
           elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
             TAG_NAME="${GITHUB_REF#refs/tags/}"
             RELEASE_TITLE="BitChord Desktop ${GITHUB_REF#refs/tags/}"
           else
+            VERSION="1.9.1"
             TAG_NAME="v1.9.1"
             RELEASE_TITLE="BitChord Desktop v1.9.1"
           fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
           echo "RELEASE_TITLE=$RELEASE_TITLE" >> $GITHUB_ENV
+
+      - name: Generate Release Notes Body
+        run: |
+          cat << 'EOF' > release-notes.md
+          # BitChord Desktop ${{ env.VERSION }}
+
+          Modern, high-performance desktop music player powered by Compose Multiplatform for Linux and Windows.
+
+          ### Downloads & Packages
+
+          | Platform | Package Type | Filename Pattern | Description |
+          | :--- | :--- | :--- | :--- |
+          | **Linux** | AppImage | `BitChord-*-x86_64.AppImage` | Universal Linux standalone executable (chmod +x & run) |
+          | **Linux** | DEB | `bitchord_*.deb` | Debian, Ubuntu, Linux Mint, Pop!_OS package |
+          | **Linux** | RPM | `bitchord-*.rpm` | Fedora, RHEL, openSUSE package |
+          | **Linux** | Tar.gz | `BitChord-*-linux-x64.tar.gz` | Portable archive, extract and execute `./BitChord/bin/BitChord` |
+          | **Windows** | Setup EXE | `BitChord-*.exe` | Modern per-user installer |
+          | **Windows** | MSI | `BitChord-*.msi` | Windows Installer package |
+          | **Windows** | Portable ZIP | `BitChord-*-windows-portable.zip` | Standalone portable bundle, no installation needed |
+
+          ---
+
+          ### Key Desktop Features
+
+          - **Native Media Control Integration**: Linux MPRIS D-Bus player controls (Playerctl, GNOME/KDE media widgets) and Windows SMTC (System Media Transport Controls).
+          - **Unthrottled Audio Streaming**: Built-in headless JavaFX WebEngine PoToken generation to bypass YouTube playback limits with HTTP Range audio chunking.
+          - **Studio Audio Fidelity**: Full lossless FLAC & Hi-Res Opus streaming via native FFmpeg 7.1 audio decoders and crossfade transitions.
+          - **Synchronized Lyrics**: Word-by-word and line-by-line real-time lyrics renderer with smooth scrolling.
+          - **Discord Rich Presence**: Native IPC Rich Presence integration displaying current track title, artist, playback state, and timestamp.
+          - **Offline Storage & Local Library**: Background audio caching and local disk audio library scanner.
+          - **In-App Updater**: Direct release notification and version check against GitHub releases.
+
+          ---
+
+          ### Verification (SHA-256)
+
+          ```text
+          EOF
+          cat release-assets/SHA256SUMS.txt >> release-notes.md
+          cat << 'EOF' >> release-notes.md
+          ```
+
+          ---
+          EOF
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
@@ -197,6 +245,7 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           target_commitish: ${{ github.sha }}
           name: ${{ env.RELEASE_TITLE }}
+          body_path: release-notes.md
           draft: ${{ github.event.inputs.draft || false }}
           prerelease: ${{ github.event.inputs.prerelease || false }}
           files: |
