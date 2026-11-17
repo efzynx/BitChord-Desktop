@@ -89,10 +89,21 @@
 
 <h1><a id="download"></a>Download</h1>
 
-<a href="https://github.com/kushagrasinghx/BitChord/releases" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/android/cozy.svg" alt="Download for Android" height="55"/></a>
+### 📱 Android & Android TV
+<a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/android/cozy.svg" alt="Download for Android" height="55"/></a>
 
-Grab the latest signed APK from the [Releases](https://github.com/kushagrasinghx/BitChord/releases) page. Sideloading requires enabling "Install unknown apps" for whichever app you download it with.
+### 💻 Desktop (Linux & Windows)
+<a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener noreferrer">
+  <img src="https://img.shields.io/badge/Linux-AppImage%20%7C%20DEB%20%7C%20RPM%20%7C%20Tar.gz-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download for Linux" height="40" />
+</a>
+<a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener noreferrer">
+  <img src="https://img.shields.io/badge/Windows-Portable%20%7C%20MSI%20%7C%20EXE-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" height="40" />
+</a>
 
+<br/>
+
+Grab the latest releases from the [Releases](https://github.com/efzynx/BitChord-Desktop/releases) page.  
+For desktop keyboard shortcuts, installation guides, and building from source, see [**DESKTOP.md**](DESKTOP.md).
 
 </div>
 
