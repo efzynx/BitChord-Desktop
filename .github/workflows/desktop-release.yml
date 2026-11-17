@@ -84,8 +84,8 @@ jobs:
       - name: Collect DEB and RPM packages
         run: |
           mkdir -p dist/linux
-          find desktopApp/build/compose/binaries/main/deb -name "*.deb" -exec cp {} dist/linux/ \; || true
-          find desktopApp/build/compose/binaries/main/rpm -name "*.rpm" -exec cp {} dist/linux/ \; || true
+          find desktopApp/build/compose/binaries -name "*.deb" -exec cp {} dist/linux/ \;
+          find desktopApp/build/compose/binaries -name "*.rpm" -exec cp {} dist/linux/ \;
           ls -lh dist/linux/
 
       - name: Upload Linux Artifacts
@@ -138,9 +138,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist/windows
-          find desktopApp/build/distributions -name "*windows-portable.zip" -exec cp {} dist/windows/ \; || true
-          find desktopApp/build/compose/binaries/main/msi -name "*.msi" -exec cp {} dist/windows/ \; || true
-          find desktopApp/build/compose/binaries/main/exe -name "*.exe" -exec cp {} dist/windows/ \; || true
+          find desktopApp/build/distributions -name "*windows-portable.zip" -exec cp {} dist/windows/ \;
+          find desktopApp/build/compose/binaries -name "*.msi" -exec cp {} dist/windows/ \;
+          find desktopApp/build/compose/binaries -name "*.exe" -exec cp {} dist/windows/ \;
           ls -lh dist/windows/
 
       - name: Upload Windows Artifacts

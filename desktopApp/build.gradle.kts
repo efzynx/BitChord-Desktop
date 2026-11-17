@@ -27,7 +27,13 @@ val isArm64 = hostArch == "aarch64" || hostArch == "arm64"
 // intentionally displayed without a patch number (1.7 rather than 1.7.0).
 // The build number is the desktop version code; it also keeps "-beta1" out of the numeric installer version.
 val desktopVersionCode = 29
-val nativePackageVersion = appVersion.substringBefore('-').split('.').take(2).joinToString(".") + ".$desktopVersionCode"
+val versionParts = appVersion.substringBefore('-').split('.').filter { it.all(Char::isDigit) }
+val nativePackageVersion = when {
+    versionParts.size >= 3 -> versionParts.take(3).joinToString(".")
+    versionParts.size == 2 -> "${versionParts[0]}.${versionParts[1]}.$desktopVersionCode"
+    versionParts.size == 1 -> "${versionParts[0]}.0.$desktopVersionCode"
+    else -> "1.0.0"
+}
 
 // FFmpeg decodes audio; see DesktopAudioDecoder.
 val javacppVersion = "1.5.12"
