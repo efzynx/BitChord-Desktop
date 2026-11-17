@@ -148,6 +148,7 @@ dependencies {
 
 tasks.withType<Test> {
     systemProperty("java.awt.headless", "true")
+    systemProperty("java.util.prefs.userRoot", layout.buildDirectory.dir("test-user-prefs").get().asFile.absolutePath)
 }
 
 kotlin {
