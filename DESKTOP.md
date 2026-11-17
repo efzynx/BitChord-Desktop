@@ -1,10 +1,10 @@
-# 🎵 BitChord Desktop (Linux & Windows)
+# BitChord Desktop (Linux & Windows)
 
 BitChord Desktop adalah klien YouTube Music native untuk platform desktop (**Linux & Windows**) yang dirancang menggunakan **Compose Multiplatform** dengan performa tinggi, tampilan estetis bernuansa *frosted-glass*, dan integrasi mendalam dengan sistem operasi.
 
 ---
 
-## 🌟 Fitur Utama Desktop
+## Fitur Utama Desktop
 
 ### 1. Integrasi Sistem Operasi Native
 - **Linux MPRIS & Media Keys**: Terhubung langsung dengan panel media Linux (GNOME Media, KDE Plasma Media Player, `playerctl`, dan tombol multimedia keyboard).
@@ -30,17 +30,17 @@ BitChord Desktop adalah klien YouTube Music native untuk platform desktop (**Lin
 
 ---
 
-## ⌨️ Daftar Shortcut Keyboard
+## Daftar Shortcut Keyboard
 
 | Shortcut | Fungsi |
 | :--- | :--- |
 | **`Spasi`** | Putar / Jeda (*Play / Pause*) |
 | **`Tombol Media Play/Pause`** | Putar / Jeda dari keyboard multimedia |
 | **`Tombol Media Next / Prev`** | Lagu berikutnya / lagu sebelumnya |
-| **`Panah Kiri` (`←`)** | Mundur 5 detik |
-| **`Panah Kanan` (`→`)** | Maju 5 detik |
-| **`Panah Atas` (`↑`)** | Naikkan volume (+5%) |
-| **`Panah Bawah` (`↓`)** | Turunkan volume (-5%) |
+| **`Panah Kiri` (`<-`)** | Mundur 5 detik |
+| **`Panah Rakan` (`->`)** | Maju 5 detik |
+| **`Panah Atas` (`^`)** | Naikkan volume (+5%) |
+| **`Panah Bawah` (`v`)** | Turunkan volume (-5%) |
 | **`M`** | Bisukan / Nyalakan suara (*Mute / Unmute*) |
 | **`Ctrl + F`** / **`Cmd + F`** | Langsung fokus ke kolom pencarian (*Search*) |
 | **`Ctrl + ,`** / **`Cmd + ,`** | Buka halaman Pengaturan (*Settings*) |
@@ -49,9 +49,9 @@ BitChord Desktop adalah klien YouTube Music native untuk platform desktop (**Lin
 
 ---
 
-## 📥 Panduan Instalasi
+## Panduan Instalasi
 
-### 🐧 Linux
+### Linux
 
 #### 1. AppImage (Direkomendasikan - Universal untuk Semua Distro)
 1. Unduh file `BitChord-*.AppImage` dari halaman [Releases](https://github.com/efzynx/BitChord-Desktop/releases).
@@ -86,7 +86,7 @@ Jika Anda mengunduh paket tar.gz atau mengompilasi dari source code, Anda dapat 
 
 ---
 
-### 🪟 Windows
+### Windows
 
 #### 1. Windows Installer (`.msi` / `.exe`)
 1. Unduh installer `BitChord-*.msi` atau `BitChord-*.exe`.
@@ -100,7 +100,7 @@ Jika Anda mengunduh paket tar.gz atau mengompilasi dari source code, Anda dapat 
 
 ---
 
-## 🛠️ Kompilasi dari Source Code
+## Kompilasi dari Source Code
 
 ### Prasyarat
 - **Java JDK 17 atau 21** (direkomendasikan Eclipse Temurin atau OpenJDK).

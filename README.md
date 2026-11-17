@@ -1,217 +1,221 @@
 <div align="center">
 
 <br/>
-<br/>
 
-<img src="Logo.png" alt="BitChord app icon" width="200" />
+<img src="Logo.png" alt="BitChord Logo" width="180" />
 
 # BitChord Desktop
 
-### Aesthetic YouTube Music Client — Now for Desktop (Linux & Windows) & Mobile
+### High-Performance YouTube Music Client for Linux and Windows
 
 <br/>
 
-[![Latest release](https://img.shields.io/github/v/release/efzynx/BitChord-Desktop?style=for-the-badge&labelColor=0d1117)](https://github.com/efzynx/BitChord-Desktop/releases)
-[![License](https://img.shields.io/github/license/efzynx/BitChord-Desktop?style=for-the-badge&labelColor=0d1117)](https://github.com/efzynx/BitChord-Desktop/blob/main/LICENSE)
-[![Downloads](https://img.shields.io/github/downloads/efzynx/BitChord-Desktop/total?style=for-the-badge&labelColor=0d1117)](https://github.com/efzynx/BitChord-Desktop/releases)
-[![Listening now](https://api.bitchord.kushagrasingh.in/api/stats/live/badge.svg)](https://api.bitchord.kushagrasingh.in/api/stats/live)
+[![Latest Release](https://img.shields.io/github/v/release/efzynx/BitChord-Desktop?style=for-the-badge&logo=github&logoColor=white&color=161b22)](https://github.com/efzynx/BitChord-Desktop/releases)
+[![Platform](https://img.shields.io/badge/Platform-Linux_%7C_Windows-24292e?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/efzynx/BitChord-Desktop/releases)
+[![Compose Multiplatform](https://img.shields.io/badge/Framework-Compose_Multiplatform-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![License](https://img.shields.io/github/license/efzynx/BitChord-Desktop?style=for-the-badge&logo=opensourceinitiative&logoColor=white&color=161b22)](LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/efzynx/BitChord-Desktop/total?style=for-the-badge&color=161b22)](https://github.com/efzynx/BitChord-Desktop/releases)
 
 <br/>
 
-[**Download**](#download) · [**Desktop Edition**](#about-desktop-edition) · [**Features**](#features) · [**Desktop Guide**](DESKTOP.md) · [**Contributing**](#contributing) · [**Disclaimer**](#disclaimer)
+[**Download**](#download) &bull; [**About This Project**](#about-this-project) &bull; [**Desktop Architecture**](#desktop-architecture) &bull; [**Features**](#features) &bull; [**Desktop Guide**](DESKTOP.md) &bull; [**Contributing**](#contributing) &bull; [**Disclaimer**](#disclaimer)
 
 <br/>
 
-<a href="https://fmhy.net/mobile#youtube-music" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/available/fmhy/cozy.svg" alt="Featured on FMHY" height="55"/></a>
-<a href="https://trendshift.io/repositories/177639?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-177639" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/177639" alt="kushagrasinghx%2FBitChord | Trendshift" width="250" height="55"/></a>
+<a href="https://fmhy.net/mobile#youtube-music" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/available/fmhy/cozy.svg" alt="Featured on FMHY" height="50"/></a>
+<a href="https://trendshift.io/repositories/177639?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-177639" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/177639" alt="BitChord | Trendshift" width="220" height="50"/></a>
 
 </div>
 
 > [!IMPORTANT]
-> BitChord is an independent open-source player and is not affiliated with, endorsed by, or connected to YouTube or Google in any way. Use it at your own discretion.
+> BitChord is an independent open-source audio client and is not affiliated with, endorsed by, or connected to YouTube, Google, or any of their parent companies.
 
 ---
 
 <div align="center">
 
-<img src="Banner.png" alt="BitChord banner" width="100%" />
+<img src="Banner.png" alt="BitChord Banner" width="100%" />
 
 </div>
 
-## 🖥️ About BitChord Desktop Edition
+## About This Project
 
-Originally created by [Kushagra Singh](https://github.com/kushagrasinghx) as an Android / Android TV application, BitChord's early desktop prototype was previously removed upstream.
+Originally initiated by [Kushagra Singh](https://github.com/kushagrasinghx) as an Android application, earlier desktop prototypes were discontinued in the upstream repository.
 
-**This project ([efzynx/BitChord-Desktop](https://github.com/efzynx/BitChord-Desktop)) is a dedicated fork that revives, reconstructs, modernizes, and actively continues the native Desktop edition for Linux and Windows.**
+**This project ([efzynx/BitChord-Desktop](https://github.com/efzynx/BitChord-Desktop)) is a dedicated continuation that reconstructs, modernizes, and actively maintains native desktop support for Linux and Windows.**
 
-Built using **Compose Multiplatform (Jetpack Compose on Desktop JVM)** and a high-performance **FFmpeg C++/JavaCPP audio pipeline**, BitChord Desktop brings the full aesthetic frosted-glass player experience directly to your PC:
-
-- 🐧 **Linux First-Class Citizen**:
-  - Full **MPRIS D-Bus** integration (GNOME Media, KDE Plasma Media Player, `playerctl`, and multimedia keys).
-  - FreeDesktop standard desktop entry (`bitchord.desktop`) with quick launcher actions and high-resolution icons.
-  - One-click local installation script (`./scripts/install-desktop.sh`) and multi-format packaging (**AppImage**, **DEB**, **RPM**, **Tar.gz**).
-- 🪟 **Native Windows Experience**:
-  - System Media Transport Controls (**SMTC**) integration in taskbar and lockscreen.
-  - Windows Portable package with a silent VBS launcher (`BitChord.vbs`) running cleanly without terminal windows.
-  - Windows Installer packages (**MSI** and **EXE**).
-- 🎮 **Native Discord Rich Presence (RPC)**:
-  - Direct local IPC socket connection (**Unix Domain Sockets** on Linux, **Named Pipes** on Windows).
-  - No bot tokens, no logins, and zero privacy concerns — just plug-and-play Discord activity status.
-- ⚡ **High-Fidelity Audio & Streaming Engine**:
-  - **FFmpeg 7.1 (JavaCPP)** decoding supporting Hi-Res Lossless (FLAC, ALAC, WAV) and standard streams (Opus, AAC).
-  - **Headless JavaFX WebKit PoToken Generator** ensuring bot-free YouTube Music stream resolution.
-  - **Windowed Range Streaming** preventing HTTP 403 Forbidden throttling on Google Video media endpoints.
-- 🎤 **Apple-like Word-by-Word Synced Lyrics**:
-  - Continuous per-frame clock on desktop JVM for ultra-smooth syllable animations.
-  - Multi-source provider fallback (LRCLib, Musixmatch, YouTube Captions, KuGou, etc.) plus local embedded tag reading.
-- 🔄 **In-App Updater & System Diagnostics**:
-  - Dedicated **Pembaruan & Info Sistem** settings page.
-  - Auto-detects OS distro, CPU architecture, Java runtime, and installation type (AppImage, DEB, RPM, Portable, MSI).
-  - Direct release check against `efzynx/BitChord-Desktop`.
-- 📐 **Adaptive Desktop Layout**:
-  - Full wide layout with collapsible sidebar and compact mode (`maxWidth < 980dp`) with floating bottom chrome and auto-revealing search bar.
-  - Global keyboard shortcuts (`Space` play/pause, seek, volume, mute `M`, `Ctrl+F` search, `Ctrl+,` settings, `F11`/`F` fullscreen).
+BitChord Desktop is built upon **Compose Multiplatform (Jetpack Compose on Desktop JVM)** and an integrated **C++ / JavaCPP FFmpeg 7.1 audio pipeline**, delivering a refined frosted-glass interface with low-latency playback, native system integrations, and word-by-word synced lyrics.
 
 ---
 
-<div align="center">
+## Desktop Architecture & Native Integrations
 
-<h1><a id="features"></a>Features</h1>
+### Linux Platform Integration
+- **MPRIS D-Bus Specification**: Native integration with `org.mpris.MediaPlayer2` and `org.mpris.MediaPlayer2.Player`. Fully compatible with GNOME Media, KDE Plasma Media Player, `playerctl`, and desktop lock screens.
+- **Hardware Multimedia Keys**: Global media key listeners for Play, Pause, Next, Previous, and Stop.
+- **FreeDesktop Standards**: Compliant `.desktop` entry with desktop context menu actions (Play/Pause, Next, Previous) and high-resolution vector icons.
+- **Comprehensive Packaging**: Production builds available in universal **AppImage**, Debian/Ubuntu **DEB**, Fedora/RHEL **RPM**, and standalone portable tarballs.
+- **Local Installer Scripts**: Automated user installation via `scripts/install-desktop.sh` registering icons and application launchers to `~/.local`.
+
+### Windows Platform Integration
+- **System Media Transport Controls (SMTC)**: Native Windows media transport controls displayed in the volume overlay, taskbar thumbnail, and lock screen.
+- **Portable Distribution**: Clean portable `.zip` packaging featuring a silent runner (`BitChord.vbs`) that executes the player in the background without terminal prompts.
+- **Native Installers**: Automated builds for Windows Installer (**MSI**) and setup executable (**EXE**).
+
+### Discord Rich Presence (RPC)
+- Direct local Inter-Process Communication (IPC) via **Unix Domain Sockets** on Linux and **Named Pipes** on Windows.
+- Eliminates the need for third-party bots, user account tokens, or login credentials. Automatically publishes playing status, album art, elapsed time, and metadata.
+
+### High-Fidelity Streaming & Audio Engine
+- **Native FFmpeg Decoding**: Powered by JavaCPP libavcodec, libavformat, and libswresample for lossless Hi-Res audio (FLAC, ALAC, WAV) and standard web formats (Opus, AAC, MP3, WebM).
+- **Windowed Range Streaming**: Overcomes Google Video HTTP 403 Forbidden constraints using custom chunked range requests.
+- **Headless PoToken Minter**: Employs headless JavaFX WebKit WebEngine to process Google BotGuard scripts and mint integrity tokens without user intervention.
+
+### Synchronized Lyrics & Local Media
+- **Apple-Style Word-by-Word Lyrics**: Synchronized syllable animations driven by continuous per-frame clocks on the desktop JVM.
+- **Multi-Source Fetching**: Seamless fallback across LRCLib, Musixmatch, YouTube Captions, KuGou, and local embedded tags (ID3v2 / Vorbis comments).
+- **Local Library & File Watching**: Real-time directory monitoring (`~/Music` and `~/Downloads`) via Java NIO `WatchService` with offline download capabilities.
+
+### In-App Diagnostics & Updater
+- Integrated **Updates & System Information** dashboard in Settings.
+- Automatically determines runtime Java version, CPU architecture, host OS distribution, and packaging method (AppImage, DEB, RPM, Portable, MSI).
+- Direct update verification against the `efzynx/BitChord-Desktop` release endpoint.
+
+---
+
+## Features
 
 <table>
   <tr>
     <td width="50%" valign="top">
 
-#### Playback
-- **Search, browse and play** anything available on YouTube Music.
-- **Hi-Res lossless audio** — FLAC/ALAC from a configured module source, with YouTube Music as fallback.
-- **Gapless playback with true crossfade**, adjustable 0–12s.
-- **Automix [Beta]** — DJ-style transitions with beat-matching and tempo-stretching.
-- **Offline downloads** — save tracks with embedded metadata.
-- **Local music library** integration with automatic directory watching.
-- **Background playback** via a proper OS media session (MPRIS on Linux, SMTC on Windows).
-- **Apple-like lyrics animation** — credit to [binimum](https://github.com/binimum/am-lyrics).
+### Playback & Core Engine
+- **Search, Browse, and Stream**: Access the complete YouTube Music catalog.
+- **Hi-Res Lossless Audio**: FLAC/ALAC playback from configured sources with YouTube Music fallback.
+- **Gapless Playback & Crossfade**: Configurable 0–12 second transition buffers.
+- **Automix Transition Engine**: Dynamic DJ-style transitions with tempo stretching.
+- **Offline Downloads**: High-speed track downloads with embedded artwork and tags.
+- **Local Library Integration**: Unified browsing of device music libraries.
+- **Background Media Controls**: Native foreground audio playback with MPRIS and SMTC.
+- **Apple-Style Lyrics Engine**: Continuous frame-based syllable animations (credit: [binimum](https://github.com/binimum/am-lyrics)).
 
-#### Connectivity & Accounts
-- **Sign in with your Google account** for personalized content.
-- **Spotify integration** — connect your account to play your playlists and Liked Songs.
-- **Discord Rich Presence** — native desktop IPC socket without account tokens.
-- **Scrobbling** to Last.fm and ListenBrainz.
-- **Pluggable sources** — add, edit, test and health-check module sources.
+### Connectivity & Services
+- **Google Account Authentication**: Optional sign-in for personalized playlists and recommendations.
+- **Spotify Integration**: Import and play Spotify playlists and saved collections.
+- **Native Discord RPC**: Local IPC communication without authentication tokens.
+- **Audio Scrobbling**: Built-in support for Last.fm and ListenBrainz.
+- **Custom Media Sources**: Extensible plugin system for user-defined audio backends.
 
     </td>
     <td width="50%" valign="top">
 
-#### Experience
-- **Animated album canvas** — motion artwork on the now-playing screen.
-- **Word-synced lyrics** — word/syllable-level highlighting from multiple sources.
-- **Lyrics providers** — credit to [lrc.red](https://lrc.red), [BiniLyrics](https://github.com/binimum), [BetterLyrics](https://github.com/better-lyrics/better-lyrics), [PaxSenix](https://lyrics.paxsenix.org), [LyricsPlus](https://github.com/ibratabian17/YouLyPlus), [SimpMusic](https://github.com/maxrave-dev/SimpMusic), [Unison](https://unison.boidu.dev), [Megalobiz](https://www.megalobiz.com), [KuGou](https://www.kugou.com), [LRCLIB](https://lrclib.net), [Musixmatch](https://www.musixmatch.com) and [Genius](https://genius.com).
-- **Dynamic, artwork-driven theming** — Material palette extracted from album art.
-- **Frosted-glass UI** — translucent bars via Haze, Material 3 theming.
+### Interface & User Experience
+- **Animated Album Canvas**: Visual motion artwork on the player screen.
+- **Word-Synced Lyrics**: Precise timing from providers including [LRCLIB](https://lrclib.net), [Musixmatch](https://www.musixmatch.com), [lrc.red](https://lrc.red), [BiniLyrics](https://github.com/binimum), [BetterLyrics](https://github.com/better-lyrics/better-lyrics), [PaxSenix](https://lyrics.paxsenix.org), [KuGou](https://www.kugou.com), and [Genius](https://genius.com).
+- **Dynamic Color Palette**: Real-time Material color extraction from album covers.
+- **Translucent Glass UI**: Frosted-glass chrome via GPU shader backdrops.
+- **Responsive Layouts**: Desktop wide-screen view and compact floating navigation mode.
 
-#### Controls & Tweaks
-- **Desktop Keyboard Shortcuts** — full hotkey control for play/pause, seek, volume, search, and settings.
-- **System Tray support** — minimize to tray with background audio playback.
-- **Per-network audio quality** — separate quality ceilings.
-- **Playback speed control** (0.5×–2.0×) and **skip silence**.
-- **Sleep timer** — fixed presets or "stop after this track".
-- **System equalizer** integration.
-- **Bit-perfect USB exclusive output** — thanks to [Mornye](https://github.com/mornyeapp/Mornye) for the reference.
-- **Stats for nerds** — codec, bit depth, sample rate, and more on the now-playing screen.
+### Controls & System Tools
+- **Global Keyboard Hotkeys**: Hotkey controls for Play/Pause, Seek, Volume, Search, and Settings.
+- **System Tray Integration**: Minimize to tray with continuous background audio.
+- **Custom Quality Ceilings**: Independent bitrate limits per network type.
+- **Playback Speed Control**: 0.5x to 2.0x playback rate adjustment and silence skipping.
+- **Sleep Timer**: Timed presets or automated shutdown at track end.
+- **Bit-Perfect Exclusive Output**: Direct USB DAC output stream passthrough (credit: [Mornye](https://github.com/mornyeapp/Mornye)).
+- **Technical Stats Dashboard**: Codec format, sample rate, bit depth, and bitrate telemetry.
 
     </td>
   </tr>
 </table>
 
-</div>
-
 ---
 
-<div align="center">
+## Download
 
-<h1><a id="download"></a>Download</h1>
+### Desktop (Linux & Windows)
 
-### 💻 Desktop (Linux & Windows)
 <p>
   <a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/badge/Linux-AppImage%20%7C%20DEB%20%7C%20RPM%20%7C%20Tar.gz-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download for Linux" height="42" />
+    <img src="https://img.shields.io/badge/Linux-AppImage_%7C_DEB_%7C_RPM_%7C_Tar.gz-24292e?style=for-the-badge&logo=linux&logoColor=white" alt="Download for Linux" height="42" />
   </a>
   &nbsp;&nbsp;
   <a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/badge/Windows-Portable%20%7C%20MSI%20%7C%20EXE-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" height="42" />
+    <img src="https://img.shields.io/badge/Windows-Portable_%7C_MSI_%7C_EXE-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" height="42" />
   </a>
 </p>
 
-### 📱 Android & Android TV
+### Android & Android TV
+
 <p>
   <a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener noreferrer">
-    <img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/supported/android/cozy.svg" alt="Download for Android" height="48" />
+    <img src="https://img.shields.io/badge/Android-APK_Releases-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Download for Android" height="42" />
   </a>
 </p>
 
-Grab the latest releases from the [**Releases**](https://github.com/efzynx/BitChord-Desktop/releases) page.  
-For comprehensive keyboard shortcuts, installation guides, and building from source, see [**DESKTOP.md**](DESKTOP.md).
-
-</div>
+Download prebuilt binary releases directly from the [**Releases**](https://github.com/efzynx/BitChord-Desktop/releases) page.  
+For keyboard shortcuts, installation procedures, and building from source, consult the [**DESKTOP.md**](DESKTOP.md) guide.
 
 ---
 
-<div align="center">
+## Keyboard Shortcuts
 
-<h1><a id="contributing"></a>Contributing</h1>
+| Shortcut | Action |
+| :--- | :--- |
+| **`Space`** | Play / Pause |
+| **`Media Play/Pause`** | System media toggle |
+| **`Media Next / Prev`** | Next track / Previous track |
+| **`Left Arrow` (`<-`)** | Seek backward 5 seconds |
+| **`Right Arrow` (`->`)** | Seek forward 5 seconds |
+| **`Up Arrow` (`^`)** | Volume up (+5%) |
+| **`Down Arrow` (`v`)** | Volume down (-5%) |
+| **`M`** | Mute / Unmute |
+| **`Ctrl + F` / `Cmd + F`** | Focus search input field |
+| **`Ctrl + ,` / `Cmd + ,`** | Open Settings dashboard |
+| **`F11` / `F`** | Toggle Fullscreen mode |
+| **`Esc`** | Dismiss Now Playing / Modals / Go back |
 
-We welcome contributions to BitChord! Please review our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting a Pull Request.
+---
 
-[**Contributing Guide**](CONTRIBUTING.md) · [**Code of Conduct**](CODE_OF_CONDUCT.md) · [**Maintainers**](MAINTAINERS.md) · [**Desktop Docs**](DESKTOP.md) · [**Additional Docs**](ADDITIONAL.md)
+## Contributing
 
-### Credits & Upstream Authors ❤
-- **Original BitChord Creator**: [Kushagra Singh](https://github.com/kushagrasinghx) ([kushagrasinghx/BitChord](https://github.com/kushagrasinghx/BitChord))
+Contributions are welcome. Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) prior to submitting pull requests.
+
+[**Contributing Guide**](CONTRIBUTING.md) &bull; [**Code of Conduct**](CODE_OF_CONDUCT.md) &bull; [**Maintainers**](MAINTAINERS.md) &bull; [**Desktop Docs**](DESKTOP.md) &bull; [**Additional Docs**](ADDITIONAL.md)
+
+### Credits & Upstream Authors
+- **Original BitChord Author**: [Kushagra Singh](https://github.com/kushagrasinghx) ([kushagrasinghx/BitChord](https://github.com/kushagrasinghx/BitChord))
 - **Desktop Port & Maintenance**: [efzynx](https://github.com/efzynx) ([efzynx/BitChord-Desktop](https://github.com/efzynx/BitChord-Desktop))
-- All upstream contributors and open-source projects cited in this repository.
+- Upstream contributors and libraries acknowledged in this project.
 
 <a href="https://github.com/kushagrasinghx/BitChord/graphs/contributors">
-  <img src="https://raw.githubusercontent.com/kushagrasinghx/BitChord/contributors/contributors.svg" />
+  <img src="https://raw.githubusercontent.com/kushagrasinghx/BitChord/contributors/contributors.svg" alt="Contributors" />
 </a>
 
-</div>
+---
+
+## Support
+
+BitChord is free and open-source software. To support the original upstream creator:
+
+<a href="https://ko-fi.com/kushagrasinghx" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/donate/kofi-singular-alt/cozy.svg" alt="Support on Ko-fi" height="50"/></a>
+&nbsp;&nbsp;
+<a href="https://paypal.me/kuxhagrasingh" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/donate/paypal-plural/cozy.svg" alt="Support on PayPal" height="50"/></a>
+
+---
+
+## Disclaimer & Legal Notice
+
+BitChord is an independent third-party client. It is not affiliated with, endorsed by, or associated with Google LLC, YouTube, Deezer, or Telegram.
+
+- **No Media Hosting**: BitChord does not host, upload, or store copyrighted audio content. It functions as an interface to index local storage or stream via public-facing APIs.
+- **Fair Use**: This project is developed for educational and personal research purposes. Users are responsible for ensuring compliance with applicable regional laws and third-party terms of service.
+- **License**: Distributed under the **GNU General Public License v3.0 (GPLv3)**. See [LICENSE](LICENSE) for details.
 
 ---
 
 <div align="center">
 
-<h1><a id="support"></a>Support</h1>
-
-BitChord is free and always will be — if it's earned a spot in your rotation, you can chip in to the original project here:
-
-<a href="https://ko-fi.com/kushagrasinghx" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/donate/kofi-singular-alt/cozy.svg" alt="Support me on Ko-fi" height="55"/></a>
-<a href="https://paypal.me/kuxhagrasingh" target="_blank" rel="noopener noreferrer"><img src="https://cdn.jsdelivr.net/gh/JMcrafter26/badges@main/src/assets/donate/paypal-plural/cozy.svg" alt="Support us on PayPal" height="55"/></a>
-
-<br/>
-<img src="upi_support.jpg" alt="UPI Support" width="250" />
-
-</div>
-
----
-
-<div align="center">
-
-<h1><a id="disclaimer"></a>Disclaimer & Legal Notice</h1>
-
-BitChord is an independent, community-driven third-party audio player and client. It is **not** associated with Google LLC, YouTube Music, Deezer, Telegram, or any of their parent companies.
-
-* **No Media Hosting:** BitChord does not host, upload, or store copyrighted music files. It operates strictly as an interface to scan local device storage or stream media directly from public, public-facing, or user-authenticated APIs.
-* **Fair Use & API Usage:** This software is created solely for personal research, educational, and fair-use purposes. The user is entirely responsible for ensuring their usage aligns with their local copyright laws and YouTube Terms of Service.
-* **No Ad-Blocking Guarantee:** While BitChord focuses on providing a clean listening environment, it does not guarantee permanent bypasses or modifications to commercial third-party platform conditions.
-* **Copyleft:** BitChord is free software under the GPLv3. The license does not let anyone forbid others from selling or redistributing copies, but any distribution must come with the Corresponding Source under the same license.
-
-</div>
-
----
-
-<div align="center">
-
-<h1><a id="license"></a>License</h1>
-
-This project is licensed under the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for details.
+&copy; 2026 BitChord Contributors. Licensed under GPL-3.0.
 
 </div>
