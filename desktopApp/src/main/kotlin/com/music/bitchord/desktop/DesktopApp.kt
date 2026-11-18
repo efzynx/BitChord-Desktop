@@ -143,6 +143,7 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.FastRewind
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Folder
@@ -1143,7 +1144,21 @@ fun BitChordDesktopApp() {
             onSuccess = { loaded ->
                 if (openedCollection?.browseId == pending.browseId) openedCollection = loaded
             },
-            onFailure = { collectionError = it.message ?: "Could not open ${pending.title.ifBlank { "this page" }}" },
+            onFailure = {
+                if (pending.browseId == "VLLM") {
+                    val allKnown = (downloads + history + localSongs).distinctBy { it.videoId }
+                    val liked = allKnown.filter { it.videoId in likedIds }
+                    if (liked.isNotEmpty()) {
+                        openedCollection = pending.copy(
+                            songs = liked,
+                            loading = false,
+                            subtitle = "${liked.size} songs",
+                        )
+                        return@fold
+                    }
+                }
+                collectionError = it.message ?: "Could not open ${pending.title.ifBlank { "this page" }}"
+            },
         )
     }
 
@@ -1170,10 +1185,40 @@ fun BitChordDesktopApp() {
 
     fun openAlbum(browseId: String) = openCollection(browseId)
 
+    /** Opens Liked Music playlist (VLLM), or the local liked collection when offline/not signed in. */
+    fun openLikedMusic() {
+        if (youtubeSignedIn) {
+            openCollection(
+                browseId = "VLLM",
+                fallback = BrowseItem(
+                    browseId = "VLLM",
+                    title = DesktopStrings["auto_liked", "Liked songs"],
+                    subtitle = DesktopStrings["auto_playlist", "Auto playlist"],
+                    thumbnailUrl = null,
+                    type = BrowseType.PLAYLIST,
+                ),
+            )
+        } else {
+            val allKnown = (downloads + history + localSongs).distinctBy { it.videoId }
+            val liked = allKnown.filter { it.videoId in likedIds }
+            showCollection(
+                DesktopCollection(
+                    browseId = "VLLM",
+                    title = DesktopStrings["auto_liked", "Liked songs"],
+                    subtitle = "${liked.size} songs",
+                    thumbnailUrl = null,
+                    type = BrowseType.PLAYLIST,
+                    songs = liked,
+                ),
+            )
+        }
+    }
+
     /** Copies the track's YouTube Music link. */
     fun shareSong(song: Song) {
         DesktopExternalLinks.copy("https://music.youtube.com/watch?v=${song.videoId}")
         DesktopTrackLog.log("copied a link to '${song.title}'")
+        DesktopPlayerHost.messages.value = DesktopStrings["link_copied", "Link copied to clipboard"]
     }
 
     /**
@@ -1190,6 +1235,7 @@ fun BitChordDesktopApp() {
         }
         DesktopExternalLinks.copy(url)
         DesktopTrackLog.log("copied a link to '${collection.title}'")
+        DesktopPlayerHost.messages.value = DesktopStrings["link_copied", "Link copied to clipboard"]
     }
 
     fun downloadSong(song: Song) {
@@ -2349,9 +2395,19 @@ fun BitChordDesktopApp() {
         overlays.settingsPage = DesktopSettingsPage.MAIN
     }
 
-    /** The Library's folder rows: the two folders this computer has, and Spotify once connected. */
+    /** The Library's folder rows: Liked Songs, the two folders this computer has, and Spotify once connected. */
     val libraryLinks = remember(spotifyCanvasCookie.isNotBlank()) {
         listOfNotNull(
+            LibraryLink(
+                item = ShelfItem(
+                    title = DesktopStrings["auto_liked", "Liked songs"],
+                    subtitle = DesktopStrings["auto_playlist", "Auto playlist"],
+                    thumbnailUrl = null,
+                    videoId = null,
+                    browseId = "VLLM",
+                ),
+                icon = Icons.Rounded.Favorite,
+            ),
             LibraryLink(
                 item = ShelfItem(
                     title = DesktopStrings["downloads", "Downloads"],
@@ -2427,6 +2483,7 @@ fun BitChordDesktopApp() {
     fun openLibraryItem(item: ShelfItem) {
         val browseId = item.browseId.orEmpty()
         when {
+            browseId == "VLLM" -> openLikedMusic()
             browseId == LOCAL_DOWNLOADS_ID -> selectDestination(DesktopDestination.DOWNLOADS)
             browseId == LOCAL_MUSIC_ID -> selectDestination(DesktopDestination.LOCAL_MUSIC)
             browseId == SPOTIFY_LIBRARY_ID -> openSpotifyLibrary()
@@ -3323,6 +3380,7 @@ fun BitChordDesktopApp() {
                         onDestinationSelected = ::selectDestination,
                         onOpenAccountPlaylist = { openShelfItem(it, PLAYLISTS_SHELF) },
                         onOpenLocalPlaylist = ::openPlaylist,
+                        onOpenLikedMusic = ::openLikedMusic,
                         onOpenSettings = ::openSettings,
                         focusSearch = searchFocusRequested,
                         onSearchFocused = { searchFocusRequested = false },
@@ -3589,10 +3647,6 @@ fun BitChordDesktopApp() {
                                         DesktopOriginalVersion.clear(current.videoId)
                                         playbackEngine.reloadCurrent(forceSourceRefresh = true)
                                     }.takeIf { DesktopOriginalVersion.isPinned(current.videoId) },
-                                    onMore = {
-                                        playerMenuOpen = false
-                                        playerOverflowOpen.value = true
-                                    },
                                     onSwitchLyricsQueue = {
                                         playerMenuOpen = false
                                         playerQueueToggle.value = true
@@ -3809,6 +3863,33 @@ fun BitChordDesktopApp() {
                             pipeline = playbackEngine.pipeline(),
                             onDismiss = { overlays.pipeline = false },
                         )
+                    }
+                    val globalMessage by DesktopPlayerHost.messages.collectAsState()
+                    LaunchedEffect(globalMessage) {
+                        if (globalMessage != null) {
+                            delay(2_500)
+                            DesktopPlayerHost.messages.value = null
+                        }
+                    }
+                    globalMessage?.let { text ->
+                        if (!overlays.nowPlaying) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(bottom = 88.dp),
+                                contentAlignment = Alignment.BottomCenter,
+                            ) {
+                                Text(
+                                    text = text,
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(50))
+                                        .background(Color.Black.copy(alpha = 0.85f))
+                                        .padding(horizontal = 18.dp, vertical = 10.dp),
+                                )
+                            }
+                        }
                     }
                 },
             ) { contentPadding ->
@@ -4772,6 +4853,7 @@ private fun DesktopSidebar(
     onDestinationSelected: (DesktopDestination) -> Unit,
     onOpenAccountPlaylist: (ShelfItem) -> Unit,
     onOpenLocalPlaylist: (DesktopPlaylist) -> Unit,
+    onOpenLikedMusic: () -> Unit = {},
     onOpenSettings: () -> Unit,
     /** Search was picked: the sidebar's box is the page's field, so it takes the focus. */
     focusSearch: Boolean,
@@ -4861,8 +4943,15 @@ private fun DesktopSidebar(
                 DesktopSidebarRailItem(
                     icon = BitChordIcons.Library,
                     label = "Library",
-                    selected = destination == DesktopDestination.LIBRARY,
+                    selected = destination == DesktopDestination.LIBRARY && openedCollectionId != "VLLM",
                     onClick = { onDestinationSelected(DesktopDestination.LIBRARY) },
+                )
+                Spacer(Modifier.height(6.dp))
+                DesktopSidebarRailItem(
+                    icon = BitChordIcons.HeartFilled,
+                    label = DesktopStrings["auto_liked", "Liked songs"],
+                    selected = openedCollectionId == "VLLM",
+                    onClick = onOpenLikedMusic,
                 )
                 Spacer(Modifier.height(6.dp))
                 if (HISTORY_KEY !in hiddenSidebar) {
@@ -4982,8 +5071,15 @@ private fun DesktopSidebar(
             DesktopSidebarItem(BitChordIcons.Explore, "Explore", destination == DesktopDestination.EXPLORE) {
                 onDestinationSelected(DesktopDestination.EXPLORE)
             }
-            DesktopSidebarItem(BitChordIcons.Library, "Library", destination == DesktopDestination.LIBRARY) {
+            DesktopSidebarItem(BitChordIcons.Library, "Library", destination == DesktopDestination.LIBRARY && openedCollectionId != "VLLM") {
                 onDestinationSelected(DesktopDestination.LIBRARY)
+            }
+            DesktopSidebarItem(
+                BitChordIcons.HeartFilled,
+                DesktopStrings["auto_liked", "Liked songs"],
+                openedCollectionId == "VLLM",
+            ) {
+                onOpenLikedMusic()
             }
             DesktopSidebarItem(BitChordIcons.Search, "Search", destination == DesktopDestination.SEARCH) {
                 onDestinationSelected(DesktopDestination.SEARCH)
