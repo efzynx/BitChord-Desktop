@@ -1,5 +1,6 @@
 package com.music.bitchord.desktop
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,8 +27,11 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.RadioButtonChecked
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.SystemUpdate
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,14 +65,15 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun DesktopUpdatesPage(onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
+    var updateChannel by remember { mutableStateOf(DesktopUpdateSettings.channel()) }
     var updateStatus by remember {
         mutableStateOf<DesktopUpdateChecker.UpdateCheckStatus>(DesktopUpdateChecker.UpdateCheckStatus.Idle)
     }
 
-    fun triggerCheck() {
+    fun triggerCheck(channel: DesktopUpdateChannel = updateChannel) {
         scope.launch {
             updateStatus = DesktopUpdateChecker.UpdateCheckStatus.Checking
-            updateStatus = DesktopUpdateChecker.checkManual()
+            updateStatus = DesktopUpdateChecker.checkManual(channel)
         }
     }
 
@@ -118,22 +123,139 @@ internal fun DesktopUpdatesPage(onDismiss: () -> Unit) {
             contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Section 1: Update Checker
+            // Section 1: Update Channel Selector
             item {
-                UpdateStatusCard(
-                    status = updateStatus,
-                    onCheckAgain = ::triggerCheck,
+                UpdateChannelCard(
+                    channel = updateChannel,
+                    onChannelChange = { newChannel ->
+                        updateChannel = newChannel
+                        DesktopUpdateSettings.setChannel(newChannel)
+                        triggerCheck(newChannel)
+                    },
                 )
             }
 
-            // Section 2: System Information
+            // Section 2: Update Checker
+            item {
+                UpdateStatusCard(
+                    status = updateStatus,
+                    onCheckAgain = { triggerCheck(updateChannel) },
+                )
+            }
+
+            // Section 3: System Information
             item {
                 SystemInfoCard()
             }
 
-            // Section 3: Installation & Uninstallation Guide
+            // Section 4: Installation & Uninstallation Guide
             item {
                 InstallationInfoCard()
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpdateChannelCard(
+    channel: DesktopUpdateChannel,
+    onChannelChange: (DesktopUpdateChannel) -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                RoundedCornerShape(16.dp),
+            ),
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Tune,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+                Spacer(Modifier.width(14.dp))
+                Column {
+                    Text(
+                        text = "Saluran Pembaruan (Update Channel)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "Pilih jenis rilis pembaruan yang ingin Anda terima",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DesktopSecondary,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                DesktopUpdateChannel.values().forEach { opt ->
+                    val isSelected = opt == channel
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onChannelChange(opt) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) {
+                            DesktopAccent.copy(alpha = 0.15f)
+                        } else {
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
+                        },
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) DesktopAccent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                        ),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = if (isSelected) Icons.Rounded.RadioButtonChecked else Icons.Rounded.RadioButtonUnchecked,
+                                contentDescription = null,
+                                tint = if (isSelected) DesktopAccent else DesktopSecondary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = opt.label,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = opt.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = 11.sp,
+                                    color = DesktopSecondary,
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -413,7 +535,8 @@ private fun SystemInfoCard() {
             InfoRow(label = "Sistem Operasi", value = DesktopSystemInfo.prettyOsName)
             InfoRow(label = "Arsitektur CPU", value = DesktopSystemInfo.osArch)
             InfoRow(label = "Java Runtime", value = "${DesktopSystemInfo.javaVersion} (${DesktopSystemInfo.javaVendor})")
-            InfoRow(label = "Versi BitChord", value = "v${DesktopSystemInfo.appVersion}")
+            InfoRow(label = "Versi BitChord Desktop", value = "v${DesktopSystemInfo.appVersion}")
+            InfoRow(label = "Sinkronisasi BitChord Base", value = "v${DesktopSystemInfo.BASE_UPSTREAM_VERSION} (Basis Core)")
             InfoRow(
                 label = "Repositori Sumber",
                 value = "efzynx/BitChord-Desktop",

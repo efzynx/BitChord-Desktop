@@ -1,5 +1,6 @@
 package com.music.bitchord.desktop
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,15 +23,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentPaste
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.ManageAccounts
+import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,8 +58,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.music.bitchord.ui.icons.BitChordIcons
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -115,6 +127,8 @@ internal fun DesktopAccountSelector(
     onDismiss: () -> Unit,
 ) {
     var managing by remember { mutableStateOf(false) }
+    var accountToSignOut by remember { mutableStateOf<DesktopGoogleAccount?>(null) }
+
     Box(Modifier.fillMaxSize()) {
         // The scrim is its own layer rather than a modifier on the container.
         Box(
@@ -183,20 +197,119 @@ internal fun DesktopAccountSelector(
                                 profile.profileId == activeProfileId,
                             managing = managing,
                             onClick = { onSelect(account, profile); onDismiss() },
-                            onRemove = { onRemoveAccount(account) },
+                            onRequestSignOut = { accountToSignOut = account },
                         )
                     }
                 }
                 item { DesktopSelectorAction(BitChordIcons.Plus, "Add account", onAddAccount) }
                 if (accounts.isNotEmpty()) {
                     item {
-                        DesktopSelectorAction(Icons.Rounded.ManageAccounts, "Manage accounts") {
+                        DesktopSelectorAction(
+                            icon = Icons.Rounded.ManageAccounts,
+                            label = if (managing) "Selesai mengelola" else "Manage accounts",
+                        ) {
                             managing = !managing
                         }
                     }
                 }
                 item { DesktopSelectorAction(Icons.Rounded.Settings, "Settings", onOpenSettings) }
                 item { Spacer(Modifier.height(10.dp)) }
+            }
+        }
+
+        accountToSignOut?.let { account ->
+            DesktopConfirmSignOutDialog(
+                account = account,
+                onConfirm = {
+                    accountToSignOut = null
+                    onRemoveAccount(account)
+                },
+                onDismiss = {
+                    accountToSignOut = null
+                },
+            )
+        }
+    }
+}
+
+@Composable
+internal fun DesktopConfirmSignOutDialog(
+    account: DesktopGoogleAccount,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onDismiss,
+                ),
+        )
+        val shape = RoundedCornerShape(20.dp)
+        Column(
+            Modifier
+                .widthIn(max = 420.dp)
+                .fillMaxWidth()
+                .padding(24.dp)
+                .clip(shape)
+                .desktopBarGlass(shape)
+                .padding(24.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(DesktopDestructive.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Rounded.Logout,
+                        contentDescription = null,
+                        tint = DesktopDestructive,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Spacer(Modifier.width(14.dp))
+                Text(
+                    text = "Keluar dari Akun?",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                )
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            val name = account.name.ifBlank { account.email.ifBlank { "Akun YouTube Music" } }
+            Text(
+                text = "Apakah Anda yakin ingin keluar dari akun \"$name\"? Akun ini akan dihapus dari daftar akun BitChord Desktop.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = DesktopSecondary,
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text("Batal", color = DesktopSecondary)
+                }
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = onConfirm,
+                    colors = ButtonDefaults.buttonColors(containerColor = DesktopDestructive),
+                    shape = RoundedCornerShape(10.dp),
+                ) {
+                    Text("Keluar", color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }
@@ -208,13 +321,13 @@ private fun DesktopProfileRow(
     selected: Boolean,
     managing: Boolean,
     onClick: () -> Unit,
-    onRemove: () -> Unit,
+    onRequestSignOut: () -> Unit,
 ) {
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clickable(onClick = if (managing) onRemove else onClick)
+            .clickable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -244,9 +357,20 @@ private fun DesktopProfileRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        when {
-            managing -> Text(DesktopStrings["sign_out", "Sign out"], color = DesktopDestructive, style = MaterialTheme.typography.labelMedium)
-            selected -> Icon(BitChordIcons.Check, DesktopStrings["selected", "Selected"], tint = DesktopAccent, modifier = Modifier.size(20.dp))
+        if (managing) {
+            IconButton(
+                onClick = onRequestSignOut,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Rounded.Logout,
+                    contentDescription = "Keluar dari akun",
+                    tint = DesktopDestructive,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        } else if (selected) {
+            Icon(BitChordIcons.Check, DesktopStrings["selected", "Selected"], tint = DesktopAccent, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -286,15 +410,26 @@ internal fun DesktopSignInDialog(
     error: String?,
     onDismiss: () -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
     var profiles by remember { mutableStateOf<List<DesktopBrowserCookies.Profile>?>(null) }
+    var refreshingProfiles by remember { mutableStateOf(false) }
     var pasting by remember { mutableStateOf(false) }
     var pasted by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
-        profiles = withContext(Dispatchers.IO) {
-            DesktopBrowserCookies.profiles().filterNot {
-                DesktopPlatform.isWindows && it.family == DesktopBrowserCookies.Family.CHROMIUM
+
+    fun loadProfiles() {
+        scope.launch {
+            refreshingProfiles = true
+            profiles = withContext(Dispatchers.IO) {
+                DesktopBrowserCookies.profiles().filterNot {
+                    DesktopPlatform.isWindows && it.family == DesktopBrowserCookies.Family.CHROMIUM
+                }
             }
+            refreshingProfiles = false
         }
+    }
+
+    LaunchedEffect(Unit) {
+        loadProfiles()
     }
 
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -317,44 +452,57 @@ internal fun DesktopSignInDialog(
                 .fillMaxWidth()
                 .clip(shape)
                 .desktopBarGlass(shape)
-                .padding(bottom = 8.dp),
+                .padding(bottom = 12.dp),
         ) {
             Row(
-                Modifier.fillMaxWidth().padding(start = 22.dp, end = 10.dp, top = 10.dp),
+                Modifier.fillMaxWidth().padding(start = 22.dp, end = 12.dp, top = 14.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    DesktopStrings["sign_in_youtube_music", "Sign in to YouTube Music"],
+                    DesktopStrings["sign_in_youtube_music", "Tambah Akun YouTube Music"],
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
-                    modifier = Modifier.weight(1f).padding(top = 10.dp),
+                    modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Rounded.Close, DesktopStrings["close", "Close"], tint = DesktopSecondary)
                 }
             }
             Text(
-                if (webSignIn) {
-                    "Sign in with Google in a BitChord window, then choose \"Use this profile\"."
-                } else {
-                    DesktopStrings[
-                        "d_google_signs_in_inside_a_browser",
-                        "Google signs in inside a browser and hands back a session. Pick a browser " +
-                            "here that is already signed in and BitChord will use its session.",
-                    ]
-                },
+                "Hubungkan akun secara instan dari browser yang sudah login di komputer, atau buka browser bawaan Anda.",
                 style = MaterialTheme.typography.bodySmall,
                 color = DesktopSecondary,
-                modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 10.dp),
+                modifier = Modifier.padding(horizontal = 22.dp).padding(bottom = 8.dp),
             )
             error?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DesktopAccent,
-                    modifier = Modifier.padding(horizontal = 22.dp).padding(bottom = 8.dp),
-                )
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Rounded.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(6.dp))
             }
             when {
                 pasting -> {
@@ -397,29 +545,183 @@ internal fun DesktopSignInDialog(
                 ) {
                     CircularProgressIndicator(color = DesktopAccent, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(12.dp))
-                    Text(DesktopStrings["d_looking_for_browsers", "Looking for browsers…"], color = DesktopSecondary)
+                    Text(DesktopStrings["d_looking_for_browsers", "Memeriksa browser terpasang…"], color = DesktopSecondary)
                 }
-                else -> LazyColumn(Modifier.heightIn(max = 320.dp)) {
+                else -> LazyColumn(Modifier.heightIn(max = 380.dp)) {
                     val found = profiles.orEmpty()
+
+                    // Kartu Buka di Browser Default
+                    item(key = "open-browser-card") {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 6.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { DesktopExternalLinks.open("https://music.youtube.com") },
+                            shape = RoundedCornerShape(12.dp),
+                            color = DesktopAccent.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, DesktopAccent.copy(alpha = 0.35f)),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(DesktopAccent.copy(alpha = 0.2f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.OpenInNew,
+                                        contentDescription = null,
+                                        tint = DesktopAccent,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Buka YouTube Music di Browser Default",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.White,
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = "Pastikan Anda sudah login di browser, lalu klik profil browser Anda di bawah.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 11.sp,
+                                        color = DesktopSecondary,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Header Profil Browser
+                    item(key = "browser-header") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 22.dp, end = 16.dp, top = 10.dp, bottom = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Browser Terdeteksi (Impor Sesi Otomatis)",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = DesktopSecondary,
+                            )
+                            if (refreshingProfiles) {
+                                CircularProgressIndicator(color = DesktopAccent, modifier = Modifier.size(14.dp))
+                            } else {
+                                IconButton(
+                                    onClick = { loadProfiles() },
+                                    modifier = Modifier.size(28.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Refresh,
+                                        contentDescription = "Muat ulang browser",
+                                        tint = DesktopSecondary,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (found.isEmpty()) {
+                        item {
+                            Text(
+                                "Tidak ada profil browser yang ditemukan di komputer ini.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = DesktopSecondary,
+                                modifier = Modifier.padding(horizontal = 22.dp, vertical = 8.dp),
+                            )
+                        }
+                    } else {
+                        items(found.size, key = { "profile-${found[it].database}" }) { index ->
+                            val profile = found[index]
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 54.dp)
+                                    .clickable(enabled = busy == null) { onImport(profile) }
+                                    .padding(horizontal = 22.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.08f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Language,
+                                        null,
+                                        tint = DesktopAccent,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                                Spacer(Modifier.width(14.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(profile.label, color = Color.White, fontWeight = FontWeight.Medium)
+                                    Text(
+                                        "Gunakan sesi dari ${profile.browser} tanpa perlu kata sandi",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 11.sp,
+                                        color = DesktopSecondary,
+                                    )
+                                }
+                                if (busy == profile.label) {
+                                    CircularProgressIndicator(color = DesktopAccent, modifier = Modifier.size(14.dp))
+                                }
+                            }
+                        }
+                    }
+
+                    // Opsi Lainnya (In-App WebView & Paste Cookie)
+                    item(key = "other-options-header") {
+                        Text(
+                            text = "Opsi Lainnya",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DesktopSecondary,
+                            modifier = Modifier.padding(start = 22.dp, top = 14.dp, bottom = 4.dp),
+                        )
+                    }
+
                     if (webSignIn) {
                         item(key = "web-sign-in") {
                             Row(
                                 Modifier
                                     .fillMaxWidth()
-                                    .heightIn(min = 62.dp)
+                                    .heightIn(min = 52.dp)
                                     .clickable(enabled = busy == null) { onWebSignIn() }
-                                    .padding(horizontal = 22.dp, vertical = 8.dp),
+                                    .padding(horizontal = 22.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
+                                Icon(
+                                    Icons.Rounded.Person,
+                                    null,
+                                    tint = Color.White.copy(alpha = 0.75f),
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.width(14.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text("Sign in with Google", color = Color.White)
+                                    Text("Login via Jendela Aplikasi (WebView)", color = Color.White)
                                     Text(
                                         if (busy == WEB_SIGN_IN) {
-                                            "Finish in the sign-in window, then choose \"Use this profile\""
+                                            "Selesaikan di jendela login, lalu klik \"Use this profile\""
                                         } else {
-                                            "Opens Google's sign-in page in a BitChord window"
+                                            "Buka halaman login Google dalam jendela terpisah"
                                         },
                                         style = MaterialTheme.typography.bodySmall,
+                                        fontSize = 11.sp,
                                         color = DesktopSecondary,
                                     )
                                 }
@@ -429,51 +731,32 @@ internal fun DesktopSignInDialog(
                             }
                         }
                     }
-                    if (found.isEmpty() && !webSignIn) {
-                        item {
-                            Text(
-                                DesktopStrings["d_no_browser_profile_was_found_on_this_machine", "No browser profile was found on this machine."],
-                                style = MaterialTheme.typography.bodySmall,
-                                color = DesktopSecondary,
-                                modifier = Modifier.padding(horizontal = 22.dp, vertical = 8.dp),
-                            )
-                        }
-                    }
-                    items(found.size, key = { found[it].database.toString() }) { index ->
-                        val profile = found[index]
+
+                    item(key = "paste-cookie") {
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 52.dp)
-                                .clickable(enabled = busy == null) { onImport(profile) }
-                                .padding(horizontal = 22.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(profile.label, color = Color.White, modifier = Modifier.weight(1f))
-                            if (busy == profile.label) {
-                                CircularProgressIndicator(color = DesktopAccent, modifier = Modifier.size(14.dp))
-                            }
-                        }
-                    }
-                    item {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 52.dp)
+                                .heightIn(min = 48.dp)
                                 .clickable { pasting = true }
-                                .padding(horizontal = 22.dp),
+                                .padding(horizontal = 22.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
                                 Icons.Rounded.ContentPaste,
                                 null,
-                                tint = Color.White.copy(alpha = 0.85f),
+                                tint = Color.White.copy(alpha = 0.75f),
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(Modifier.width(14.dp))
-                            Text(DesktopStrings["d_paste_a_cookie_instead", "Paste a cookie instead"], color = Color.White)
+                            Text(
+                                DesktopStrings["d_paste_a_cookie_instead", "Tempel cookie sesi secara manual"],
+                                color = DesktopSecondary,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
                         }
                     }
+
+                    item { Spacer(Modifier.height(8.dp)) }
                 }
             }
         }

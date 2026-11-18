@@ -3389,6 +3389,8 @@ fun BitChordDesktopApp() {
                         accountAvatar = activeAccount?.profiles?.firstOrNull { it.profileId == activeProfileId }?.avatar?.takeIf { it.isNotBlank() }
                             ?: activeAccount?.avatar?.takeIf { it.isNotBlank() }
                             ?: activeAccount?.profiles?.firstOrNull()?.avatar?.takeIf { it.isNotBlank() },
+                        accountName = activeAccount?.profiles?.firstOrNull { it.profileId == activeProfileId }?.name?.takeIf { it.isNotBlank() }
+                            ?: activeAccount?.name?.takeIf { it.isNotBlank() },
                         onOpenAccounts = { DesktopTrackLog.log("accounts: opening the switcher"); overlays.accounts = true },
                     )
                 },
@@ -4861,6 +4863,7 @@ private fun DesktopSidebar(
     canGoBack: Boolean = false,
     onBack: () -> Unit = {},
     accountAvatar: String? = null,
+    accountName: String? = null,
     onOpenAccounts: () -> Unit = {},
 ) {
     val searchFocusRequester = remember { FocusRequester() }
@@ -4974,13 +4977,6 @@ private fun DesktopSidebar(
                 }
                 Spacer(Modifier.weight(1f))
                 DesktopAccountButton(avatar = accountAvatar, onClick = onOpenAccounts)
-                Spacer(Modifier.height(8.dp))
-                DesktopSidebarRailItem(
-                    icon = Icons.Rounded.Settings,
-                    label = "Settings",
-                    selected = settingsOpen,
-                    onClick = onOpenSettings,
-                )
                 if (!compact) {
                     Spacer(Modifier.height(8.dp))
                     DesktopSidebarRailItem(
@@ -5161,15 +5157,33 @@ private fun DesktopSidebar(
                 DesktopSidebarRestoreRow(hiddenSidebar)
             }
             Row(
-                Modifier.fillMaxWidth(),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .desktopHoverWash()
+                    .clickable(onClick = onOpenAccounts)
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.weight(1f)) {
-                    DesktopSidebarItem(Icons.Rounded.Settings, "Settings", settingsOpen) {
-                        onOpenSettings()
-                    }
-                }
                 DesktopAccountButton(avatar = accountAvatar, onClick = onOpenAccounts)
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = accountName ?: DesktopStrings["accounts", "Account"],
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = DesktopStrings["switch_account", "Switch account"],
+                        color = DesktopSecondary,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 11.sp,
+                    )
+                }
             }
         }
         }
