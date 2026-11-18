@@ -3301,48 +3301,7 @@ fun BitChordDesktopApp() {
                         else -> false
                     }
                 },
-                topBar = { compact ->
-                    DesktopTopBar(
-                        compact = compact,
-                        song = selectedSong,
-                        isPlaying = playback.isPlaying,
-                        isLoading = playback.isLoading,
-                        previousEnabled = liveQueue.hasPrevious ||
-                            playback.positionMs > BACK_RESTARTS_AFTER_MS,
-                        progress = if (playback.durationMs > 0L) {
-                            playback.positionMs.toFloat() / playback.durationMs.toFloat()
-                        } else {
-                            0f
-                        },
-                        volume = playback.volume,
-                        shuffle = shuffle,
-                        repeatMode = repeatMode,
-                        onPlayPause = { if (selectedSong != null) togglePlayPauseFromUser() },
-                        onPrevious = ::playPrevious,
-                        onNext = ::playNext,
-                        onShuffleChange = ::setShuffle,
-                        onRepeatModeChange = {
-                            repeatMode = it
-                            persistence.saveString("repeat_mode", it.name)
-                        },
-                        onOpenNowPlaying = { overlays.nowPlaying = true },
-                        onVolumeChange = {
-                            volume = it
-                            persistence.saveString("volume", it.toString())
-                        },
-                        onOpenAudioOutput = { overlays.audioOutput = true },
-                        // A second click on the same button puts the column away, as in Apple Music.
-                        onOpenLyrics = { overlays.toggleSidePanel(DesktopSidePanel.LYRICS) },
-                        onOpenQueue = { overlays.toggleSidePanel(DesktopSidePanel.QUEUE) },
-                        sidePanel = overlays.sidePanel,
-                        accountAvatar = activeAccount?.profiles?.firstOrNull { it.profileId == activeProfileId }?.avatar?.takeIf { it.isNotBlank() }
-                            ?: activeAccount?.avatar?.takeIf { it.isNotBlank() }
-                            ?: activeAccount?.profiles?.firstOrNull()?.avatar?.takeIf { it.isNotBlank() },
-                        onOpenAccounts = { DesktopTrackLog.log("accounts: opening the switcher"); overlays.accounts = true },
-                        canGoBack = navHistory.isNotEmpty(),
-                        onBack = ::goBack,
-                    )
-                },
+                topBar = {},
                 sidebar = { compact ->
                     DesktopSidebar(
                         compact = compact,
@@ -3403,6 +3362,7 @@ fun BitChordDesktopApp() {
                             volume = it
                             persistence.saveString("volume", it.toString())
                         },
+                        onOpenAudioOutput = { overlays.audioOutput = true },
                         onOpenLyrics = { overlays.toggleSidePanel(DesktopSidePanel.LYRICS) },
                         onOpenQueue = { overlays.toggleSidePanel(DesktopSidePanel.QUEUE) },
                         sidePanel = overlays.sidePanel,
@@ -4488,6 +4448,7 @@ fun BitChordDesktopApp() {
 
 }
 
+@Suppress("Unused", "UNUSED_PARAMETER")
 @Composable
 private fun DesktopTopBar(
     compact: Boolean,
@@ -5103,8 +5064,16 @@ private fun DesktopSidebar(
             if (hiddenSidebar.isNotEmpty()) {
                 DesktopSidebarRestoreRow(hiddenSidebar)
             }
-            DesktopSidebarItem(Icons.Rounded.Settings, "Settings", settingsOpen) {
-                onOpenSettings()
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f)) {
+                    DesktopSidebarItem(Icons.Rounded.Settings, "Settings", settingsOpen) {
+                        onOpenSettings()
+                    }
+                }
+                DesktopAccountButton(avatar = accountAvatar, onClick = onOpenAccounts)
             }
         }
         }
@@ -5297,6 +5266,7 @@ private fun DesktopAppleMusicBottomBar(
     onRepeatModeChange: (DesktopRepeatMode) -> Unit,
     onOpenNowPlaying: () -> Unit,
     onVolumeChange: (Float) -> Unit,
+    onOpenAudioOutput: (() -> Unit)? = null,
     onOpenLyrics: () -> Unit,
     onOpenQueue: () -> Unit,
     sidePanel: DesktopSidePanel?,
@@ -5308,7 +5278,7 @@ private fun DesktopAppleMusicBottomBar(
     Surface(
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            .widthIn(max = 680.dp)
+            .widthIn(max = 760.dp)
             .fillMaxWidth()
             .height(58.dp)
             .clip(shape)
@@ -5537,13 +5507,23 @@ private fun DesktopAppleMusicBottomBar(
                                         activeHeight = 6.dp,
                                         modifier = Modifier.width(90.dp),
                                     )
-                                    Spacer(Modifier.width(4.dp))
-                                    Icon(
-                                        Icons.Rounded.VolumeUp,
-                                        contentDescription = null,
-                                        tint = DesktopSecondary,
-                                        modifier = Modifier.size(14.dp),
-                                    )
+                                    onOpenAudioOutput?.let { openOutput ->
+                                        Spacer(Modifier.width(6.dp))
+                                        DesktopToolbarButton(
+                                            onClick = {
+                                                volumePopupOpen = false
+                                                openOutput()
+                                            },
+                                            size = 24.dp,
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.Headphones,
+                                                DesktopStrings["audio_output", "Audio output"],
+                                                tint = DesktopSecondary,
+                                                modifier = Modifier.size(15.dp),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -5630,7 +5610,7 @@ private fun DesktopFrame(
      */
     /** Receives true when its solid base should be left clear for the system material. */
     backdrop: @Composable (transparentBase: Boolean) -> Unit,
-    topBar: @Composable (Boolean) -> Unit,
+    topBar: @Composable (Boolean) -> Unit = {},
     sidebar: @Composable (Boolean) -> Unit,
     bottomBar: @Composable (Boolean) -> Unit,
     /** The column on the far side of the page — the lyrics or the queue, when one is open. */
@@ -5674,9 +5654,7 @@ private fun DesktopFrame(
                                 Column(Modifier.weight(1f).fillMaxHeight()) {
                                     val titleBarEnabled by DesktopTitleBarSetting.enabled.collectAsState()
                                     val inlineCaption = DesktopPlatform.drawsOwnWindowFrame && !titleBarEnabled
-                                    if (!compact) {
-                                        topBar(false)
-                                    } else if (inlineCaption) {
+                                    if (inlineCaption) {
                                         DesktopTitleBarDragArea(Modifier.fillMaxWidth().height(24.dp))
                                     }
                                     Row(Modifier.fillMaxWidth().weight(1f)) {
@@ -5692,6 +5670,7 @@ private fun DesktopFrame(
                                                     },
                                                 ),
                                         ) {
+                                            val hasSong = LocalNowPlaying.current != null
                                             Box(Modifier.fillMaxSize().hazeSource(haze)) {
                                                 if (glass) backdrop(materialBehindApp)
                                                 content(
@@ -5700,13 +5679,11 @@ private fun DesktopFrame(
                                                         end = 0.dp,
                                                         // Room for the bar that floats over this, so the
                                                         // last row can still be scrolled clear of it.
-                                                        bottom = if (compact) 90.dp else 16.dp,
+                                                        bottom = if (hasSong) 90.dp else 16.dp,
                                                     ),
                                                 )
                                             }
-                                            if (compact) {
-                                                Box(Modifier.align(Alignment.BottomCenter)) { bottomBar(true) }
-                                            }
+                                            Box(Modifier.align(Alignment.BottomCenter)) { bottomBar(compact) }
                                         }
                                     Box(
                                         Modifier
