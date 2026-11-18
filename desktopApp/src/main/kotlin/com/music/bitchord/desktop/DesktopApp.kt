@@ -509,9 +509,9 @@ private enum class DesktopRepeatMode {
     }
 
     fun label(): String = when (this) {
-        OFF -> "Off"
-        ALL -> "All"
-        ONE -> "One"
+        OFF -> DesktopStrings["d_off", "Off"]
+        ALL -> DesktopStrings["repeat_all", "All"]
+        ONE -> DesktopStrings["repeat_one", "One"]
     }
 }
 
@@ -2379,6 +2379,9 @@ fun BitChordDesktopApp() {
         selectedMoodGenre = null
         libraryShowAll = null
         if (next == DesktopDestination.SEARCH) searchFocusRequested = true
+        if (next == DesktopDestination.LISTEN_NOW) {
+            navHistory.clear()
+        }
         destination = next
     }
 
@@ -3007,6 +3010,16 @@ fun BitChordDesktopApp() {
                 artistReloads++
             }
         }
+        if (entry.destination == DesktopDestination.LISTEN_NOW &&
+            entry.artist == null &&
+            entry.collection == null &&
+            entry.mood == null &&
+            entry.showAll == null &&
+            entry.settings == null &&
+            !entry.replay
+        ) {
+            navHistory.clear()
+        }
     }
 
     fun openMoodGenre(item: MoodGenre) {
@@ -3384,7 +3397,14 @@ fun BitChordDesktopApp() {
                         onOpenSettings = ::openSettings,
                         focusSearch = searchFocusRequested,
                         onSearchFocused = { searchFocusRequested = false },
-                        canGoBack = navHistory.isNotEmpty(),
+                        canGoBack = navHistory.isNotEmpty() &&
+                            !(destination == DesktopDestination.LISTEN_NOW &&
+                                openedArtist == null &&
+                                openedCollection == null &&
+                                selectedMoodGenre == null &&
+                                libraryShowAll == null &&
+                                overlays.settingsPage == null &&
+                                !overlays.replay),
                         onBack = ::goBack,
                         accountAvatar = activeAccount?.profiles?.firstOrNull { it.profileId == activeProfileId }?.avatar?.takeIf { it.isNotBlank() }
                             ?: activeAccount?.avatar?.takeIf { it.isNotBlank() }
@@ -4927,7 +4947,7 @@ private fun DesktopSidebar(
                 }
                 DesktopSidebarRailItem(
                     icon = BitChordIcons.Search,
-                    label = "Search",
+                    label = DesktopStrings["search", "Search"],
                     selected = destination == DesktopDestination.SEARCH,
                     onClick = { onDestinationSelected(DesktopDestination.SEARCH) },
                 )
@@ -4941,14 +4961,14 @@ private fun DesktopSidebar(
                 Spacer(Modifier.height(6.dp))
                 DesktopSidebarRailItem(
                     icon = BitChordIcons.Explore,
-                    label = "Explore",
+                    label = DesktopStrings["explore", "Explore"],
                     selected = destination == DesktopDestination.EXPLORE,
                     onClick = { onDestinationSelected(DesktopDestination.EXPLORE) },
                 )
                 Spacer(Modifier.height(6.dp))
                 DesktopSidebarRailItem(
                     icon = BitChordIcons.Library,
-                    label = "Library",
+                    label = DesktopStrings["library", "Library"],
                     selected = destination == DesktopDestination.LIBRARY && openedCollectionId != "VLLM",
                     onClick = { onDestinationSelected(DesktopDestination.LIBRARY) },
                 )
@@ -4963,7 +4983,7 @@ private fun DesktopSidebar(
                 if (HISTORY_KEY !in hiddenSidebar) {
                     DesktopSidebarRailItem(
                         icon = BitChordIcons.Clock,
-                        label = "History",
+                        label = DesktopStrings["history", "History"],
                         selected = destination == DesktopDestination.HISTORY,
                         onClick = { onDestinationSelected(DesktopDestination.HISTORY) },
                     )
@@ -4972,7 +4992,7 @@ private fun DesktopSidebar(
                 if (DOWNLOADS_KEY !in hiddenSidebar) {
                     DesktopSidebarRailItem(
                         icon = BitChordIcons.Download,
-                        label = "Downloads",
+                        label = DesktopStrings["downloads", "Downloads"],
                         selected = destination == DesktopDestination.DOWNLOADS,
                         onClick = { onDestinationSelected(DesktopDestination.DOWNLOADS) },
                     )
@@ -4984,7 +5004,7 @@ private fun DesktopSidebar(
                     Spacer(Modifier.height(8.dp))
                     DesktopSidebarRailItem(
                         icon = BitChordIcons.ChevronRight,
-                        label = "Expand sidebar",
+                        label = DesktopStrings["d_expand_sidebar", "Expand sidebar"],
                         selected = false,
                         onClick = onToggleMinimize,
                     )
@@ -5081,7 +5101,7 @@ private fun DesktopSidebar(
                             ) {
                                 Icon(
                                     Icons.Rounded.ChevronLeft,
-                                    contentDescription = "Minimize sidebar",
+                                    contentDescription = DesktopStrings["d_minimize_sidebar", "Minimize sidebar"],
                                     tint = DesktopSecondary,
                                     modifier = Modifier.size(15.dp),
                                 )
@@ -5099,10 +5119,10 @@ private fun DesktopSidebar(
             DesktopSidebarItem(BitChordIcons.Home, DesktopStrings["home", "Home"], destination == DesktopDestination.LISTEN_NOW) {
                 onDestinationSelected(DesktopDestination.LISTEN_NOW)
             }
-            DesktopSidebarItem(BitChordIcons.Explore, "Explore", destination == DesktopDestination.EXPLORE) {
+            DesktopSidebarItem(BitChordIcons.Explore, DesktopStrings["explore", "Explore"], destination == DesktopDestination.EXPLORE) {
                 onDestinationSelected(DesktopDestination.EXPLORE)
             }
-            DesktopSidebarItem(BitChordIcons.Library, "Library", destination == DesktopDestination.LIBRARY && openedCollectionId != "VLLM") {
+            DesktopSidebarItem(BitChordIcons.Library, DesktopStrings["library", "Library"], destination == DesktopDestination.LIBRARY && openedCollectionId != "VLLM") {
                 onDestinationSelected(DesktopDestination.LIBRARY)
             }
             DesktopSidebarItem(
@@ -5112,7 +5132,7 @@ private fun DesktopSidebar(
             ) {
                 onOpenLikedMusic()
             }
-            DesktopSidebarItem(BitChordIcons.Search, "Search", destination == DesktopDestination.SEARCH) {
+            DesktopSidebarItem(BitChordIcons.Search, DesktopStrings["search", "Search"], destination == DesktopDestination.SEARCH) {
                 onDestinationSelected(DesktopDestination.SEARCH)
             }
             Spacer(Modifier.height(6.dp))
@@ -5121,29 +5141,29 @@ private fun DesktopSidebar(
             if (HISTORY_KEY !in hiddenSidebar) {
                 DesktopSidebarItem(
                     BitChordIcons.Clock,
-                    "History",
+                    DesktopStrings["history", "History"],
                     destination == DesktopDestination.HISTORY,
                     onClick = { onDestinationSelected(DesktopDestination.HISTORY) },
-                    onHide = { DesktopSidebarVisibility.hide(HISTORY_KEY, "History") },
+                    onHide = { DesktopSidebarVisibility.hide(HISTORY_KEY, DesktopStrings["history", "History"]) },
                 )
             }
             val queued by DesktopDownloadQueue.active.collectAsState()
             if (DOWNLOADS_KEY !in hiddenSidebar) {
                 DesktopSidebarItem(
                     BitChordIcons.Download,
-                    if (queued.isEmpty()) "Downloads" else "Downloads · ${queued.size}",
+                    if (queued.isEmpty()) DesktopStrings["downloads", "Downloads"] else "${DesktopStrings["downloads", "Downloads"]} · ${queued.size}",
                     destination == DesktopDestination.DOWNLOADS,
                     onClick = { onDestinationSelected(DesktopDestination.DOWNLOADS) },
-                    onHide = { DesktopSidebarVisibility.hide(DOWNLOADS_KEY, "Downloads") },
+                    onHide = { DesktopSidebarVisibility.hide(DOWNLOADS_KEY, DesktopStrings["downloads", "Downloads"]) },
                 )
             }
             if (LOCAL_MUSIC_KEY !in hiddenSidebar) {
                 DesktopSidebarItem(
                     BitChordIcons.Library,
-                    "Local Music",
+                    DesktopStrings["local_music", "Local Music"],
                     destination == DesktopDestination.LOCAL_MUSIC,
                     onClick = { onDestinationSelected(DesktopDestination.LOCAL_MUSIC) },
-                    onHide = { DesktopSidebarVisibility.hide(LOCAL_MUSIC_KEY, "Local Music") },
+                    onHide = { DesktopSidebarVisibility.hide(LOCAL_MUSIC_KEY, DesktopStrings["local_music", "Local Music"]) },
                 )
             }
             Spacer(Modifier.height(6.dp))
@@ -5178,7 +5198,7 @@ private fun DesktopSidebar(
                 if (visibleAccount.isEmpty() && visibleLocal.isEmpty()) {
                     item {
                         Text(
-                            "Your playlists will appear here",
+                            DesktopStrings["d_playlists_empty_hint", "Your playlists will appear here"],
                             modifier = Modifier.padding(horizontal = 9.dp, vertical = 8.dp),
                             color = DesktopSecondary.copy(alpha = 0.68f),
                             style = MaterialTheme.typography.bodySmall,
@@ -5309,7 +5329,13 @@ private fun DesktopSidebarItem(
             )
         }
         if (onHide != null) {
-            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+                modifier = Modifier.desktopBarGlass(RoundedCornerShape(10.dp)),
+                containerColor = Color.Transparent,
+                shape = RoundedCornerShape(10.dp),
+            ) {
                 DropdownMenuItem(
                     text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
                     onClick = {
@@ -5360,7 +5386,13 @@ private fun DesktopSidebarRestoreRow(hidden: Map<String, String>) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            modifier = Modifier.desktopBarGlass(RoundedCornerShape(10.dp)),
+            containerColor = Color.Transparent,
+            shape = RoundedCornerShape(10.dp),
+        ) {
             hidden.forEach { (key, label) ->
                 DropdownMenuItem(
                     text = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -5668,10 +5700,12 @@ private fun DesktopAppleMusicBottomBar(
                             ) {
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
-                                    color = Color(0xFF28282B),
-                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.15f)),
+                                    color = Color.Transparent,
                                     shadowElevation = 8.dp,
-                                    modifier = Modifier.padding(bottom = 8.dp),
+                                    modifier = Modifier
+                                        .padding(bottom = 8.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .desktopBarGlass(RoundedCornerShape(12.dp)),
                                 ) {
                                     Row(
                                         Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -6761,78 +6795,98 @@ private fun DesktopSettingsScreen(
                     SettingsRow(
                         BitChordIcons.Repeat,
                         DesktopStrings["d_repeat", "Repeat"],
-                        "${repeatMode.label()} · Tap to change",
+                        "${repeatMode.label()} · ${DesktopStrings["d_tap_to_change", "Tap to change"]}",
                     ) { onRepeatModeChange(repeatMode.next()) }
                     var speedMenuOpen by remember { mutableStateOf(false) }
-                    Box {
+                    Box(Modifier.fillMaxWidth()) {
                         SettingsRow(
                             Icons.Rounded.Tune,
                             DesktopStrings["d_playback_speed", "Playback speed"],
                             "${"%.2f".format(playbackSpeed)}×",
                         ) { speedMenuOpen = true }
-                        DropdownMenu(speedMenuOpen, onDismissRequest = { speedMenuOpen = false }) {
-                            listOf(0.50f, 0.75f, 1.00f, 1.25f, 1.50f, 1.75f, 2.00f).forEach { speed ->
-                                val label = if (speed == 1.0f) "1.00× (Normal)" else "${"%.2f".format(speed)}×"
-                                val isCurrent = kotlin.math.abs(playbackSpeed - speed) < 0.02f
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    trailingIcon = if (isCurrent) {
-                                        { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
-                                    } else null,
-                                    onClick = {
-                                        onPlaybackSpeedChange(speed)
-                                        speedMenuOpen = false
-                                    },
-                                )
+                        Box(Modifier.align(Alignment.BottomEnd).padding(end = 12.dp)) {
+                            DropdownMenu(
+                                expanded = speedMenuOpen,
+                                onDismissRequest = { speedMenuOpen = false },
+                                modifier = Modifier
+                                    .widthIn(min = 200.dp)
+                                    .desktopBarGlass(RoundedCornerShape(14.dp)),
+                                containerColor = Color.Transparent,
+                                shape = RoundedCornerShape(14.dp),
+                            ) {
+                                listOf(0.50f, 0.75f, 1.00f, 1.25f, 1.50f, 1.75f, 2.00f).forEach { speed ->
+                                    val label = if (speed == 1.0f) DesktopStrings["d_normal_speed", "1.00× (Normal)"] else "${"%.2f".format(speed)}×"
+                                    val isCurrent = kotlin.math.abs(playbackSpeed - speed) < 0.02f
+                                    DropdownMenuItem(
+                                        text = { Text(label, color = if (isCurrent) DesktopAccent else Color.White) },
+                                        trailingIcon = if (isCurrent) {
+                                            { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
+                                        } else null,
+                                        onClick = {
+                                            onPlaybackSpeedChange(speed)
+                                            speedMenuOpen = false
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
 
                     var sleepMenuOpen by remember { mutableStateOf(false) }
-                    Box {
+                    Box(Modifier.fillMaxWidth()) {
                         SettingsRow(
                             Icons.Rounded.Bedtime,
-                            "Sleep timer",
+                            DesktopStrings["sleep_timer", "Sleep timer"],
                             when {
-                                sleepRemainingMs != null -> "${formatSleepTimer(sleepRemainingMs)} until playback pauses"
-                                sleepAfterTrack -> "Pausing when this song ends"
-                                else -> "Pause playback after a while"
+                                sleepRemainingMs != null -> DesktopStrings.format("pause_countdown", formatSleepTimer(sleepRemainingMs), fallback = "${formatSleepTimer(sleepRemainingMs)} until playback pauses")
+                                sleepAfterTrack -> DesktopStrings["pause_after_song", "Pausing when this song ends"]
+                                else -> DesktopStrings["pause_after_a_while", "Pause playback after a while"]
                             },
                         ) { sleepMenuOpen = true }
-                        DropdownMenu(sleepMenuOpen, onDismissRequest = { sleepMenuOpen = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Nonaktif (Off)") },
-                                trailingIcon = if (sleepRemainingMs == null && !sleepAfterTrack) {
-                                    { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
-                                } else null,
-                                onClick = {
-                                    DesktopSleepTimer.cancel()
-                                    sleepMenuOpen = false
-                                },
-                            )
-                            listOf(15, 30, 45, 60).forEach { mins ->
-                                val isCurrent = sleepTimerMinutes == mins && !sleepAfterTrack
+                        Box(Modifier.align(Alignment.BottomEnd).padding(end = 12.dp)) {
+                            DropdownMenu(
+                                expanded = sleepMenuOpen,
+                                onDismissRequest = { sleepMenuOpen = false },
+                                modifier = Modifier
+                                    .widthIn(min = 260.dp)
+                                    .desktopBarGlass(RoundedCornerShape(14.dp)),
+                                containerColor = Color.Transparent,
+                                shape = RoundedCornerShape(14.dp),
+                            ) {
                                 DropdownMenuItem(
-                                    text = { Text("$mins Menit") },
-                                    trailingIcon = if (isCurrent) {
+                                    text = { Text(DesktopStrings["d_sleep_timer_off", "Off"], color = if (sleepRemainingMs == null && !sleepAfterTrack) DesktopAccent else Color.White) },
+                                    trailingIcon = if (sleepRemainingMs == null && !sleepAfterTrack) {
                                         { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
                                     } else null,
                                     onClick = {
-                                        DesktopSleepTimer.start(mins)
+                                        DesktopSleepTimer.cancel()
+                                        sleepMenuOpen = false
+                                    },
+                                )
+                                listOf(15, 30, 45, 60).forEach { mins ->
+                                    val isCurrent = sleepTimerMinutes == mins && !sleepAfterTrack
+                                    DropdownMenuItem(
+                                        text = { Text(DesktopStrings.format("d_sleep_timer_minutes", mins, fallback = "$mins min"), color = if (isCurrent) DesktopAccent else Color.White) },
+                                        trailingIcon = if (isCurrent) {
+                                            { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
+                                        } else null,
+                                        onClick = {
+                                            DesktopSleepTimer.start(mins)
+                                            sleepMenuOpen = false
+                                        },
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text(DesktopStrings["d_sleep_timer_end_of_track", "End of track"], color = if (sleepAfterTrack) DesktopAccent else Color.White) },
+                                    trailingIcon = if (sleepAfterTrack) {
+                                        { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
+                                    } else null,
+                                    onClick = {
+                                        DesktopSleepTimer.startAfterTrack()
                                         sleepMenuOpen = false
                                     },
                                 )
                             }
-                            DropdownMenuItem(
-                                text = { Text("Setelah lagu ini selesai (End of track)") },
-                                trailingIcon = if (sleepAfterTrack) {
-                                    { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
-                                } else null,
-                                onClick = {
-                                    DesktopSleepTimer.startAfterTrack()
-                                    sleepMenuOpen = false
-                                },
-                            )
                         }
                     }
                 }
@@ -6874,26 +6928,37 @@ private fun DesktopSettingsScreen(
                 SettingsGroup(DesktopStrings["language", "Language"]) {
                     var languageMenuOpen by remember { mutableStateOf(false) }
                     val chosen by DesktopStrings.language.collectAsState()
-                    Box {
+                    Box(Modifier.fillMaxWidth()) {
                         SettingsRow(
                             Icons.Rounded.Language,
                             DesktopStrings["app_language", "App language"],
                             DesktopStrings.languageLabel(),
                         ) { languageMenuOpen = true }
-                        DropdownMenu(languageMenuOpen, onDismissRequest = { languageMenuOpen = false }) {
-                            DesktopStrings.available.forEach { language ->
-                                DropdownMenuItem(
-                                    text = { Text(language.label) },
-                                    trailingIcon = if (language.tag == chosen) {
-                                        { Icon(BitChordIcons.Check, contentDescription = null) }
-                                    } else {
-                                        null
-                                    },
-                                    onClick = {
-                                        DesktopStrings.setLanguage(language.tag)
-                                        languageMenuOpen = false
-                                    },
-                                )
+                        Box(Modifier.align(Alignment.BottomEnd).padding(end = 12.dp)) {
+                            DropdownMenu(
+                                expanded = languageMenuOpen,
+                                onDismissRequest = { languageMenuOpen = false },
+                                modifier = Modifier
+                                    .widthIn(min = 220.dp)
+                                    .desktopBarGlass(RoundedCornerShape(14.dp)),
+                                containerColor = Color.Transparent,
+                                shape = RoundedCornerShape(14.dp),
+                            ) {
+                                DesktopStrings.available.forEach { language ->
+                                    val isCurrent = language.tag == chosen
+                                    DropdownMenuItem(
+                                        text = { Text(language.label, color = if (isCurrent) DesktopAccent else Color.White) },
+                                        trailingIcon = if (isCurrent) {
+                                            { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
+                                        } else {
+                                            null
+                                        },
+                                        onClick = {
+                                            DesktopStrings.setLanguage(language.tag)
+                                            languageMenuOpen = false
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -7782,7 +7847,13 @@ private fun DesktopCollectionPage(
                             )
                             Box {
                                 DesktopCircleButton(Icons.Rounded.MoreHoriz, DesktopStrings["more", "More"], onClick = { moreOpen = true })
-                                DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
+                                DropdownMenu(
+                                    expanded = moreOpen,
+                                    onDismissRequest = { moreOpen = false },
+                                    modifier = Modifier.desktopBarGlass(RoundedCornerShape(12.dp)),
+                                    containerColor = Color.Transparent,
+                                    shape = RoundedCornerShape(12.dp),
+                                ) {
                                     DropdownMenuItem(
                                         text = { Text(DesktopStrings["download_all", "Download all"]) },
                                         leadingIcon = { Icon(BitChordIcons.Download, null) },

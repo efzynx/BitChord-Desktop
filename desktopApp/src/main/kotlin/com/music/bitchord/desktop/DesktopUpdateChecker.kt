@@ -19,9 +19,21 @@ import kotlinx.serialization.json.longOrNull
 /**
  * Pilihan saluran pembaruan aplikasi.
  */
-enum class DesktopUpdateChannel(val id: String, val label: String, val description: String) {
-    STABLE("stable", "Rilis Stabil (Stable)", "Hanya memeriksa versi stabil resmi"),
-    PRERELEASE("prerelease", "Beta / Pre-release", "Menerima pembaruan versi beta dan fitur terkini"),
+enum class DesktopUpdateChannel(val id: String) {
+    STABLE("stable"),
+    PRERELEASE("prerelease");
+
+    val label: String
+        get() = when (this) {
+            STABLE -> DesktopStrings["d_channel_stable", "Stable Releases"]
+            PRERELEASE -> DesktopStrings["d_channel_prerelease", "Beta / Pre-release"]
+        }
+
+    val description: String
+        get() = when (this) {
+            STABLE -> DesktopStrings["d_channel_stable_desc", "Official stable releases only"]
+            PRERELEASE -> DesktopStrings["d_channel_prerelease_desc", "Receive beta updates and latest features"]
+        }
 }
 
 /**

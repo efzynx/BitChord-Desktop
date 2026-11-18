@@ -157,7 +157,7 @@ internal fun DesktopAccountSelector(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    if (accounts.isEmpty()) "Accounts" else "Switch account",
+                    if (accounts.isEmpty()) DesktopStrings["accounts", "Accounts"] else DesktopStrings["switch_account", "Switch account"],
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
@@ -201,18 +201,18 @@ internal fun DesktopAccountSelector(
                         )
                     }
                 }
-                item { DesktopSelectorAction(BitChordIcons.Plus, "Add account", onAddAccount) }
+                item { DesktopSelectorAction(BitChordIcons.Plus, DesktopStrings["add_account", "Add account"], onAddAccount) }
                 if (accounts.isNotEmpty()) {
                     item {
                         DesktopSelectorAction(
                             icon = Icons.Rounded.ManageAccounts,
-                            label = if (managing) "Selesai mengelola" else "Manage accounts",
+                            label = if (managing) DesktopStrings["d_done_managing", "Done managing"] else DesktopStrings["manage_accounts", "Manage accounts"],
                         ) {
                             managing = !managing
                         }
                     }
                 }
-                item { DesktopSelectorAction(Icons.Rounded.Settings, "Settings", onOpenSettings) }
+                item { DesktopSelectorAction(Icons.Rounded.Settings, DesktopStrings["settings", "Settings"], onOpenSettings) }
                 item { Spacer(Modifier.height(10.dp)) }
             }
         }
@@ -276,7 +276,7 @@ internal fun DesktopConfirmSignOutDialog(
                 }
                 Spacer(Modifier.width(14.dp))
                 Text(
-                    text = "Keluar dari Akun?",
+                    text = DesktopStrings["d_sign_out_confirm_title", "Sign out of account?"],
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
@@ -285,9 +285,9 @@ internal fun DesktopConfirmSignOutDialog(
 
             Spacer(Modifier.height(14.dp))
 
-            val name = account.name.ifBlank { account.email.ifBlank { "Akun YouTube Music" } }
+            val name = account.name.ifBlank { account.email.ifBlank { "Account" } }
             Text(
-                text = "Apakah Anda yakin ingin keluar dari akun \"$name\"? Akun ini akan dihapus dari daftar akun BitChord Desktop.",
+                text = DesktopStrings.format("d_sign_out_confirm_message", name, "Are you sure you want to sign out of \"%s\"? This account will be removed from BitChord Desktop."),
                 style = MaterialTheme.typography.bodyMedium,
                 color = DesktopSecondary,
             )
@@ -300,7 +300,7 @@ internal fun DesktopConfirmSignOutDialog(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text("Batal", color = DesktopSecondary)
+                    Text(DesktopStrings["cancel", "Cancel"], color = DesktopSecondary)
                 }
                 Spacer(Modifier.width(8.dp))
                 Button(
@@ -308,7 +308,7 @@ internal fun DesktopConfirmSignOutDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = DesktopDestructive),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Text("Keluar", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text(DesktopStrings["sign_out", "Sign out"], color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -459,7 +459,7 @@ internal fun DesktopSignInDialog(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    DesktopStrings["sign_in_youtube_music", "Tambah Akun YouTube Music"],
+                    DesktopStrings["sign_in_youtube_music", "Sign in to YouTube Music"],
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = Color.White,
@@ -470,7 +470,7 @@ internal fun DesktopSignInDialog(
                 }
             }
             Text(
-                "Hubungkan akun secara instan dari browser yang sudah login di komputer, atau buka browser bawaan Anda.",
+                DesktopStrings["d_open_youtube_music_browser_desc", "Make sure you are signed in on your browser, then click your browser profile below to connect."],
                 style = MaterialTheme.typography.bodySmall,
                 color = DesktopSecondary,
                 modifier = Modifier.padding(horizontal = 22.dp).padding(bottom = 8.dp),
@@ -583,14 +583,14 @@ internal fun DesktopSignInDialog(
                                 Spacer(Modifier.width(12.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(
-                                        text = "Buka YouTube Music di Browser Default",
+                                        text = DesktopStrings["d_open_youtube_music_browser", "Open YouTube Music in Default Browser"],
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = Color.White,
                                     )
                                     Spacer(Modifier.height(2.dp))
                                     Text(
-                                        text = "Pastikan Anda sudah login di browser, lalu klik profil browser Anda di bawah.",
+                                        text = DesktopStrings["d_open_youtube_music_browser_desc", "Make sure you are signed in on your browser, then click your browser profile below to connect."],
                                         style = MaterialTheme.typography.bodySmall,
                                         fontSize = 11.sp,
                                         color = DesktopSecondary,
@@ -610,7 +610,7 @@ internal fun DesktopSignInDialog(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "Browser Terdeteksi (Impor Sesi Otomatis)",
+                                text = DesktopStrings["d_detected_browsers", "Detected Browsers (Auto-import session)"],
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = DesktopSecondary,
@@ -624,7 +624,7 @@ internal fun DesktopSignInDialog(
                                 ) {
                                     Icon(
                                         Icons.Rounded.Refresh,
-                                        contentDescription = "Muat ulang browser",
+                                        contentDescription = DesktopStrings["refresh", "Refresh"],
                                         tint = DesktopSecondary,
                                         modifier = Modifier.size(16.dp),
                                     )
@@ -636,7 +636,7 @@ internal fun DesktopSignInDialog(
                     if (found.isEmpty()) {
                         item {
                             Text(
-                                "Tidak ada profil browser yang ditemukan di komputer ini.",
+                                DesktopStrings["d_no_browser_profile_was_found_on_this_machine", "No browser profile was found on this machine."],
                                 style = MaterialTheme.typography.bodySmall,
                                 color = DesktopSecondary,
                                 modifier = Modifier.padding(horizontal = 22.dp, vertical = 8.dp),
@@ -671,7 +671,7 @@ internal fun DesktopSignInDialog(
                                 Column(Modifier.weight(1f)) {
                                     Text(profile.label, color = Color.White, fontWeight = FontWeight.Medium)
                                     Text(
-                                        "Gunakan sesi dari ${profile.browser} tanpa perlu kata sandi",
+                                        DesktopStrings.format("d_use_session_from", profile.browser, "Use session from %s without password"),
                                         style = MaterialTheme.typography.bodySmall,
                                         fontSize = 11.sp,
                                         color = DesktopSecondary,
@@ -687,7 +687,7 @@ internal fun DesktopSignInDialog(
                     // Opsi Lainnya (In-App WebView & Paste Cookie)
                     item(key = "other-options-header") {
                         Text(
-                            text = "Opsi Lainnya",
+                            text = DesktopStrings["d_other_options", "Other Options"],
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = DesktopSecondary,
@@ -713,12 +713,12 @@ internal fun DesktopSignInDialog(
                                 )
                                 Spacer(Modifier.width(14.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text("Login via Jendela Aplikasi (WebView)", color = Color.White)
+                                    Text(DesktopStrings["d_web_sign_in_title", "Sign in via App Window (WebView)"], color = Color.White)
                                     Text(
                                         if (busy == WEB_SIGN_IN) {
-                                            "Selesaikan di jendela login, lalu klik \"Use this profile\""
+                                            DesktopStrings["d_web_sign_in_busy", "Finish in the sign-in window, then click \"Use this profile\""]
                                         } else {
-                                            "Buka halaman login Google dalam jendela terpisah"
+                                            DesktopStrings["d_web_sign_in_desc", "Opens Google sign-in in a separate BitChord window"]
                                         },
                                         style = MaterialTheme.typography.bodySmall,
                                         fontSize = 11.sp,
@@ -749,7 +749,7 @@ internal fun DesktopSignInDialog(
                             )
                             Spacer(Modifier.width(14.dp))
                             Text(
-                                DesktopStrings["d_paste_a_cookie_instead", "Tempel cookie sesi secara manual"],
+                                DesktopStrings["d_paste_cookie_title", "Paste session cookie manually"],
                                 color = DesktopSecondary,
                                 style = MaterialTheme.typography.bodyMedium,
                             )
