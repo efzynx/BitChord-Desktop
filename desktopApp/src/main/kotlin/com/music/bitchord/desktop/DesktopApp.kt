@@ -3403,8 +3403,23 @@ fun BitChordDesktopApp() {
                             volume = it
                             persistence.saveString("volume", it.toString())
                         },
+                        onOpenLyrics = { overlays.toggleSidePanel(DesktopSidePanel.LYRICS) },
                         onOpenQueue = { overlays.toggleSidePanel(DesktopSidePanel.QUEUE) },
-                        menu = selectedSong?.let { s -> { songMenu(s) } },
+                        sidePanel = overlays.sidePanel,
+                        menu = selectedSong?.let { s ->
+                            {
+                                DesktopSongMenuAnchor(
+                                    song = s,
+                                    liked = s.videoId in likedIds,
+                                    actions = songActionsFor(s),
+                                    onToggleLike = { toggleLike(s) },
+                                    onRevertToOriginal = null,
+                                    onUpgradeQuality = null,
+                                    onOpenLyrics = { overlays.toggleSidePanel(DesktopSidePanel.LYRICS) },
+                                    onOpenQueue = { overlays.toggleSidePanel(DesktopSidePanel.QUEUE) },
+                                )
+                            }
+                        },
                     )
                 },
                 trailing = {
@@ -5282,7 +5297,9 @@ private fun DesktopAppleMusicBottomBar(
     onRepeatModeChange: (DesktopRepeatMode) -> Unit,
     onOpenNowPlaying: () -> Unit,
     onVolumeChange: (Float) -> Unit,
+    onOpenLyrics: () -> Unit,
     onOpenQueue: () -> Unit,
+    sidePanel: DesktopSidePanel?,
     menu: (@Composable () -> Unit)? = null,
 ) {
     if (song == null) return
@@ -5457,33 +5474,34 @@ private fun DesktopAppleMusicBottomBar(
 
             Spacer(Modifier.width(8.dp))
 
-            // Right: PREVIEW badge, More (...), Queue, Volume
+            // Right: Lyrics, Queue, More (...), Volume
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = Color.White.copy(alpha = 0.12f),
-                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.22f)),
+                DesktopToolbarButton(
+                    onClick = onOpenLyrics,
+                    size = 30.dp,
                 ) {
-                    Text(
-                        "PREVIEW",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
-                        color = Color.White.copy(alpha = 0.85f),
-                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
-                    )
-                }
-                Spacer(Modifier.width(4.dp))
-                menu?.invoke()
-                DesktopToolbarButton(onClick = onOpenQueue, size = 30.dp) {
                     Icon(
-                        BitChordIcons.Queue,
-                        DesktopStrings["queue", "Queue"],
-                        tint = Color.White.copy(alpha = 0.85f),
+                        BitChordIcons.LyricsQuote,
+                        DesktopStrings["lyrics", "Lyrics"],
+                        tint = if (sidePanel == DesktopSidePanel.LYRICS) DesktopAccent else Color.White.copy(alpha = 0.85f),
                         modifier = Modifier.size(17.dp),
                     )
                 }
+                DesktopToolbarButton(
+                    onClick = onOpenQueue,
+                    size = 30.dp,
+                ) {
+                    Icon(
+                        BitChordIcons.Queue,
+                        DesktopStrings["queue", "Queue"],
+                        tint = if (sidePanel == DesktopSidePanel.QUEUE) DesktopAccent else Color.White.copy(alpha = 0.85f),
+                        modifier = Modifier.size(17.dp),
+                    )
+                }
+                menu?.invoke()
                 var volumePopupOpen by remember { mutableStateOf(false) }
                 Box {
                     DesktopToolbarButton(onClick = { volumePopupOpen = !volumePopupOpen }, size = 30.dp) {
