@@ -6,6 +6,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 /** Milliseconds on the clock `SystemClock.uptimeMillis` reads on the phone. */
 internal expect fun uptimeMillis(): Long
 
+/** Whether the current platform is desktop (JVM) rather than mobile (Android). */
+internal expect val isDesktopPlatform: Boolean
+
 /** Whether `Modifier.blur` actually blurs here, rather than being a no-op. */
 internal expect val renderEffectBlurSupported: Boolean
 

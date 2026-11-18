@@ -653,10 +653,16 @@ private class DesktopMenuPosition : PopupPositionProvider {
             // margins.
             else -> margin
         }
-        val x = anchorBounds.left.coerceIn(
-            margin,
-            (windowSize.width - popupContentSize.width - margin).coerceAtLeast(margin),
-        )
+        val fitsRight = anchorBounds.left + popupContentSize.width + margin <= windowSize.width
+        val alignRight = anchorBounds.right - popupContentSize.width >= margin
+        val x = when {
+            fitsRight -> anchorBounds.left
+            alignRight -> anchorBounds.right - popupContentSize.width
+            else -> anchorBounds.left.coerceIn(
+                margin,
+                (windowSize.width - popupContentSize.width - margin).coerceAtLeast(margin),
+            )
+        }
         return IntOffset(x, y.coerceAtMost((windowSize.height - popupContentSize.height - margin).coerceAtLeast(margin)))
     }
 }
