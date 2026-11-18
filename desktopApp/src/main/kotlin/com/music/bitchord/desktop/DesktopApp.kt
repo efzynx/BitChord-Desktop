@@ -370,7 +370,7 @@ private val LocalDesktopHaze = staticCompositionLocalOf<HazeState?> { null }
 private val LocalDesktopBottomInset = staticCompositionLocalOf { 0.dp }
 
 /** Android's own edge on these bars: `Color.White.copy(alpha = 0.10f)`. */
-private val DesktopBarEdge = Color(0x1AFFFFFF)
+internal val DesktopBarEdge = Color(0x1AFFFFFF)
 internal val DesktopAccent = Color.White
 
 /** Deleting, signing out, and anything that failed — the one place a colour survives, as on Android. */
@@ -3237,12 +3237,9 @@ fun BitChordDesktopApp() {
                 containerColor = DesktopBackground,
                 // Only Replay dresses itself unless ambient backdrop is on; everywhere else the chrome sits on the plain surface.
                 backdrop = { transparentBase ->
-                    val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
                     val ambientArtworkUrl = replaySummary.songs.firstOrNull()?.song?.thumbnailUrl
                         .takeIf { overlays.replay }
-                        ?: selectedSong?.thumbnailUrl.takeIf {
-                            ambientBackdrop || (overlays.sidePanel != null && !reduceDynamicBlur)
-                        }
+                        ?: selectedSong?.thumbnailUrl.takeIf { ambientBackdrop }
                     DesktopPageBackdrop(
                         artworkUrl = ambientArtworkUrl,
                         transparentBase = transparentBase,
@@ -5872,39 +5869,34 @@ private fun DesktopFrame(
                                     if (inlineCaption) {
                                         DesktopTitleBarDragArea(Modifier.fillMaxWidth().height(24.dp))
                                     }
-                                    Row(Modifier.fillMaxWidth().weight(1f)) {
-                                        Box(
-                                            Modifier
-                                                .weight(1f)
-                                                .fillMaxHeight()
-                                                .then(
-                                                    if (glass && !materialBehindApp) {
-                                                        Modifier.background(containerColor)
-                                                    } else {
-                                                        Modifier
-                                                    },
-                                                ),
-                                        ) {
-                                            val hasSong = LocalNowPlaying.current != null
-                                            Box(Modifier.fillMaxSize().hazeSource(haze)) {
-                                                if (glass) backdrop(materialBehindApp)
-                                                content(
-                                                    PaddingValues(
-                                                        start = 0.dp,
-                                                        end = 0.dp,
-                                                        // Room for the bar that floats over this, so the
-                                                        // last row can still be scrolled clear of it.
-                                                        bottom = if (hasSong) 90.dp else 16.dp,
-                                                    ),
-                                                )
-                                            }
-                                            Box(Modifier.align(Alignment.BottomCenter)) { bottomBar(compact) }
-                                        }
                                     Box(
                                         Modifier
-                                            .fillMaxHeight(),
-                                    ) { trailing() }
-                                }
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                            .then(
+                                                if (glass && !materialBehindApp) {
+                                                    Modifier.background(containerColor)
+                                                } else {
+                                                    Modifier
+                                                },
+                                            ),
+                                    ) {
+                                        val hasSong = LocalNowPlaying.current != null
+                                        Box(Modifier.fillMaxSize().hazeSource(haze)) {
+                                            if (glass) backdrop(materialBehindApp)
+                                            content(
+                                                PaddingValues(
+                                                    start = 0.dp,
+                                                    end = 0.dp,
+                                                    // Room for the bar that floats over this, so the
+                                                    // last row can still be scrolled clear of it.
+                                                    bottom = if (hasSong) 90.dp else 16.dp,
+                                                ),
+                                            )
+                                        }
+                                        Box(Modifier.align(Alignment.BottomCenter)) { bottomBar(compact) }
+                                        Box(Modifier.align(Alignment.CenterEnd).fillMaxHeight()) { trailing() }
+                                    }
                                 }
                             }
                         }
@@ -8124,6 +8116,11 @@ private fun rememberPlayingRowMatcher(rows: List<Song>): (Song) -> Boolean {
 @Composable
 internal fun Modifier.desktopBarGlass(shape: Shape): Modifier =
     desktopFrosted(DesktopBarGlass, tintAlpha = 0.55f).border(0.5.dp, DesktopBarEdge, shape)
+
+/** The frosted pane the right-hand side panels (lyrics and queue) are made of, matching the floating bottom bar. */
+@Composable
+internal fun Modifier.desktopSidePanelGlass(): Modifier =
+    desktopFrosted(DesktopBarGlass, tintAlpha = 0.55f)
 
 /** The edge of a chrome pane that meets the page, and so has to dissolve into it. */
 internal enum class DesktopChromeEdge { NONE, BOTTOM, END }
