@@ -364,7 +364,7 @@ internal val DesktopGlassStrong = Color(0xCC0D0D0F)
 private val DesktopBarGlass = Color(0xB324242A)
 
 /** The backdrop the floating bars blur. */
-private val LocalDesktopHaze = staticCompositionLocalOf<HazeState?> { null }
+internal val LocalDesktopHaze = staticCompositionLocalOf<HazeState?> { null }
 
 /** How much a page's scrollable should keep clear of the floating bars. */
 private val LocalDesktopBottomInset = staticCompositionLocalOf { 0.dp }
@@ -5168,8 +5168,23 @@ private fun DesktopSidebar(
             }
             Spacer(Modifier.height(6.dp))
             HorizontalDivider(color = desktopChromeDivider())
-            Spacer(Modifier.height(12.dp))
-            val visibleAccount = accountPlaylists.filterNot { "account:${it.browseId}" in hiddenSidebar }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = DesktopStrings["playlists", "Playlists"],
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = DesktopSecondary.copy(alpha = 0.65f),
+                fontSize = 11.sp,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
+            )
+            Spacer(Modifier.height(2.dp))
+            val visibleAccount = accountPlaylists
+                .filterNot { "account:${it.browseId}" in hiddenSidebar }
+                .filterNot {
+                    it.browseId == "VLLM" || it.browseId == "LM" ||
+                        it.title.equals("Liked Music", ignoreCase = true) ||
+                        it.title.equals("Musik yang Disukai", ignoreCase = true)
+                }
             val visibleLocal = localPlaylists.filterNot { "local:${it.id}" in hiddenSidebar }
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f),
@@ -5453,6 +5468,30 @@ private fun DesktopSidebarRailItem(
             tint = if (selected) DesktopAccent else DesktopSecondary,
             modifier = Modifier.size(20.dp),
         )
+        if (hovered && label.isNotBlank()) {
+            val density = LocalDensity.current
+            val offsetX = with(density) { 48.dp.roundToPx() }
+            Popup(
+                alignment = Alignment.CenterStart,
+                offset = IntOffset(x = offsetX, y = 0),
+                properties = PopupProperties(focusable = false),
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xEB202024),
+                    border = BorderStroke(0.5.dp, Color(0x33FFFFFF)),
+                    shadowElevation = 6.dp,
+                ) {
+                    Text(
+                        text = label,
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
+            }
+        }
     }
 }
 

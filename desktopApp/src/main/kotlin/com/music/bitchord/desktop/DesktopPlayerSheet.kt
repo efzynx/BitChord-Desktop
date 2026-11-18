@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +38,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 
 /**
@@ -62,6 +65,8 @@ internal fun DesktopPlayerSheet(
     if (visible) mounted = true
     if (!mounted) return
 
+    val playerHaze = remember { HazeState() }
+
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val windowWidth = maxWidth
         val windowHeight = maxHeight
@@ -81,30 +86,34 @@ internal fun DesktopPlayerSheet(
         val dragState = rememberDraggableState { delta ->
             scope.launch { offset.snapTo((offset.value + delta).coerceIn(0f, heightPx)) }
         }
-        Box(
-            Modifier
-                .fillMaxSize()
-                .graphicsLayer { translationY = offset.value }
-                .draggable(
-                    state = dragState,
-                    orientation = Orientation.Vertical,
-                    onDragStopped = { velocity ->
-                        if (offset.value > heightPx * DISMISS_FRACTION || velocity > DISMISS_VELOCITY) {
-                            onDismiss()
-                        } else {
-                            offset.animateTo(0f, tween(SHEET_SETTLE_MS, easing = FastOutSlowInEasing))
-                        }
-                    },
-                ),
-        ) {
-            content(windowWidth, windowHeight)
-            // Desktop close button in the top-left corner
+        CompositionLocalProvider(LocalDesktopHaze provides playerHaze) {
             Box(
                 Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 22.dp, top = 18.dp),
+                    .fillMaxSize()
+                    .graphicsLayer { translationY = offset.value }
+                    .draggable(
+                        state = dragState,
+                        orientation = Orientation.Vertical,
+                        onDragStopped = { velocity ->
+                            if (offset.value > heightPx * DISMISS_FRACTION || velocity > DISMISS_VELOCITY) {
+                                onDismiss()
+                            } else {
+                                offset.animateTo(0f, tween(SHEET_SETTLE_MS, easing = FastOutSlowInEasing))
+                            }
+                        },
+                    ),
             ) {
-                DesktopClosePlayerButton(onClick = onDismiss)
+                Box(Modifier.fillMaxSize().hazeSource(playerHaze)) {
+                    content(windowWidth, windowHeight)
+                }
+                // Desktop close button in the top-left corner
+                Box(
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 22.dp, top = 18.dp),
+                ) {
+                    DesktopClosePlayerButton(onClick = onDismiss)
+                }
             }
         }
     }

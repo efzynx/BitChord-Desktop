@@ -54,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -627,10 +628,11 @@ private fun DesktopMenuSurface(onDismiss: () -> Unit, content: @Composable () ->
         onDismissRequest = onDismiss,
         properties = PopupProperties(focusable = true),
     ) {
-        val shape = RoundedCornerShape(12.dp)
+        val shape = RoundedCornerShape(14.dp)
         Column(
             Modifier
                 .widthIn(min = 232.dp, max = 300.dp)
+                .shadow(16.dp, shape)
                 .clip(shape)
                 .desktopBarGlass(shape)
                 .padding(vertical = 6.dp)
