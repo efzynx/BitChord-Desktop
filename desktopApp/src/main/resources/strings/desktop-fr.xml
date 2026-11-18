@@ -134,4 +134,7 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_disable_frosted_glass">Désactiver le verre dépoli</string>
+    <string name="d_disable_frosted_glass_subtitle">Remplace le verre dépoli par des couleurs unies dans toute l\'application</string>
+    <string name="d_reduce_dynamic_blur_subtitle">Réduit le rayon de flou pour de meilleures performances</string>
 </resources>

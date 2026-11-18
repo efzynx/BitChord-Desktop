@@ -134,4 +134,7 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_disable_frosted_glass">停用磨砂玻璃</string>
+    <string name="d_disable_frosted_glass_subtitle">在整個應用中用純色填充替代磨砂玻璃效果</string>
+    <string name="d_reduce_dynamic_blur_subtitle">縮小模糊半徑以提升效能</string>
 </resources>

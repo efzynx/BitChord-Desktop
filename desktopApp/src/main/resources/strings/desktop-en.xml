@@ -136,4 +136,7 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_disable_frosted_glass">Disable frosted glass</string>
+    <string name="d_disable_frosted_glass_subtitle">Swaps frosted glass for solid fills across the app</string>
+    <string name="d_reduce_dynamic_blur_subtitle">Lowers blur radius and simplifies transparency for better performance</string>
 </resources>

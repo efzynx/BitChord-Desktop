@@ -3061,6 +3061,7 @@ fun BitChordDesktopApp() {
     val playerMenuAnchor = remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     var sidebarMinimized by remember { mutableStateOf(false) }
     val playerHaze = remember { HazeState() }
+    val sheetOrigin = remember { mutableStateOf(Offset.Zero) }
 
     /** The song menu's verbs for [song], as the player sheet offers them. */
     fun playerSongActions(song: Song) = DesktopSongActions(
@@ -3636,77 +3637,11 @@ fun BitChordDesktopApp() {
                             windowHeight = windowHeight,
                             menuOpen = { playerMenuOpen },
                         )
-                        // The sheet's own origin in the window, so the menu below can be
-                        // placed on the "…" button the player reports in window terms.
-                        val sheetOrigin = remember { mutableStateOf(Offset.Zero) }
                         Spacer(
                             Modifier
                                 .matchParentSize()
                                 .onGloballyPositioned { sheetOrigin.value = it.positionInWindow() },
                         )
-                        if (playerMenuOpen) {
-                            // Hung off the "…" itself, wherever the layout put it. Read in
-                            // the offset block, so the sheet moving relays this out and
-                            // recomposes nothing.
-                            val anchorSize = playerMenuAnchor.value?.let { anchor ->
-                                with(LocalDensity.current) { DpSize(anchor.width.toDp(), anchor.height.toDp()) }
-                            } ?: DpSize(34.dp, 34.dp)
-                            Box(
-                                Modifier
-                                    .offset {
-                                        val anchor = playerMenuAnchor.value
-                                            ?: return@offset IntOffset(
-                                                (windowWidth.roundToPx() - 34.dp.roundToPx()) / 2,
-                                                (windowHeight.roundToPx() - 34.dp.roundToPx()) / 2,
-                                            )
-                                        IntOffset(
-                                            (anchor.left - sheetOrigin.value.x).roundToInt(),
-                                            (anchor.top - sheetOrigin.value.y).roundToInt(),
-                                        )
-                                    }
-                                    .size(anchorSize),
-                            ) {
-                                DesktopSongMenuFor(
-                                    song = playerSong,
-                                    liked = current.videoId in likedIds,
-                                    actions = playerSongActions(current),
-                                    onToggleLike = { toggleLike(current) },
-                                    onRevertToOriginal = {
-                                        DesktopOriginalVersion.pin(current.videoId)
-                                        playbackEngine.reloadCurrent()
-                                    }.takeIf {
-                                        playback.streamSourceId != null &&
-                                            playback.streamSourceId != "youtube" &&
-                                            DesktopMusicSources.hasYouTubeOriginal(current) &&
-                                            !DesktopOriginalVersion.isPinned(current.videoId)
-                                    },
-                                    onUpgradeQuality = {
-                                        DesktopOriginalVersion.clear(current.videoId)
-                                        playbackEngine.reloadCurrent(forceSourceRefresh = true)
-                                    }.takeIf { DesktopOriginalVersion.isPinned(current.videoId) },
-                                    onSwitchLyricsQueue = {
-                                        playerMenuOpen = false
-                                        playerQueueToggle.value = true
-                                    },
-                                    queueShowing = playerQueueShowing.value,
-                                    onTranslate = {
-                                        playerMenuOpen = false
-                                        playerTranslateToggle.value = true
-                                    },
-                                    showingTranslation = playerShowingTranslation.value,
-                                    translateEnabled = !sharedLyrics.isNullOrEmpty(),
-                                    lyricsProviders = menuLyricsProviders,
-                                    onSelectLyricsProvider = { label -> lyricsOnly = label },
-                                    onSearchLyrics = { title, artist -> searchLyrics(title, artist) },
-                                    lyricsOffsetMs = lyricsOffsetMs,
-                                    onSetLyricsOffset = { DesktopPlayerSettings.setLyricsOffsetMs(it) },
-                                    onDismiss = {
-                                        playerMenuOpen = false
-                                        playerMenuAnchor.value = null
-                                    },
-                                )
-                            }
-                        }
                         val message by DesktopPlayerHost.messages.collectAsState()
                         LaunchedEffect(message) {
                             if (message != null) {
@@ -3730,6 +3665,76 @@ fun BitChordDesktopApp() {
                     }
                     val activeOverlayHaze = if (playerSheetVisible) playerHaze else LocalDesktopHaze.current
                     CompositionLocalProvider(LocalDesktopHaze provides activeOverlayHaze) {
+                        if (playerSheetVisible && playerMenuOpen) {
+                            val current = selectedSong
+                            if (current != null) {
+                                val playerSong = trackLinks?.takeIf { it.videoId == current.videoId }
+                                    ?.let { extra ->
+                                        current.copy(
+                                            artistId = current.artistId ?: extra.artistId,
+                                            artists = current.artists.ifEmpty { extra.artists },
+                                            albumId = current.albumId ?: extra.albumId,
+                                            albumName = current.albumName ?: extra.albumName,
+                                        )
+                                    }
+                                    ?: current
+                                val anchorSize = playerMenuAnchor.value?.let { anchor ->
+                                    with(LocalDensity.current) { DpSize(anchor.width.toDp(), anchor.height.toDp()) }
+                                } ?: DpSize(34.dp, 34.dp)
+                                Box(
+                                    Modifier
+                                        .offset {
+                                            val anchor = playerMenuAnchor.value
+                                                ?: return@offset IntOffset(0, 0)
+                                            IntOffset(
+                                                (anchor.left - sheetOrigin.value.x).roundToInt(),
+                                                (anchor.top - sheetOrigin.value.y).roundToInt(),
+                                            )
+                                        }
+                                        .size(anchorSize),
+                                ) {
+                                    DesktopSongMenuFor(
+                                        song = playerSong,
+                                        liked = current.videoId in likedIds,
+                                        actions = playerSongActions(current),
+                                        onToggleLike = { toggleLike(current) },
+                                        onRevertToOriginal = {
+                                            DesktopOriginalVersion.pin(current.videoId)
+                                            playbackEngine.reloadCurrent()
+                                        }.takeIf {
+                                            playback.streamSourceId != null &&
+                                                playback.streamSourceId != "youtube" &&
+                                                DesktopMusicSources.hasYouTubeOriginal(current) &&
+                                                !DesktopOriginalVersion.isPinned(current.videoId)
+                                        },
+                                        onUpgradeQuality = {
+                                            DesktopOriginalVersion.clear(current.videoId)
+                                            playbackEngine.reloadCurrent(forceSourceRefresh = true)
+                                        }.takeIf { DesktopOriginalVersion.isPinned(current.videoId) },
+                                        onSwitchLyricsQueue = {
+                                            playerMenuOpen = false
+                                            playerQueueToggle.value = true
+                                        },
+                                        queueShowing = playerQueueShowing.value,
+                                        onTranslate = {
+                                            playerMenuOpen = false
+                                            playerTranslateToggle.value = true
+                                        },
+                                        showingTranslation = playerShowingTranslation.value,
+                                        translateEnabled = !sharedLyrics.isNullOrEmpty(),
+                                        lyricsProviders = menuLyricsProviders,
+                                        onSelectLyricsProvider = { label -> lyricsOnly = label },
+                                        onSearchLyrics = { title, artist -> searchLyrics(title, artist) },
+                                        lyricsOffsetMs = lyricsOffsetMs,
+                                        onSetLyricsOffset = { DesktopPlayerSettings.setLyricsOffsetMs(it) },
+                                        onDismiss = {
+                                            playerMenuOpen = false
+                                            playerMenuAnchor.value = null
+                                        },
+                                    )
+                                }
+                            }
+                        }
                         if (overlays.accounts) {
                         DesktopAccountSelector(
                             accounts = accounts,
@@ -7106,9 +7111,16 @@ private fun DesktopSettingsScreen(
                     val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
                     SettingsToggle(
                         DesktopStrings["reduce_dynamic_blur", "Reduce dynamic blur"],
-                        DesktopStrings["reduce_dynamic_blur_subtitle", "Swaps frosted glass for solid fills across the app"],
+                        DesktopStrings["d_reduce_dynamic_blur_subtitle", "Lowers blur radius and simplifies transparency for better performance"],
                         reduceDynamicBlur,
                         DesktopAppearanceSettings::setReduceDynamicBlur,
+                    )
+                    val disableFrostedGlass by DesktopAppearanceSettings.disableFrostedGlass.collectAsState()
+                    SettingsToggle(
+                        DesktopStrings["d_disable_frosted_glass", "Disable frosted glass"],
+                        DesktopStrings["d_disable_frosted_glass_subtitle", "Swaps frosted glass for solid fills across the app"],
+                        disableFrostedGlass,
+                        DesktopAppearanceSettings::setDisableFrostedGlass,
                     )
                     // Window furniture belongs beside the visual settings it changes, rather than
                     // interrupting playback controls. These rows remain Windows-only.
@@ -8276,19 +8288,20 @@ private fun Modifier.desktopFrosted(
 ): Modifier {
     val haze = LocalDesktopHaze.current
     val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
-    if (haze == null || reduceDynamicBlur) {
+    val disableFrostedGlass by DesktopAppearanceSettings.disableFrostedGlass.collectAsState()
+    if (haze == null || disableFrostedGlass) {
         return this.background(edge.dissolve(opaque, fade) ?: SolidColor(opaque))
     }
     val dissolve = edge.dissolve(Color.Black, fade)
     return this.hazeEffect(state = haze) {
         // Spelled out rather than taken from a preset.
         blurEnabled = true
-        backgroundColor = DesktopSurface
-        blurRadius = 30.dp
+        backgroundColor = Color.Unspecified
+        blurRadius = if (reduceDynamicBlur) 12.dp else 28.dp
         // Dark enough that white text on the pane always wins, translucent enough that the
         // colour of what is behind it still comes through.
-        tints = listOf(HazeTint(DesktopSurface.copy(alpha = tintAlpha)))
-        noiseFactor = 0.04f
+        tints = listOf(HazeTint(DesktopSurface.copy(alpha = if (reduceDynamicBlur) 0.72f else tintAlpha)))
+        noiseFactor = if (reduceDynamicBlur) 0f else 0.03f
         // Assigned either way: the scope belongs to the node and outlives the draw, so a pane that
         // stops dissolving — the leading stretch of the top bar, when the window grows back out of
         // compact — would otherwise keep the mask it was given in the other layout.

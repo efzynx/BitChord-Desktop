@@ -134,4 +134,7 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_disable_frosted_glass">Desactivar cristal esmerilado</string>
+    <string name="d_disable_frosted_glass_subtitle">Cambia el cristal esmerilado por fondos sólidos en toda la app</string>
+    <string name="d_reduce_dynamic_blur_subtitle">Reduce el radio de desenfoque para un mejor rendimiento</string>
 </resources>

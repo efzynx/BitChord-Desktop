@@ -134,4 +134,7 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_disable_frosted_glass">Disattiva vetro smerigliato</string>
+    <string name="d_disable_frosted_glass_subtitle">Sostituisce il vetro smerigliato con riempimenti pieni in tutta l\'app</string>
+    <string name="d_reduce_dynamic_blur_subtitle">Riduce il raggio di sfocatura per prestazioni migliori</string>
 </resources>
