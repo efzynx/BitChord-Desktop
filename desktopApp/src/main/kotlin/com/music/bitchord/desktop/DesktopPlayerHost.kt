@@ -188,7 +188,7 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     override val fullBleedArtwork = MutableStateFlow(false)
     override val hideSongStatus = MutableStateFlow(false)
     override val showQueueHistory = MutableStateFlow(false)
-    override val hideVolumeBar = MutableStateFlow(false)
+    override val hideVolumeBar = DesktopAppearanceSettings.hideVolumeBar
     // A desktop window has no status bar to hide.
     override val hideStatusBar = MutableStateFlow(false)
     override val lastPlayerScreen = MutableStateFlow(

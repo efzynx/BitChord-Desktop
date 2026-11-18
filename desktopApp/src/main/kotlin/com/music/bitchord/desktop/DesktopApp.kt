@@ -4409,8 +4409,8 @@ fun BitChordDesktopApp() {
                             onHistoryClear = DesktopSearchHistory::clear,
                             onTypeaheadLongPress = ::openMenu,
                             contentPadding = sharedPagePadding,
-                            topPadding = if (LocalDesktopCompact.current) 12.dp else 0.dp,
-                            showField = LocalDesktopCompact.current,
+                            topPadding = if (LocalDesktopCompact.current || sidebarMinimized) 12.dp else 0.dp,
+                            showField = LocalDesktopCompact.current || sidebarMinimized,
                         )
                         destination == DesktopDestination.LIBRARY && libraryShowAll != null -> Column(Modifier.fillMaxSize()) {
                             // The phone keeps the grid's sort beside it, in the bar above; here it sits
@@ -4761,25 +4761,28 @@ private fun DesktopTopBar(
                     Spacer(Modifier.weight(1f))
                 }
 
+                val hideVolumeBar by DesktopAppearanceSettings.hideVolumeBar.collectAsState()
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(1.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        Icons.Rounded.VolumeUp,
-                        DesktopStrings["d_volume", "Volume"],
-                        tint = DesktopSecondary,
-                        modifier = Modifier.size(17.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    DesktopThinSlider(
-                        value = volume,
-                        onValueChange = onVolumeChange,
-                        idleHeight = 4.dp,
-                        activeHeight = 8.dp,
-                        modifier = Modifier.width(78.dp),
-                    )
-                    Spacer(Modifier.width(5.dp))
+                    if (!hideVolumeBar) {
+                        Icon(
+                            Icons.Rounded.VolumeUp,
+                            DesktopStrings["d_volume", "Volume"],
+                            tint = DesktopSecondary,
+                            modifier = Modifier.size(17.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        DesktopThinSlider(
+                            value = volume,
+                            onValueChange = onVolumeChange,
+                            idleHeight = 4.dp,
+                            activeHeight = 8.dp,
+                            modifier = Modifier.width(78.dp),
+                        )
+                        Spacer(Modifier.width(5.dp))
+                    }
                     DesktopToolbarButton(onClick = onOpenAudioOutput, size = 32.dp) {
                         Icon(
                             Icons.Rounded.Headphones,
@@ -5017,7 +5020,23 @@ private fun DesktopSidebar(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            DesktopWindowButtons()
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                DesktopWindowButtons()
+                                if (canGoBack) {
+                                    Spacer(Modifier.width(8.dp))
+                                    DesktopToolbarButton(
+                                        onClick = onBack,
+                                        size = 26.dp,
+                                    ) {
+                                        Icon(
+                                            Icons.AutoMirrored.Rounded.ArrowBack,
+                                            contentDescription = DesktopStrings["back", "Back"],
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
+                                }
+                            }
                             DesktopToolbarButton(
                                 onClick = onToggleMinimize,
                                 size = 26.dp,
@@ -5038,8 +5057,24 @@ private fun DesktopSidebar(
                     if (!inlineCaption) {
                         Row(
                             Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                            horizontalArrangement = Arrangement.End,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            if (canGoBack) {
+                                DesktopToolbarButton(
+                                    onClick = onBack,
+                                    size = 24.dp,
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Rounded.ArrowBack,
+                                        contentDescription = DesktopStrings["back", "Back"],
+                                        tint = Color.White,
+                                        modifier = Modifier.size(15.dp),
+                                    )
+                                }
+                            } else {
+                                Spacer(Modifier.size(24.dp))
+                            }
                             DesktopToolbarButton(
                                 onClick = onToggleMinimize,
                                 size = 24.dp,
@@ -5161,12 +5196,42 @@ private fun DesktopSidebar(
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 6.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .desktopHoverWash()
-                    .clickable(onClick = onOpenAccounts)
-                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                    .desktopHoverFill(corner = 10.dp, alpha = 0.12f)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onOpenAccounts,
+                    )
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                DesktopAccountButton(avatar = accountAvatar, onClick = onOpenAccounts)
+                if (accountAvatar != null) {
+                    DesktopArtwork(
+                        accountAvatar,
+                        Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape),
+                        contentScale = ContentScale.Crop,
+                        px = 96,
+                    )
+                } else {
+                    Box(
+                        Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.14f))
+                            .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Rounded.Person,
+                            null,
+                            tint = Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -5582,56 +5647,59 @@ private fun DesktopAppleMusicBottomBar(
                     )
                 }
                 menu?.invoke()
-                var volumePopupOpen by remember { mutableStateOf(false) }
-                Box {
-                    DesktopToolbarButton(onClick = { volumePopupOpen = !volumePopupOpen }, size = 30.dp) {
-                        Icon(
-                            if (volume <= 0.001f) Icons.AutoMirrored.Rounded.VolumeOff else Icons.Rounded.VolumeUp,
-                            DesktopStrings["d_volume", "Volume"],
-                            tint = Color.White.copy(alpha = 0.85f),
-                            modifier = Modifier.size(17.dp),
-                        )
-                    }
-                    if (volumePopupOpen) {
-                        Popup(
-                            alignment = Alignment.TopCenter,
-                            offset = IntOffset(0, -60),
-                            onDismissRequest = { volumePopupOpen = false },
-                            properties = PopupProperties(focusable = true),
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFF28282B),
-                                border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.15f)),
-                                shadowElevation = 8.dp,
-                                modifier = Modifier.padding(bottom = 8.dp),
+                val hideVolumeBar by DesktopAppearanceSettings.hideVolumeBar.collectAsState()
+                if (!hideVolumeBar) {
+                    var volumePopupOpen by remember { mutableStateOf(false) }
+                    Box {
+                        DesktopToolbarButton(onClick = { volumePopupOpen = !volumePopupOpen }, size = 30.dp) {
+                            Icon(
+                                if (volume <= 0.001f) Icons.AutoMirrored.Rounded.VolumeOff else Icons.Rounded.VolumeUp,
+                                DesktopStrings["d_volume", "Volume"],
+                                tint = Color.White.copy(alpha = 0.85f),
+                                modifier = Modifier.size(17.dp),
+                            )
+                        }
+                        if (volumePopupOpen) {
+                            Popup(
+                                alignment = Alignment.TopCenter,
+                                offset = IntOffset(0, -60),
+                                onDismissRequest = { volumePopupOpen = false },
+                                properties = PopupProperties(focusable = true),
                             ) {
-                                Row(
-                                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color(0xFF28282B),
+                                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.15f)),
+                                    shadowElevation = 8.dp,
+                                    modifier = Modifier.padding(bottom = 8.dp),
                                 ) {
-                                    DesktopThinSlider(
-                                        value = volume,
-                                        onValueChange = onVolumeChange,
-                                        idleHeight = 4.dp,
-                                        activeHeight = 6.dp,
-                                        modifier = Modifier.width(90.dp),
-                                    )
-                                    onOpenAudioOutput?.let { openOutput ->
-                                        Spacer(Modifier.width(6.dp))
-                                        DesktopToolbarButton(
-                                            onClick = {
-                                                volumePopupOpen = false
-                                                openOutput()
-                                            },
-                                            size = 24.dp,
-                                        ) {
-                                            Icon(
-                                                Icons.Rounded.Headphones,
-                                                DesktopStrings["audio_output", "Audio output"],
-                                                tint = DesktopSecondary,
-                                                modifier = Modifier.size(15.dp),
-                                            )
+                                    Row(
+                                        Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        DesktopThinSlider(
+                                            value = volume,
+                                            onValueChange = onVolumeChange,
+                                            idleHeight = 4.dp,
+                                            activeHeight = 6.dp,
+                                            modifier = Modifier.width(90.dp),
+                                        )
+                                        onOpenAudioOutput?.let { openOutput ->
+                                            Spacer(Modifier.width(6.dp))
+                                            DesktopToolbarButton(
+                                                onClick = {
+                                                    volumePopupOpen = false
+                                                    openOutput()
+                                                },
+                                                size = 24.dp,
+                                            ) {
+                                                Icon(
+                                                    Icons.Rounded.Headphones,
+                                                    DesktopStrings["audio_output", "Audio output"],
+                                                    tint = DesktopSecondary,
+                                                    modifier = Modifier.size(15.dp),
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -6695,29 +6763,78 @@ private fun DesktopSettingsScreen(
                         DesktopStrings["d_repeat", "Repeat"],
                         "${repeatMode.label()} · Tap to change",
                     ) { onRepeatModeChange(repeatMode.next()) }
-                    SettingsRow(
-                        Icons.Rounded.Tune,
-                        DesktopStrings["d_playback_speed", "Playback speed"],
-                        "${"%.2f".format(playbackSpeed)}×",
-                    ) {
-                        val next = when {
-                            playbackSpeed < 0.76f -> 1.0f
-                            playbackSpeed < 1.01f -> 1.25f
-                            playbackSpeed < 1.26f -> 1.5f
-                            playbackSpeed < 1.51f -> 2.0f
-                            else -> 0.5f
+                    var speedMenuOpen by remember { mutableStateOf(false) }
+                    Box {
+                        SettingsRow(
+                            Icons.Rounded.Tune,
+                            DesktopStrings["d_playback_speed", "Playback speed"],
+                            "${"%.2f".format(playbackSpeed)}×",
+                        ) { speedMenuOpen = true }
+                        DropdownMenu(speedMenuOpen, onDismissRequest = { speedMenuOpen = false }) {
+                            listOf(0.50f, 0.75f, 1.00f, 1.25f, 1.50f, 1.75f, 2.00f).forEach { speed ->
+                                val label = if (speed == 1.0f) "1.00× (Normal)" else "${"%.2f".format(speed)}×"
+                                val isCurrent = kotlin.math.abs(playbackSpeed - speed) < 0.02f
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    trailingIcon = if (isCurrent) {
+                                        { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
+                                    } else null,
+                                    onClick = {
+                                        onPlaybackSpeedChange(speed)
+                                        speedMenuOpen = false
+                                    },
+                                )
+                            }
                         }
-                        onPlaybackSpeedChange(next)
                     }
-                    SettingsRow(
-                        Icons.Rounded.Bedtime,
-                        "Sleep timer",
-                        when {
-                            sleepRemainingMs != null -> "${formatSleepTimer(sleepRemainingMs)} until playback pauses"
-                            sleepAfterTrack -> "Pausing when this song ends"
-                            else -> "Pause playback after a while"
-                        },
-                    ) { onSleepTimerCycle() }
+
+                    var sleepMenuOpen by remember { mutableStateOf(false) }
+                    Box {
+                        SettingsRow(
+                            Icons.Rounded.Bedtime,
+                            "Sleep timer",
+                            when {
+                                sleepRemainingMs != null -> "${formatSleepTimer(sleepRemainingMs)} until playback pauses"
+                                sleepAfterTrack -> "Pausing when this song ends"
+                                else -> "Pause playback after a while"
+                            },
+                        ) { sleepMenuOpen = true }
+                        DropdownMenu(sleepMenuOpen, onDismissRequest = { sleepMenuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Nonaktif (Off)") },
+                                trailingIcon = if (sleepRemainingMs == null && !sleepAfterTrack) {
+                                    { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
+                                } else null,
+                                onClick = {
+                                    DesktopSleepTimer.cancel()
+                                    sleepMenuOpen = false
+                                },
+                            )
+                            listOf(15, 30, 45, 60).forEach { mins ->
+                                val isCurrent = sleepTimerMinutes == mins && !sleepAfterTrack
+                                DropdownMenuItem(
+                                    text = { Text("$mins Menit") },
+                                    trailingIcon = if (isCurrent) {
+                                        { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
+                                    } else null,
+                                    onClick = {
+                                        DesktopSleepTimer.start(mins)
+                                        sleepMenuOpen = false
+                                    },
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text("Setelah lagu ini selesai (End of track)") },
+                                trailingIcon = if (sleepAfterTrack) {
+                                    { Icon(BitChordIcons.Check, contentDescription = null, tint = DesktopAccent) }
+                                } else null,
+                                onClick = {
+                                    DesktopSleepTimer.startAfterTrack()
+                                    sleepMenuOpen = false
+                                },
+                            )
+                        }
+                    }
                 }
             }
             if (section == DesktopSettingsSection.LYRICS) item {
