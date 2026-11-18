@@ -2,12 +2,14 @@ name: Desktop Multi-Platform Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Target Version (e.g. 1.9.1)'
+        description: 'Target Version (e.g. 1.9.2-beta.1)'
         required: false
         default: ''
       draft:
@@ -23,9 +25,75 @@ permissions:
   contents: write
 
 jobs:
+  prepare-release:
+    name: Prepare Release & Auto-Tag
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      version: ${{ steps.check.outputs.version }}
+      tag_name: ${{ steps.check.outputs.tag_name }}
+      is_prerelease: ${{ steps.check.outputs.is_prerelease }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine Version & Handle Tagging
+        id: check
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION=$(sed -n 's/.*extra\["bitchordVersionName"\] = "\(.*\)".*/\1/p' build.gradle.kts)
+          fi
+
+          if [ -z "$VERSION" ]; then
+            echo "Error: Could not determine version from build.gradle.kts or inputs."
+            exit 1
+          fi
+
+          TAG="v$VERSION"
+          echo "Target Version: $VERSION"
+          echo "Target Tag: $TAG"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG" >> $GITHUB_OUTPUT
+
+          if [[ "$VERSION" =~ (beta|alpha|rc|preview) ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+          if [[ "${{ github.ref }}" == refs/tags/v* ]] || [ -n "${{ github.event.inputs.version }}" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Explicit release trigger detected. Proceeding with release build."
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          else
+            # Triggered by push/merge to main branch
+            if git rev-parse "$TAG" >/dev/null 2>&1 || git ls-remote --tags origin | grep -q "refs/tags/$TAG$"; then
+              echo "Tag $TAG already exists on remote repository. Skipping release build for existing version."
+              echo "should_release=false" >> $GITHUB_OUTPUT
+            else
+              echo "Tag $TAG does not exist yet. Creating tag and initiating automatic release."
+              echo "should_release=true" >> $GITHUB_OUTPUT
+
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git tag -a "$TAG" -m "Release $TAG"
+              git push origin "$TAG"
+            fi
+          fi
+
   build-linux:
     name: Build Linux Packages (AppImage, DEB, RPM, Tar.gz)
+    needs: prepare-release
+    if: needs.prepare-release.outputs.should_release == 'true'
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -49,18 +117,9 @@ jobs:
           chmod +x gradlew
           chmod +x desktopApp/packaging/appimage.sh
 
-      - name: Determine Version
-        id: version_step
+      - name: Display Target Version
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/v}"
-          else
-            VERSION=$(git describe --tags --always | sed 's/^v//')
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "Building BitChord Desktop version $VERSION"
+          echo "Building BitChord Desktop version ${{ env.VERSION }}"
 
       - name: Build Linux Distributable & Packages
         run: |
@@ -96,7 +155,11 @@ jobs:
 
   build-windows:
     name: Build Windows Packages (Portable Zip, MSI, EXE)
+    needs: prepare-release
+    if: needs.prepare-release.outputs.should_release == 'true'
     runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -110,19 +173,10 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Determine Version
-        id: version_step
+      - name: Display Target Version
         shell: bash
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/v}"
-          else
-            VERSION=$(git describe --tags --always | sed 's/^v//')
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "Building BitChord Windows Desktop version $VERSION"
+          echo "Building BitChord Windows Desktop version ${{ env.VERSION }}"
 
       - name: Build Windows Portable Zip
         shell: cmd
@@ -151,8 +205,13 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs: [build-linux, build-windows]
+    needs: [prepare-release, build-linux, build-windows]
+    if: needs.prepare-release.outputs.should_release == 'true'
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare-release.outputs.version }}
+      TAG_NAME: ${{ needs.prepare-release.outputs.tag_name }}
+      RELEASE_TITLE: BitChord Desktop ${{ needs.prepare-release.outputs.tag_name }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -176,29 +235,10 @@ jobs:
           cat SHA256SUMS.txt
           cd -
 
-      - name: Determine Release Tag and Title
-        run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-            TAG_NAME="v${{ github.event.inputs.version }}"
-            RELEASE_TITLE="BitChord Desktop v${{ github.event.inputs.version }}"
-          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF#refs/tags/v}"
-            TAG_NAME="${GITHUB_REF#refs/tags/}"
-            RELEASE_TITLE="BitChord Desktop ${GITHUB_REF#refs/tags/}"
-          else
-            VERSION="1.9.2-beta.1"
-            TAG_NAME="v1.9.2-beta.1"
-            RELEASE_TITLE="BitChord Desktop v1.9.2-beta.1"
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
-          echo "RELEASE_TITLE=$RELEASE_TITLE" >> $GITHUB_ENV
-
       - name: Generate Release Notes Body
         run: |
           cat << 'EOF' > release-notes.md
-          # BitChord Desktop ${{ env.VERSION }}
+          # ${{ env.RELEASE_TITLE }}
 
           Modern, high-performance desktop music player powered by Compose Multiplatform for Linux and Windows.
 
@@ -247,7 +287,7 @@ jobs:
           name: ${{ env.RELEASE_TITLE }}
           body_path: release-notes.md
           draft: ${{ github.event.inputs.draft || false }}
-          prerelease: ${{ github.event.inputs.prerelease || false }}
+          prerelease: ${{ github.event.inputs.prerelease || needs.prepare-release.outputs.is_prerelease == 'true' }}
           files: |
             release-assets/*
           generate_release_notes: true
