@@ -9,6 +9,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,9 +41,8 @@ import androidx.compose.ui.unit.sp
 internal enum class DesktopSidePanel { LYRICS, QUEUE }
 
 /**
- * Apple Music's right-hand sidebar: the lyrics or the queue in a column beside the page, while the
- * player itself stays closed. The page narrows to make room rather than being covered, so whatever
- * was being browsed stays usable next to the words.
+ * Apple Music's right-hand sidebar: the lyrics or the queue floating in a frosted glass column over
+ * the page beside it, matching the floating bottom bar.
  */
 @Composable
 internal fun DesktopSidePanelColumn(
@@ -54,24 +55,29 @@ internal fun DesktopSidePanelColumn(
     if (panel != null) shown = panel
     AnimatedVisibility(
         visible = panel != null,
-        enter = expandHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing), expandFrom = Alignment.Start) +
+        enter = expandHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing), expandFrom = Alignment.End) +
             fadeIn(tween(SLIDE_MS)),
-        exit = shrinkHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing), shrinkTowards = Alignment.Start) +
+        exit = shrinkHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing), shrinkTowards = Alignment.End) +
             fadeOut(tween(SLIDE_MS / 2)),
     ) {
-        Row(Modifier.width(SIDE_PANEL_WIDTH).fillMaxHeight()) {
-            Box(Modifier.width(1.dp).fillMaxHeight().background(DesktopDivider))
+        Row(
+            Modifier
+                .width(SIDE_PANEL_WIDTH)
+                .fillMaxHeight()
+                .desktopSidePanelGlass()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {},
+                ),
+        ) {
+            Box(Modifier.width(0.5.dp).fillMaxHeight().background(DesktopBarEdge))
             Crossfade(
                 targetState = shown ?: return@Row,
                 animationSpec = tween(CROSSFADE_MS),
                 label = "sidePanel",
             ) { which ->
                 Box(Modifier.fillMaxSize()) {
-                    // The lyrics stand on the window itself, as in Apple Music; the queue is a list
-                    // and takes the sidebar's glass.
-                    if (which == DesktopSidePanel.QUEUE) {
-                        Box(Modifier.fillMaxSize().desktopChromeGlass())
-                    }
                     Column(Modifier.fillMaxSize()) {
                         Row(
                             modifier = Modifier

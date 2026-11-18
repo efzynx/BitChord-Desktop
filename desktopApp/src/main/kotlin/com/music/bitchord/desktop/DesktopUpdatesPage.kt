@@ -191,12 +191,12 @@ private fun UpdateChannelCard(
                 Spacer(Modifier.width(14.dp))
                 Column {
                     Text(
-                        text = "Saluran Pembaruan (Update Channel)",
+                        text = DesktopStrings["d_update_channel", "Update Channel"],
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "Pilih jenis rilis pembaruan yang ingin Anda terima",
+                        text = DesktopStrings["d_update_channel_desc", "Choose which updates you would like to receive"],
                         style = MaterialTheme.typography.bodySmall,
                         color = DesktopSecondary,
                     )
@@ -301,12 +301,12 @@ private fun UpdateStatusCard(
                     Spacer(Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = "Status Pembaruan",
+                            text = DesktopStrings["d_update_status", "Update Status"],
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text = "Versi Terpasang: v${DesktopSystemInfo.appVersion}",
+                            text = DesktopStrings.format("d_installed_version", DesktopSystemInfo.appVersion, "Installed Version: v%s"),
                             style = MaterialTheme.typography.bodySmall,
                             color = DesktopSecondary,
                         )
@@ -324,7 +324,7 @@ private fun UpdateStatusCard(
                             modifier = Modifier.size(16.dp),
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text("Periksa", fontSize = 13.sp)
+                        Text(DesktopStrings["d_check_updates", "Check"], fontSize = 13.sp)
                     }
                 }
             }
@@ -518,12 +518,12 @@ private fun SystemInfoCard() {
                 Spacer(Modifier.width(14.dp))
                 Column {
                     Text(
-                        text = "Informasi Sistem & Runtime",
+                        text = DesktopStrings["d_system_info", "System & Runtime Information"],
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "Lingkungan perangkat saat ini",
+                        text = DesktopStrings["d_current_environment", "Current device environment"],
                         style = MaterialTheme.typography.bodySmall,
                         color = DesktopSecondary,
                     )
@@ -532,13 +532,13 @@ private fun SystemInfoCard() {
 
             Spacer(Modifier.height(16.dp))
 
-            InfoRow(label = "Sistem Operasi", value = DesktopSystemInfo.prettyOsName)
-            InfoRow(label = "Arsitektur CPU", value = DesktopSystemInfo.osArch)
-            InfoRow(label = "Java Runtime", value = "${DesktopSystemInfo.javaVersion} (${DesktopSystemInfo.javaVendor})")
-            InfoRow(label = "Versi BitChord Desktop", value = "v${DesktopSystemInfo.appVersion}")
-            InfoRow(label = "Sinkronisasi BitChord Base", value = "v${DesktopSystemInfo.BASE_UPSTREAM_VERSION} (Basis Core)")
+            InfoRow(label = DesktopStrings["d_os", "Operating System"], value = DesktopSystemInfo.prettyOsName)
+            InfoRow(label = DesktopStrings["d_cpu_arch", "CPU Architecture"], value = DesktopSystemInfo.osArch)
+            InfoRow(label = DesktopStrings["d_java_runtime", "Java Runtime"], value = "${DesktopSystemInfo.javaVersion} (${DesktopSystemInfo.javaVendor})")
+            InfoRow(label = DesktopStrings["d_desktop_version", "BitChord Desktop Version"], value = "v${DesktopSystemInfo.appVersion}")
+            InfoRow(label = DesktopStrings["d_base_sync_version", "BitChord Base Sync"], value = "v${DesktopSystemInfo.BASE_UPSTREAM_VERSION} (${DesktopStrings["d_base_sync_detail", "Core & Feature Base"]})")
             InfoRow(
-                label = "Repositori Sumber",
+                label = DesktopStrings["d_source_repo", "Source Repository"],
                 value = "efzynx/BitChord-Desktop",
                 isLink = true,
                 onClick = { DesktopExternalLinks.open(DesktopSystemInfo.repoUrl) },
@@ -581,7 +581,7 @@ private fun InstallationInfoCard() {
                 Spacer(Modifier.width(14.dp))
                 Column {
                     Text(
-                        text = "Metode Instalasi Terdeteksi",
+                        text = DesktopStrings["d_install_method", "Detected Installation Method"],
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -621,7 +621,7 @@ private fun InstallationInfoCard() {
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Panduan Uninstall / Menghapus:",
+                        text = DesktopStrings["d_uninstall_guide", "Uninstall Guide:"],
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.error,

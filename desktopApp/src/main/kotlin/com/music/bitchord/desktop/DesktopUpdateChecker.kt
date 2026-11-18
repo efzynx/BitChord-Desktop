@@ -19,9 +19,21 @@ import kotlinx.serialization.json.longOrNull
 /**
  * Pilihan saluran pembaruan aplikasi.
  */
-enum class DesktopUpdateChannel(val id: String, val label: String, val description: String) {
-    STABLE("stable", "Rilis Stabil (Stable)", "Hanya memeriksa versi stabil resmi"),
-    PRERELEASE("prerelease", "Beta / Pre-release", "Menerima pembaruan versi beta dan fitur terkini"),
+enum class DesktopUpdateChannel(val id: String) {
+    STABLE("stable"),
+    PRERELEASE("prerelease");
+
+    val label: String
+        get() = when (this) {
+            STABLE -> DesktopStrings["d_channel_stable", "Stable Releases"]
+            PRERELEASE -> DesktopStrings["d_channel_prerelease", "Beta / Pre-release"]
+        }
+
+    val description: String
+        get() = when (this) {
+            STABLE -> DesktopStrings["d_channel_stable_desc", "Official stable releases only"]
+            PRERELEASE -> DesktopStrings["d_channel_prerelease_desc", "Receive beta updates and latest features"]
+        }
 }
 
 /**
@@ -85,7 +97,7 @@ internal object DesktopUpdateChecker {
     const val RELEASES_API_URL =
         "https://api.github.com/repos/efzynx/BitChord-Desktop/releases?per_page=20"
 
-    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.9.2-beta.2"
+    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.9.2-beta.3"
 
     private val json = Json { ignoreUnknownKeys = true }
 

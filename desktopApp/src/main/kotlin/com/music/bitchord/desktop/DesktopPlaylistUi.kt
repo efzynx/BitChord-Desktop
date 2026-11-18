@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -105,9 +106,9 @@ internal fun DesktopPlaylistDialog(
             return@DesktopDialogFrame
         }
 
-        DialogHeading("Add to playlist", song?.let { "${it.title} — ${it.artist}" }.orEmpty())
+        DialogHeading(DesktopStrings["add_to_playlist", "Add to playlist"], song?.let { "${it.title} — ${it.artist}" }.orEmpty())
         error?.let { DialogError(it) }
-        DialogAction(BitChordIcons.Plus, "New playlist", enabled = !busy) { creating = true }
+        DialogAction(BitChordIcons.Plus, DesktopStrings["new_playlist", "New playlist"], enabled = !busy) { creating = true }
 
         if (signedIn && !canUseAccount) {
             Text(
@@ -587,7 +588,7 @@ private fun DesktopDialogFrame(onDismiss: () -> Unit, content: @Composable () ->
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
+                .background(DesktopScrim)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -599,6 +600,7 @@ private fun DesktopDialogFrame(onDismiss: () -> Unit, content: @Composable () ->
             Modifier
                 .widthIn(max = 480.dp)
                 .fillMaxWidth()
+                .shadow(24.dp, shape)
                 .clip(shape)
                 .desktopBarGlass(shape),
         ) {
