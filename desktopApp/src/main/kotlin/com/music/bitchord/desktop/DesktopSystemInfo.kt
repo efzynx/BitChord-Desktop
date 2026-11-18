@@ -63,6 +63,7 @@ internal object DesktopSystemInfo {
     val javaVersion: String = System.getProperty("java.version").orEmpty()
     val javaVendor: String = System.getProperty("java.vendor").orEmpty()
     val appVersion: String = DesktopUpdateChecker.currentVersion
+    const val BASE_UPSTREAM_VERSION = "1.9.1"
 
     val repoUrl: String = "https://github.com/efzynx/BitChord-Desktop"
 
