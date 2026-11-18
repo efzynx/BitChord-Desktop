@@ -106,9 +106,9 @@ internal fun DesktopPlaylistDialog(
             return@DesktopDialogFrame
         }
 
-        DialogHeading("Add to playlist", song?.let { "${it.title} — ${it.artist}" }.orEmpty())
+        DialogHeading(DesktopStrings["add_to_playlist", "Add to playlist"], song?.let { "${it.title} — ${it.artist}" }.orEmpty())
         error?.let { DialogError(it) }
-        DialogAction(BitChordIcons.Plus, "New playlist", enabled = !busy) { creating = true }
+        DialogAction(BitChordIcons.Plus, DesktopStrings["new_playlist", "New playlist"], enabled = !busy) { creating = true }
 
         if (signedIn && !canUseAccount) {
             Text(
@@ -588,7 +588,7 @@ private fun DesktopDialogFrame(onDismiss: () -> Unit, content: @Composable () ->
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
+                .background(DesktopScrim)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,

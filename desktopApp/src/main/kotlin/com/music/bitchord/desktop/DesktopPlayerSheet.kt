@@ -58,14 +58,13 @@ import kotlinx.coroutines.launch
 internal fun DesktopPlayerSheet(
     visible: Boolean,
     onDismiss: () -> Unit,
+    playerHaze: HazeState = remember { HazeState() },
     content: @Composable BoxScope.(windowWidth: Dp, windowHeight: Dp) -> Unit,
 ) {
     // Mounted while it animates out, so the slide down is seen.
     var mounted by remember { mutableStateOf(visible) }
     if (visible) mounted = true
     if (!mounted) return
-
-    val playerHaze = remember { HazeState() }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val windowWidth = maxWidth

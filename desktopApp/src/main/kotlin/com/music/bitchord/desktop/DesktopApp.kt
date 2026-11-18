@@ -3060,6 +3060,7 @@ fun BitChordDesktopApp() {
     // Where the player's "…" is, in window coordinates, so its menu hangs off it.
     val playerMenuAnchor = remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     var sidebarMinimized by remember { mutableStateOf(false) }
+    val playerHaze = remember { HazeState() }
 
     /** The song menu's verbs for [song], as the player sheet offers them. */
     fun playerSongActions(song: Song) = DesktopSongActions(
@@ -3348,6 +3349,18 @@ fun BitChordDesktopApp() {
                         // One layer at a time, innermost first: the player's own side panel, then
                         // the player.
                         event.key == Key.Escape -> when {
+                            playlistTarget != null || overlays.playlistDialog || overlays.rename || overlays.delete || overlays.reorder -> {
+                                closePlaylistDialogs()
+                                true
+                            }
+                            overlays.accounts -> {
+                                overlays.accounts = false
+                                true
+                            }
+                            overlays.signIn -> {
+                                overlays.signIn = false
+                                true
+                            }
                             // The player's own layers first — the lyrics, the queue, a
                             // drawer — in the order Android's back reaches them.
                             overlays.nowPlaying && PlayerBack.dispatch() -> true
@@ -3496,12 +3509,14 @@ fun BitChordDesktopApp() {
                     }
                 },
                 overlay = {
+                    val playerSheetVisible = overlays.nowPlaying && selectedSong != null
                     DesktopPlayerSheet(
-                        visible = overlays.nowPlaying && selectedSong != null,
+                        visible = playerSheetVisible,
                         onDismiss = {
                             DesktopWindowMode.exit()
                             overlays.nowPlaying = false
                         },
+                        playerHaze = playerHaze,
                     ) { windowWidth, windowHeight ->
                         val current = selectedSong ?: return@DesktopPlayerSheet
                         val playerSong = trackLinks?.takeIf { it.videoId == current.videoId }
@@ -3713,7 +3728,9 @@ fun BitChordDesktopApp() {
                             )
                         }
                     }
-                    if (overlays.accounts) {
+                    val activeOverlayHaze = if (playerSheetVisible) playerHaze else LocalDesktopHaze.current
+                    CompositionLocalProvider(LocalDesktopHaze provides activeOverlayHaze) {
+                        if (overlays.accounts) {
                         DesktopAccountSelector(
                             accounts = accounts,
                             activeAccountId = activeAccountId,
@@ -3885,6 +3902,7 @@ fun BitChordDesktopApp() {
                             pipeline = playbackEngine.pipeline(),
                             onDismiss = { overlays.pipeline = false },
                         )
+                    }
                     }
                     val globalMessage by DesktopPlayerHost.messages.collectAsState()
                     LaunchedEffect(globalMessage) {
