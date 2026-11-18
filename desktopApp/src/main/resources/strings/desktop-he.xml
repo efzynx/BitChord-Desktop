@@ -134,7 +134,4 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
-    <string name="d_disable_frosted_glass">השבתת זכוכית מטושטשת</string>
-    <string name="d_disable_frosted_glass_subtitle">מחליף אפקט זכוכית במילוי אחיד בכל האפליקציה</string>
-    <string name="d_reduce_dynamic_blur_subtitle">מפחית את רדיוס הטשטוש לביצועים טובים יותר</string>
 </resources>

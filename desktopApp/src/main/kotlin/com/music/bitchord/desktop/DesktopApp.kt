@@ -5525,23 +5525,24 @@ private fun DesktopSidebarRailItem(
         if (hovered && label.isNotBlank()) {
             val density = LocalDensity.current
             val offsetX = with(density) { 48.dp.roundToPx() }
+            val tooltipShape = RoundedCornerShape(8.dp)
             Popup(
                 alignment = Alignment.CenterStart,
                 offset = IntOffset(x = offsetX, y = 0),
                 properties = PopupProperties(focusable = false),
             ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xEB202024),
-                    border = BorderStroke(0.5.dp, Color(0x33FFFFFF)),
-                    shadowElevation = 6.dp,
+                Box(
+                    modifier = Modifier
+                        .shadow(12.dp, tooltipShape)
+                        .clip(tooltipShape)
+                        .desktopBarGlass(tooltipShape)
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
                 ) {
                     Text(
                         text = label,
                         color = Color.White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     )
                 }
             }
@@ -5622,18 +5623,17 @@ private fun DesktopSidebarRailPlaylistsItem(
         if (showFlyout) {
             val density = LocalDensity.current
             val offsetX = with(density) { 48.dp.roundToPx() }
+            val shape = RoundedCornerShape(14.dp)
             Popup(
                 alignment = Alignment.CenterStart,
                 offset = IntOffset(x = offsetX, y = 0),
                 properties = PopupProperties(focusable = false),
             ) {
-                val shape = RoundedCornerShape(12.dp)
-                Surface(
-                    shape = shape,
-                    color = Color(0xF018181C),
-                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.15f)),
-                    shadowElevation = 12.dp,
+                Box(
                     modifier = Modifier
+                        .shadow(16.dp, shape)
+                        .clip(shape)
+                        .desktopBarGlass(shape)
                         .pointerInput(Unit) {
                             awaitPointerEventScope {
                                 while (true) {
@@ -5659,7 +5659,7 @@ private fun DesktopSidebarRailPlaylistsItem(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
                         )
                         HorizontalDivider(
-                            color = Color.White.copy(alpha = 0.08f),
+                            color = desktopChromeDivider(),
                             modifier = Modifier.padding(vertical = 4.dp),
                         )
                         if (visibleAccount.isEmpty() && visibleLocal.isEmpty()) {
@@ -7340,13 +7340,6 @@ private fun DesktopSettingsScreen(
                         reduceDynamicBlur,
                         DesktopAppearanceSettings::setReduceDynamicBlur,
                     )
-                    val disableFrostedGlass by DesktopAppearanceSettings.disableFrostedGlass.collectAsState()
-                    SettingsToggle(
-                        DesktopStrings["d_disable_frosted_glass", "Disable frosted glass"],
-                        DesktopStrings["d_disable_frosted_glass_subtitle", "Swaps frosted glass for solid fills across the app"],
-                        disableFrostedGlass,
-                        DesktopAppearanceSettings::setDisableFrostedGlass,
-                    )
                     // Window furniture belongs beside the visual settings it changes, rather than
                     // interrupting playback controls. These rows remain Windows-only.
                     if (DesktopPlatform.drawsOwnWindowFrame) {
@@ -8513,8 +8506,7 @@ private fun Modifier.desktopFrosted(
 ): Modifier {
     val haze = LocalDesktopHaze.current
     val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
-    val disableFrostedGlass by DesktopAppearanceSettings.disableFrostedGlass.collectAsState()
-    if (haze == null || reduceDynamicBlur || disableFrostedGlass) {
+    if (haze == null || reduceDynamicBlur) {
         return this.background(edge.dissolve(opaque, fade) ?: SolidColor(opaque))
     }
     val dissolve = edge.dissolve(Color.Black, fade)

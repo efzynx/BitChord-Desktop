@@ -134,7 +134,4 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
-    <string name="d_disable_frosted_glass">फ्रॉस्टेड ग्लास अक्षम करें</string>
-    <string name="d_disable_frosted_glass_subtitle">पूरे ऐप में फ्रॉस्टेड ग्लास की जगह ठोस रंग लगाता है</string>
-    <string name="d_reduce_dynamic_blur_subtitle">बेहतर प्रदर्शन के लिए ब्लर रेडियस को कम करता है</string>
 </resources>

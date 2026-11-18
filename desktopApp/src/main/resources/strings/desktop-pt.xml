@@ -134,7 +134,4 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
-    <string name="d_disable_frosted_glass">Desativar vidro fosco</string>
-    <string name="d_disable_frosted_glass_subtitle">Troca o vidro fosco por preenchimentos sólidos em todo o app</string>
-    <string name="d_reduce_dynamic_blur_subtitle">Reduz o raio de desfoque para melhor desempenho</string>
 </resources>

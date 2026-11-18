@@ -134,7 +134,4 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
-    <string name="d_disable_frosted_glass">Отключить матовое стекло</string>
-    <string name="d_disable_frosted_glass_subtitle">Заменяет матовое стекло сплошной заливкой во всём приложении</string>
-    <string name="d_reduce_dynamic_blur_subtitle">Уменьшает радиус размытия для повышения производительности</string>
 </resources>
