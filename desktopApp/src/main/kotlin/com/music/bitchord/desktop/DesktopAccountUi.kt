@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
@@ -147,6 +148,7 @@ internal fun DesktopAccountSelector(
                 .align(Alignment.BottomStart)
                 .padding(start = 16.dp, bottom = 68.dp)
                 .width(340.dp)
+                .shadow(20.dp, shape)
                 .clip(shape)
                 // The same frosted pane the floating bars are made of, sampling the page underneath
                 // rather than sitting on a flat fill.
@@ -255,6 +257,7 @@ internal fun DesktopConfirmSignOutDialog(
                 .widthIn(max = 420.dp)
                 .fillMaxWidth()
                 .padding(24.dp)
+                .shadow(20.dp, shape)
                 .clip(shape)
                 .desktopBarGlass(shape)
                 .padding(24.dp),
@@ -450,6 +453,7 @@ internal fun DesktopSignInDialog(
             Modifier
                 .widthIn(max = 520.dp)
                 .fillMaxWidth()
+                .shadow(20.dp, shape)
                 .clip(shape)
                 .desktopBarGlass(shape)
                 .padding(bottom = 12.dp),

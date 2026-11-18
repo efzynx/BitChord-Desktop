@@ -23,6 +23,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
@@ -166,6 +167,7 @@ internal fun DesktopDialogPanel(
             Modifier
                 .widthIn(max = maxWidth.dp)
                 .fillMaxWidth()
+                .shadow(24.dp, shape)
                 .clip(shape)
                 .desktopBarGlass(shape),
         ) {

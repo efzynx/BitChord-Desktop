@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -599,6 +600,7 @@ private fun DesktopDialogFrame(onDismiss: () -> Unit, content: @Composable () ->
             Modifier
                 .widthIn(max = 480.dp)
                 .fillMaxWidth()
+                .shadow(24.dp, shape)
                 .clip(shape)
                 .desktopBarGlass(shape),
         ) {

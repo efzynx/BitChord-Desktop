@@ -369,8 +369,8 @@ internal val LocalDesktopHaze = staticCompositionLocalOf<HazeState?> { null }
 /** How much a page's scrollable should keep clear of the floating bars. */
 private val LocalDesktopBottomInset = staticCompositionLocalOf { 0.dp }
 
-/** Android's own edge on these bars: `Color.White.copy(alpha = 0.10f)`. */
-internal val DesktopBarEdge = Color(0x1AFFFFFF)
+/** Android and Apple's specular rim on these bars: `Color.White.copy(alpha = 0.15f)`. */
+internal val DesktopBarEdge = Color(0x26FFFFFF)
 internal val DesktopAccent = Color.White
 
 /** Deleting, signing out, and anything that failed — the one place a colour survives, as on Android. */
@@ -5344,12 +5344,15 @@ private fun DesktopSidebarItem(
             )
         }
         if (onHide != null) {
+            val menuShape = RoundedCornerShape(12.dp)
             DropdownMenu(
                 expanded = menuOpen,
                 onDismissRequest = { menuOpen = false },
-                modifier = Modifier.desktopBarGlass(RoundedCornerShape(10.dp)),
+                modifier = Modifier
+                    .shadow(14.dp, menuShape)
+                    .desktopBarGlass(menuShape),
                 containerColor = Color.Transparent,
-                shape = RoundedCornerShape(10.dp),
+                shape = menuShape,
             ) {
                 DropdownMenuItem(
                     text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
@@ -5401,12 +5404,15 @@ private fun DesktopSidebarRestoreRow(hidden: Map<String, String>) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        val restoreShape = RoundedCornerShape(12.dp)
         DropdownMenu(
             expanded = open,
             onDismissRequest = { open = false },
-            modifier = Modifier.desktopBarGlass(RoundedCornerShape(10.dp)),
+            modifier = Modifier
+                .shadow(14.dp, restoreShape)
+                .desktopBarGlass(restoreShape),
             containerColor = Color.Transparent,
-            shape = RoundedCornerShape(10.dp),
+            shape = restoreShape,
         ) {
             hidden.forEach { (key, label) ->
                 DropdownMenuItem(
@@ -5527,6 +5533,7 @@ private fun DesktopAppleMusicBottomBar(
             .widthIn(max = 760.dp)
             .fillMaxWidth()
             .height(58.dp)
+            .shadow(16.dp, shape)
             .clip(shape)
             .desktopBarGlass(shape),
         shape = shape,
@@ -5737,14 +5744,13 @@ private fun DesktopAppleMusicBottomBar(
                                 onDismissRequest = { volumePopupOpen = false },
                                 properties = PopupProperties(focusable = true),
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = Color.Transparent,
-                                    shadowElevation = 8.dp,
+                                val volShape = RoundedCornerShape(12.dp)
+                                Box(
                                     modifier = Modifier
                                         .padding(bottom = 8.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .desktopBarGlass(RoundedCornerShape(12.dp)),
+                                        .shadow(14.dp, volShape)
+                                        .clip(volShape)
+                                        .desktopBarGlass(volShape),
                                 ) {
                                     Row(
                                         Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -6832,14 +6838,16 @@ private fun DesktopSettingsScreen(
                             "${"%.2f".format(playbackSpeed)}×",
                         ) { speedMenuOpen = true }
                         Box(Modifier.align(Alignment.BottomEnd).padding(end = 12.dp)) {
+                            val speedShape = RoundedCornerShape(14.dp)
                             DropdownMenu(
                                 expanded = speedMenuOpen,
                                 onDismissRequest = { speedMenuOpen = false },
                                 modifier = Modifier
                                     .widthIn(min = 200.dp)
-                                    .desktopBarGlass(RoundedCornerShape(14.dp)),
+                                    .shadow(16.dp, speedShape)
+                                    .desktopBarGlass(speedShape),
                                 containerColor = Color.Transparent,
-                                shape = RoundedCornerShape(14.dp),
+                                shape = speedShape,
                             ) {
                                 listOf(0.50f, 0.75f, 1.00f, 1.25f, 1.50f, 1.75f, 2.00f).forEach { speed ->
                                     val label = if (speed == 1.0f) DesktopStrings["d_normal_speed", "1.00× (Normal)"] else "${"%.2f".format(speed)}×"
@@ -6871,14 +6879,16 @@ private fun DesktopSettingsScreen(
                             },
                         ) { sleepMenuOpen = true }
                         Box(Modifier.align(Alignment.BottomEnd).padding(end = 12.dp)) {
+                            val sleepShape = RoundedCornerShape(14.dp)
                             DropdownMenu(
                                 expanded = sleepMenuOpen,
                                 onDismissRequest = { sleepMenuOpen = false },
                                 modifier = Modifier
                                     .widthIn(min = 260.dp)
-                                    .desktopBarGlass(RoundedCornerShape(14.dp)),
+                                    .shadow(16.dp, sleepShape)
+                                    .desktopBarGlass(sleepShape),
                                 containerColor = Color.Transparent,
-                                shape = RoundedCornerShape(14.dp),
+                                shape = sleepShape,
                             ) {
                                 DropdownMenuItem(
                                     text = { Text(DesktopStrings["d_sleep_timer_off", "Off"], color = if (sleepRemainingMs == null && !sleepAfterTrack) DesktopAccent else Color.White) },
@@ -6962,14 +6972,16 @@ private fun DesktopSettingsScreen(
                             DesktopStrings.languageLabel(),
                         ) { languageMenuOpen = true }
                         Box(Modifier.align(Alignment.BottomEnd).padding(end = 12.dp)) {
+                            val langShape = RoundedCornerShape(14.dp)
                             DropdownMenu(
                                 expanded = languageMenuOpen,
                                 onDismissRequest = { languageMenuOpen = false },
                                 modifier = Modifier
                                     .widthIn(min = 220.dp)
-                                    .desktopBarGlass(RoundedCornerShape(14.dp)),
+                                    .shadow(16.dp, langShape)
+                                    .desktopBarGlass(langShape),
                                 containerColor = Color.Transparent,
-                                shape = RoundedCornerShape(14.dp),
+                                shape = langShape,
                             ) {
                                 DesktopStrings.available.forEach { language ->
                                     val isCurrent = language.tag == chosen
@@ -7874,12 +7886,15 @@ private fun DesktopCollectionPage(
                             )
                             Box {
                                 DesktopCircleButton(Icons.Rounded.MoreHoriz, DesktopStrings["more", "More"], onClick = { moreOpen = true })
+                                val moreShape = RoundedCornerShape(14.dp)
                                 DropdownMenu(
                                     expanded = moreOpen,
                                     onDismissRequest = { moreOpen = false },
-                                    modifier = Modifier.desktopBarGlass(RoundedCornerShape(12.dp)),
+                                    modifier = Modifier
+                                        .shadow(16.dp, moreShape)
+                                        .desktopBarGlass(moreShape),
                                     containerColor = Color.Transparent,
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = moreShape,
                                 ) {
                                     DropdownMenuItem(
                                         text = { Text(DesktopStrings["download_all", "Download all"]) },
