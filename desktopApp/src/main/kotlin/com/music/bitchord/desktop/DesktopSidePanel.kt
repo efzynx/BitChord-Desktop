@@ -59,19 +59,19 @@ internal fun DesktopSidePanelColumn(
         exit = shrinkHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing), shrinkTowards = Alignment.Start) +
             fadeOut(tween(SLIDE_MS / 2)),
     ) {
-        Row(Modifier.width(SIDE_PANEL_WIDTH).fillMaxHeight()) {
-            Box(Modifier.width(1.dp).fillMaxHeight().background(DesktopDivider))
+        Row(
+            Modifier
+                .width(SIDE_PANEL_WIDTH)
+                .fillMaxHeight()
+                .desktopWindowGlass(DesktopChromeEdge.NONE),
+        ) {
+            Box(Modifier.width(1.dp).fillMaxHeight().background(desktopChromeDivider()))
             Crossfade(
                 targetState = shown ?: return@Row,
                 animationSpec = tween(CROSSFADE_MS),
                 label = "sidePanel",
             ) { which ->
                 Box(Modifier.fillMaxSize()) {
-                    // The lyrics stand on the window itself, as in Apple Music; the queue is a list
-                    // and takes the sidebar's glass.
-                    if (which == DesktopSidePanel.QUEUE) {
-                        Box(Modifier.fillMaxSize().desktopChromeGlass())
-                    }
                     Column(Modifier.fillMaxSize()) {
                         Row(
                             modifier = Modifier

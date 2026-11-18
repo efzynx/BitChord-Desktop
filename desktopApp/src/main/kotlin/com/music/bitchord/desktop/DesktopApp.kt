@@ -3237,9 +3237,12 @@ fun BitChordDesktopApp() {
                 containerColor = DesktopBackground,
                 // Only Replay dresses itself unless ambient backdrop is on; everywhere else the chrome sits on the plain surface.
                 backdrop = { transparentBase ->
+                    val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
                     val ambientArtworkUrl = replaySummary.songs.firstOrNull()?.song?.thumbnailUrl
                         .takeIf { overlays.replay }
-                        ?: selectedSong?.thumbnailUrl.takeIf { ambientBackdrop }
+                        ?: selectedSong?.thumbnailUrl.takeIf {
+                            ambientBackdrop || (overlays.sidePanel != null && !reduceDynamicBlur)
+                        }
                     DesktopPageBackdrop(
                         artworkUrl = ambientArtworkUrl,
                         transparentBase = transparentBase,
@@ -5899,14 +5902,7 @@ private fun DesktopFrame(
                                         }
                                     Box(
                                         Modifier
-                                            .fillMaxHeight()
-                                            .then(
-                                                if (glass && !materialBehindApp) {
-                                                    Modifier.background(containerColor)
-                                                } else {
-                                                    Modifier
-                                                },
-                                            ),
+                                            .fillMaxHeight(),
                                     ) { trailing() }
                                 }
                                 }
