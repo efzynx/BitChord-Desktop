@@ -248,17 +248,19 @@ internal fun LandscapePlayerLayout(
 
             // The sheet closes from a downward drag anywhere nothing else
             // claims, as it does in portrait; this is only the promise.
-            Box(
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = 8.dp)
-                    .width(38.dp)
-                    .height(5.dp)
-                    .shadow(2.dp, RoundedCornerShape(3.dp), clip = false)
-                    .clip(RoundedCornerShape(3.dp))
-                    .additiveChrome(LocalPlayerChrome.current)
-                    .background(chromeWhite(0.70f)),
-            )
+            if (!isDesktopPlatform) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = 8.dp)
+                        .width(38.dp)
+                        .height(5.dp)
+                        .shadow(2.dp, RoundedCornerShape(3.dp), clip = false)
+                        .clip(RoundedCornerShape(3.dp))
+                        .additiveChrome(LocalPlayerChrome.current)
+                        .background(chromeWhite(0.70f)),
+                )
+            }
         }
     }
 }

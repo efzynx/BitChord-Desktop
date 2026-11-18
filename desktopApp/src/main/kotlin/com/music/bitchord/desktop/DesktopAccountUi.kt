@@ -130,10 +130,9 @@ internal fun DesktopAccountSelector(
         val shape = RoundedCornerShape(20.dp)
         Column(
             Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 64.dp, end = 24.dp)
-                .widthIn(max = 380.dp)
-                .fillMaxWidth()
+                .align(Alignment.BottomStart)
+                .padding(start = 16.dp, bottom = 68.dp)
+                .width(340.dp)
                 .clip(shape)
                 // The same frosted pane the floating bars are made of, sampling the page underneath
                 // rather than sitting on a flat fill.

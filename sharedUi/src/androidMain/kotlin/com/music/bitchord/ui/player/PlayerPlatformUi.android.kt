@@ -18,6 +18,8 @@ import androidx.compose.ui.platform.LocalContext
 
 internal actual fun uptimeMillis(): Long = SystemClock.uptimeMillis()
 
+internal actual val isDesktopPlatform: Boolean get() = false
+
 // RenderEffect, API 31+; `Modifier.blur` is a no-op below it.
 internal actual val renderEffectBlurSupported: Boolean
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
