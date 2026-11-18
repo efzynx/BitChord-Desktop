@@ -198,6 +198,7 @@ internal fun DesktopSongMenuFor(
      */
     lyricsOffsetMs: Int = 0,
     onSetLyricsOffset: ((Int) -> Unit)? = null,
+    usePopup: Boolean = true,
 ) {
     val close = onDismiss
     DesktopSongMenu(
@@ -244,6 +245,7 @@ internal fun DesktopSongMenuFor(
         onSearchLyrics = onSearchLyrics,
         lyricsOffsetMs = lyricsOffsetMs,
         onSetLyricsOffset = onSetLyricsOffset,
+        usePopup = usePopup,
         onDismiss = close,
     )
 }
@@ -294,6 +296,7 @@ internal fun DesktopSongMenu(
     /** The player's lyrics offset and its setter; a null setter hides the "Lyrics offset" row. */
     lyricsOffsetMs: Int = 0,
     onSetLyricsOffset: ((Int) -> Unit)? = null,
+    usePopup: Boolean = true,
     onDismiss: () -> Unit,
 ) {
     var pickingSleepTimer by remember { mutableStateOf(false) }
@@ -305,7 +308,7 @@ internal fun DesktopSongMenu(
     // playlist, fetch again, or share a link for.
     val isOffline = song.localUri != null
 
-    DesktopMenuSurface(onDismiss = onDismiss) {
+    DesktopMenuSurface(onDismiss = onDismiss, usePopup = usePopup) {
         // One drawer for both: the manual search box on top, and under it every
         // provider with what its lookup turned up — the lyric sheet's old footer
         // and its provider picker, folded into the song menu.
@@ -622,25 +625,40 @@ private const val MAX_LYRICS_OFFSET_MS = 5_000
 
 /** The panel a menu is drawn in: a floating card in the app's own glass. */
 @Composable
-private fun DesktopMenuSurface(onDismiss: () -> Unit, content: @Composable () -> Unit) {
-    Popup(
-        popupPositionProvider = remember { DesktopMenuPosition() },
-        onDismissRequest = onDismiss,
-        properties = PopupProperties(focusable = true),
-    ) {
-        val shape = RoundedCornerShape(14.dp)
-        Column(
-            Modifier
-                .widthIn(min = 232.dp, max = 300.dp)
-                .shadow(16.dp, shape)
-                .clip(shape)
-                .desktopBarGlass(shape)
-                .padding(vertical = 6.dp)
-                // A menu with every optional row on it is taller than a small window; capped and
-                // scrolled rather than run off the screen.
-                .heightIn(max = 460.dp)
-                .verticalScroll(rememberScrollState()),
+private fun DesktopMenuSurface(
+    onDismiss: () -> Unit,
+    usePopup: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    val menuModifier = Modifier
+        .widthIn(min = 232.dp, max = 300.dp)
+        .shadow(16.dp, shape)
+        .clip(shape)
+        .desktopBarGlass(shape)
+        .clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            onClick = {},
+        )
+        .padding(vertical = 6.dp)
+        // A menu with every optional row on it is taller than a small window; capped and
+        // scrolled rather than run off the screen.
+        .heightIn(max = 460.dp)
+        .verticalScroll(rememberScrollState())
+
+    if (usePopup) {
+        Popup(
+            popupPositionProvider = remember { DesktopMenuPosition() },
+            onDismissRequest = onDismiss,
+            properties = PopupProperties(focusable = true),
         ) {
+            Column(menuModifier) {
+                content()
+            }
+        }
+    } else {
+        Column(menuModifier) {
             content()
         }
     }

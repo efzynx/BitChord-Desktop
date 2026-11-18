@@ -3678,60 +3678,77 @@ fun BitChordDesktopApp() {
                                         )
                                     }
                                     ?: current
-                                val anchorSize = playerMenuAnchor.value?.let { anchor ->
-                                    with(LocalDensity.current) { DpSize(anchor.width.toDp(), anchor.height.toDp()) }
-                                } ?: DpSize(34.dp, 34.dp)
-                                Box(
-                                    Modifier
-                                        .offset {
-                                            val anchor = playerMenuAnchor.value
-                                                ?: return@offset IntOffset(0, 0)
-                                            IntOffset(
-                                                (anchor.left - sheetOrigin.value.x).roundToInt(),
-                                                (anchor.top - sheetOrigin.value.y).roundToInt(),
-                                            )
-                                        }
-                                        .size(anchorSize),
-                                ) {
-                                    DesktopSongMenuFor(
-                                        song = playerSong,
-                                        liked = current.videoId in likedIds,
-                                        actions = playerSongActions(current),
-                                        onToggleLike = { toggleLike(current) },
-                                        onRevertToOriginal = {
-                                            DesktopOriginalVersion.pin(current.videoId)
-                                            playbackEngine.reloadCurrent()
-                                        }.takeIf {
-                                            playback.streamSourceId != null &&
-                                                playback.streamSourceId != "youtube" &&
-                                                DesktopMusicSources.hasYouTubeOriginal(current) &&
-                                                !DesktopOriginalVersion.isPinned(current.videoId)
-                                        },
-                                        onUpgradeQuality = {
-                                            DesktopOriginalVersion.clear(current.videoId)
-                                            playbackEngine.reloadCurrent(forceSourceRefresh = true)
-                                        }.takeIf { DesktopOriginalVersion.isPinned(current.videoId) },
-                                        onSwitchLyricsQueue = {
-                                            playerMenuOpen = false
-                                            playerQueueToggle.value = true
-                                        },
-                                        queueShowing = playerQueueShowing.value,
-                                        onTranslate = {
-                                            playerMenuOpen = false
-                                            playerTranslateToggle.value = true
-                                        },
-                                        showingTranslation = playerShowingTranslation.value,
-                                        translateEnabled = !sharedLyrics.isNullOrEmpty(),
-                                        lyricsProviders = menuLyricsProviders,
-                                        onSelectLyricsProvider = { label -> lyricsOnly = label },
-                                        onSearchLyrics = { title, artist -> searchLyrics(title, artist) },
-                                        lyricsOffsetMs = lyricsOffsetMs,
-                                        onSetLyricsOffset = { DesktopPlayerSettings.setLyricsOffsetMs(it) },
-                                        onDismiss = {
-                                            playerMenuOpen = false
-                                            playerMenuAnchor.value = null
-                                        },
+                                Box(Modifier.fillMaxSize()) {
+                                    Box(
+                                        Modifier
+                                            .fillMaxSize()
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null,
+                                                onClick = {
+                                                    playerMenuOpen = false
+                                                    playerMenuAnchor.value = null
+                                                },
+                                            ),
                                     )
+                                    val anchor = playerMenuAnchor.value
+                                    var menuSize by remember { mutableStateOf(IntSize.Zero) }
+                                    val density = LocalDensity.current
+                                    Box(
+                                        Modifier
+                                            .onSizeChanged { menuSize = it }
+                                            .offset {
+                                                if (anchor == null) return@offset IntOffset(0, 0)
+                                                val margin = 12
+                                                val menuW = if (menuSize.width > 0) menuSize.width else with(density) { 260.dp.roundToPx() }
+                                                val relRight = (anchor.right - sheetOrigin.value.x).roundToInt()
+                                                val relBottom = (anchor.bottom - sheetOrigin.value.y).roundToInt()
+                                                val targetX = (relRight - menuW).coerceAtLeast(margin)
+                                                val targetY = (relBottom + 6).coerceAtLeast(margin)
+                                                IntOffset(targetX, targetY)
+                                            },
+                                    ) {
+                                        DesktopSongMenuFor(
+                                            song = playerSong,
+                                            liked = current.videoId in likedIds,
+                                            actions = playerSongActions(current),
+                                            onToggleLike = { toggleLike(current) },
+                                            onRevertToOriginal = {
+                                                DesktopOriginalVersion.pin(current.videoId)
+                                                playbackEngine.reloadCurrent()
+                                            }.takeIf {
+                                                playback.streamSourceId != null &&
+                                                    playback.streamSourceId != "youtube" &&
+                                                    DesktopMusicSources.hasYouTubeOriginal(current) &&
+                                                    !DesktopOriginalVersion.isPinned(current.videoId)
+                                            },
+                                            onUpgradeQuality = {
+                                                DesktopOriginalVersion.clear(current.videoId)
+                                                playbackEngine.reloadCurrent(forceSourceRefresh = true)
+                                            }.takeIf { DesktopOriginalVersion.isPinned(current.videoId) },
+                                            onSwitchLyricsQueue = {
+                                                playerMenuOpen = false
+                                                playerQueueToggle.value = true
+                                            },
+                                            queueShowing = playerQueueShowing.value,
+                                            onTranslate = {
+                                                playerMenuOpen = false
+                                                playerTranslateToggle.value = true
+                                            },
+                                            showingTranslation = playerShowingTranslation.value,
+                                            translateEnabled = !sharedLyrics.isNullOrEmpty(),
+                                            lyricsProviders = menuLyricsProviders,
+                                            onSelectLyricsProvider = { label -> lyricsOnly = label },
+                                            onSearchLyrics = { title, artist -> searchLyrics(title, artist) },
+                                            lyricsOffsetMs = lyricsOffsetMs,
+                                            onSetLyricsOffset = { DesktopPlayerSettings.setLyricsOffsetMs(it) },
+                                            usePopup = false,
+                                            onDismiss = {
+                                                playerMenuOpen = false
+                                                playerMenuAnchor.value = null
+                                            },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -5021,6 +5038,14 @@ private fun DesktopSidebar(
                     )
                     Spacer(Modifier.height(6.dp))
                 }
+                DesktopSidebarRailPlaylistsItem(
+                    accountPlaylists = accountPlaylists,
+                    localPlaylists = localPlaylists,
+                    hiddenSidebar = hiddenSidebar,
+                    openedCollectionId = openedCollectionId,
+                    onOpenAccountPlaylist = onOpenAccountPlaylist,
+                    onOpenLocalPlaylist = onOpenLocalPlaylist,
+                )
                 Spacer(Modifier.weight(1f))
                 DesktopAccountButton(avatar = accountAvatar, onClick = onOpenAccounts)
                 if (!compact) {
@@ -5521,6 +5546,206 @@ private fun DesktopSidebarRailItem(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DesktopSidebarRailPlaylistsItem(
+    accountPlaylists: List<ShelfItem>,
+    localPlaylists: List<DesktopPlaylist>,
+    hiddenSidebar: Map<String, String>,
+    openedCollectionId: String?,
+    onOpenAccountPlaylist: (ShelfItem) -> Unit,
+    onOpenLocalPlaylist: (DesktopPlaylist) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val visibleAccount = remember(accountPlaylists, hiddenSidebar) {
+        accountPlaylists
+            .filterNot { "account:${it.browseId}" in hiddenSidebar }
+            .filterNot {
+                it.browseId == "VLLM" || it.browseId == "LM" ||
+                    it.title.equals("Liked Music", ignoreCase = true) ||
+                    it.title.equals("Musik yang Disukai", ignoreCase = true)
+            }
+    }
+    val visibleLocal = remember(localPlaylists, hiddenSidebar) {
+        localPlaylists.filterNot { "local:${it.id}" in hiddenSidebar }
+    }
+    val anySelected = (visibleAccount.any { openedCollectionId == it.browseId }) ||
+        (visibleLocal.any { openedCollectionId == it.id })
+
+    var iconHovered by remember { mutableStateOf(false) }
+    var flyoutHovered by remember { mutableStateOf(false) }
+    var showFlyout by remember { mutableStateOf(false) }
+
+    LaunchedEffect(iconHovered, flyoutHovered) {
+        if (iconHovered || flyoutHovered) {
+            showFlyout = true
+        } else {
+            delay(220)
+            if (!iconHovered && !flyoutHovered) {
+                showFlyout = false
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(
+                when {
+                    anySelected -> DesktopAccent.copy(alpha = 0.20f)
+                    iconHovered || showFlyout -> Color.White.copy(alpha = 0.08f)
+                    else -> Color.Transparent
+                },
+            )
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        iconHovered = event.type == PointerEventType.Enter || event.type == PointerEventType.Move
+                        if (event.type == PointerEventType.Exit) iconHovered = false
+                    }
+                }
+            }
+            .clickable { showFlyout = !showFlyout },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Rounded.PlaylistPlay,
+            contentDescription = DesktopStrings["playlists", "Playlists"],
+            tint = if (anySelected) DesktopAccent else DesktopSecondary,
+            modifier = Modifier.size(20.dp),
+        )
+
+        if (showFlyout) {
+            val density = LocalDensity.current
+            val offsetX = with(density) { 48.dp.roundToPx() }
+            Popup(
+                alignment = Alignment.CenterStart,
+                offset = IntOffset(x = offsetX, y = 0),
+                properties = PopupProperties(focusable = false),
+            ) {
+                val shape = RoundedCornerShape(12.dp)
+                Surface(
+                    shape = shape,
+                    color = Color(0xF018181C),
+                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.15f)),
+                    shadowElevation = 12.dp,
+                    modifier = Modifier
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    flyoutHovered = event.type == PointerEventType.Enter || event.type == PointerEventType.Move
+                                    if (event.type == PointerEventType.Exit) flyoutHovered = false
+                                }
+                            }
+                        }
+                        .widthIn(min = 210.dp, max = 280.dp),
+                ) {
+                    Column(
+                        Modifier
+                            .padding(vertical = 8.dp)
+                            .heightIn(max = 380.dp),
+                    ) {
+                        Text(
+                            text = DesktopStrings["playlists", "Playlists"],
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = DesktopSecondary.copy(alpha = 0.70f),
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
+                        )
+                        HorizontalDivider(
+                            color = Color.White.copy(alpha = 0.08f),
+                            modifier = Modifier.padding(vertical = 4.dp),
+                        )
+                        if (visibleAccount.isEmpty() && visibleLocal.isEmpty()) {
+                            Text(
+                                text = DesktopStrings["d_playlists_empty_hint", "Your playlists will appear here"],
+                                style = MaterialTheme.typography.bodySmall,
+                                color = DesktopSecondary.copy(alpha = 0.65f),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f, fill = false),
+                            ) {
+                                items(visibleAccount, key = { "account:${it.browseId}" }) { item ->
+                                    val isSelected = openedCollectionId == item.browseId
+                                    DesktopSidebarFlyoutItem(
+                                        icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                                        title = item.title,
+                                        selected = isSelected,
+                                        onClick = {
+                                            showFlyout = false
+                                            iconHovered = false
+                                            flyoutHovered = false
+                                            onOpenAccountPlaylist(item)
+                                        },
+                                    )
+                                }
+                                items(visibleLocal, key = { "local:${it.id}" }) { item ->
+                                    val isSelected = openedCollectionId == item.id
+                                    DesktopSidebarFlyoutItem(
+                                        icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                                        title = item.title,
+                                        selected = isSelected,
+                                        onClick = {
+                                            showFlyout = false
+                                            iconHovered = false
+                                            flyoutHovered = false
+                                            onOpenLocalPlaylist(item)
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DesktopSidebarFlyoutItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 6.dp, vertical = 1.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (selected) Color.White.copy(alpha = 0.12f) else Color.Transparent)
+            .desktopHoverFill(corner = 8.dp, alpha = 0.10f)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (selected) DesktopAccent else DesktopSecondary,
+            modifier = Modifier.size(17.dp),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) Color.White else Color.White.copy(alpha = 0.88f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            fontSize = 13.sp,
+        )
     }
 }
 
@@ -7111,7 +7336,7 @@ private fun DesktopSettingsScreen(
                     val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
                     SettingsToggle(
                         DesktopStrings["reduce_dynamic_blur", "Reduce dynamic blur"],
-                        DesktopStrings["d_reduce_dynamic_blur_subtitle", "Lowers blur radius and simplifies transparency for better performance"],
+                        DesktopStrings["reduce_dynamic_blur_subtitle", "Swaps frosted glass for solid fills across the app"],
                         reduceDynamicBlur,
                         DesktopAppearanceSettings::setReduceDynamicBlur,
                     )
@@ -8289,19 +8514,19 @@ private fun Modifier.desktopFrosted(
     val haze = LocalDesktopHaze.current
     val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
     val disableFrostedGlass by DesktopAppearanceSettings.disableFrostedGlass.collectAsState()
-    if (haze == null || disableFrostedGlass) {
+    if (haze == null || reduceDynamicBlur || disableFrostedGlass) {
         return this.background(edge.dissolve(opaque, fade) ?: SolidColor(opaque))
     }
     val dissolve = edge.dissolve(Color.Black, fade)
     return this.hazeEffect(state = haze) {
         // Spelled out rather than taken from a preset.
         blurEnabled = true
-        backgroundColor = Color.Unspecified
-        blurRadius = if (reduceDynamicBlur) 12.dp else 28.dp
+        backgroundColor = DesktopSurface
+        blurRadius = 30.dp
         // Dark enough that white text on the pane always wins, translucent enough that the
         // colour of what is behind it still comes through.
-        tints = listOf(HazeTint(DesktopSurface.copy(alpha = if (reduceDynamicBlur) 0.72f else tintAlpha)))
-        noiseFactor = if (reduceDynamicBlur) 0f else 0.03f
+        tints = listOf(HazeTint(DesktopSurface.copy(alpha = tintAlpha)))
+        noiseFactor = 0.04f
         // Assigned either way: the scope belongs to the node and outlives the draw, so a pane that
         // stops dissolving — the leading stretch of the top bar, when the window grows back out of
         // compact — would otherwise keep the mask it was given in the other layout.
