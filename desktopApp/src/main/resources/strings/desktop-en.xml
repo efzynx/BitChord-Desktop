@@ -144,4 +144,5 @@
     <string name="d_copy_cookie_step_3">3. Refresh the page (F5) and click any request (e.g. \"browse\").</string>
     <string name="d_copy_cookie_step_4">4. Under \"Headers\" > \"Request Headers\", find \"cookie:\", right-click and choose \"Copy value\".</string>
     <string name="d_copy_cookie_step_5">5. Paste the cookie header into the box below and click Sign in.</string>
+    <string name="d_maximize_player">Maximize player</string>
 </resources>

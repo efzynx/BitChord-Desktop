@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. Recarga la página (F5) y haz clic en cualquier petición (ej. "browse").</string>
     <string name="d_copy_cookie_step_4">4. En "Encabezados" > "Encabezados de solicitud", busca "cookie:", clic derecho y "Copiar valor".</string>
     <string name="d_copy_cookie_step_5">5. Pega el encabezado cookie abajo y haz clic en Iniciar sesión.</string>
+    <string name="d_maximize_player">Maximizar reproductor</string>
 </resources>

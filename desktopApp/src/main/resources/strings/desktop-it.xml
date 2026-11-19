@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. Ricarica la pagina (F5) e fai clic su una qualsiasi richiesta (es. "browse").</string>
     <string name="d_copy_cookie_step_4">4. In "Intestazioni" > "Intestazioni richiesta", trova "cookie:", clic destro e "Copia valore".</string>
     <string name="d_copy_cookie_step_5">5. Incolla l’intestazione cookie sotto e fai clic su Accedi.</string>
+    <string name="d_maximize_player">Ingrandisci lettore</string>
 </resources>

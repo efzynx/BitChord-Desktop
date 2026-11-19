@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. Odśwież stronę (F5) i kliknij dowolne żądanie (np. "browse").</string>
     <string name="d_copy_cookie_step_4">4. W sekcji "Nagłówki" > "Nagłówki żądania" znajdź "cookie:", kliknij prawym przyciskiem i "Kopiuj wartość".</string>
     <string name="d_copy_cookie_step_5">5. Wklej nagłówek cookie poniżej i kliknij Zaloguj się.</string>
+    <string name="d_maximize_player">Maksymalizuj odtwarzacz</string>
 </resources>

@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. Actualisez la page (F5) et cliquez sur une requête (ex. "browse").</string>
     <string name="d_copy_cookie_step_4">4. Sous "En-têtes" > "En-têtes de requête", trouvez "cookie:", clic droit > "Copier la valeur".</string>
     <string name="d_copy_cookie_step_5">5. Collez l’en-tête cookie ci-dessous et cliquez sur Connexion.</string>
+    <string name="d_maximize_player">Agrandir le lecteur</string>
 </resources>

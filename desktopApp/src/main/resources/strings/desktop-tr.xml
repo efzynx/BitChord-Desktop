@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. Sayfayı yenileyin (F5) ve herhangi bir isteğe tıklayın.</string>
     <string name="d_copy_cookie_step_4">4. "Başlıklar" altında "cookie:" satırını bulun, sağ tıklayıp "Değeri kopyala"yı seçin.</string>
     <string name="d_copy_cookie_step_5">5. Kopyalanan çerezi aşağıdaki alana yapıştırın ve Giriş Yap'a tıklayın.</string>
+    <string name="d_maximize_player">Oynatıcıyı büyüt</string>
 </resources>

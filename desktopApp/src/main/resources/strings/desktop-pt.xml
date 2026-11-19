@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. Atualize a página (F5) e clique em qualquer requisição (ex.: "browse").</string>
     <string name="d_copy_cookie_step_4">4. Em "Cabeçalhos" > "Cabeçalhos da requisição", localize "cookie:", clique com o botão direito e "Copiar valor".</string>
     <string name="d_copy_cookie_step_5">5. Cole o cabeçalho do cookie abaixo e clique em Entrar.</string>
+    <string name="d_maximize_player">Maximizar reprodutor</string>
 </resources>

@@ -158,6 +158,7 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.NorthWest
+import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -5929,35 +5930,74 @@ private fun DesktopAppleMusicBottomBar(
 
             Spacer(Modifier.width(10.dp))
 
-            // Center: Track info & progress line
-            Box(
+            // Center: Track info (clickable cover art to maximize) & progress slider below text
+            Row(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .padding(vertical = 4.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable(onClick = onOpenNowPlaying)
-                    .padding(horizontal = 6.dp),
+                    .padding(vertical = 5.dp, horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
+                val artInteractionSource = remember { MutableInteractionSource() }
+                val isArtHovered by artInteractionSource.collectIsHoveredAsState()
+                val artHoverAlpha by animateFloatAsState(
+                    targetValue = if (isArtHovered) 1f else 0f,
+                    animationSpec = tween(durationMillis = 140),
+                    label = "artHoverAlpha",
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .hoverable(artInteractionSource)
+                        .clickable(
+                            interactionSource = artInteractionSource,
+                            indication = null,
+                            onClick = onOpenNowPlaying,
+                        ),
+                    contentAlignment = Alignment.Center,
                 ) {
                     DesktopArtwork(
                         song.thumbnailUrl,
-                        Modifier.size(38.dp).clip(RoundedCornerShape(6.dp)),
+                        Modifier.fillMaxSize(),
                         px = ROW_ART_PX,
                     )
-                    Spacer(Modifier.width(10.dp))
+                    if (artHoverAlpha > 0.01f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer { alpha = artHoverAlpha }
+                                .background(Color.Black.copy(alpha = 0.52f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Rounded.OpenInFull,
+                                contentDescription = DesktopStrings["d_maximize_player", "Maximize player"],
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.width(10.dp))
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
                     Column(
-                        Modifier.weight(1f),
-                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(top = 2.dp),
+                        verticalArrangement = Arrangement.spacedBy(1.dp),
                     ) {
                         Text(
                             text = song.title,
                             color = Color.White,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
+                            fontSize = 12.5.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -5970,32 +6010,33 @@ private fun DesktopAppleMusicBottomBar(
                                 }
                             },
                             color = DesktopSecondary,
-                            fontSize = 11.sp,
+                            fontSize = 10.5.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+
+                    DesktopThinSlider(
+                        value = displayedProgress,
+                        onValueChange = { frac ->
+                            isSeeking = true
+                            seekProgress = frac
+                        },
+                        onValueChangeFinished = {
+                            isSeeking = false
+                            onSeek(seekProgress)
+                        },
+                        idleHeight = 2.5.dp,
+                        activeHeight = 5.dp,
+                        hitTargetHeight = 10.dp,
+                        barAlignment = Alignment.BottomCenter,
+                        activeColor = Color.White.copy(alpha = 0.90f),
+                        inactiveColor = Color.White.copy(alpha = 0.20f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 4.dp, bottom = 1.dp),
+                    )
                 }
-                // Interactive progress slider along the bottom of the card
-                DesktopThinSlider(
-                    value = displayedProgress,
-                    onValueChange = { frac ->
-                        isSeeking = true
-                        seekProgress = frac
-                    },
-                    onValueChangeFinished = {
-                        isSeeking = false
-                        onSeek(seekProgress)
-                    },
-                    idleHeight = 3.dp,
-                    activeHeight = 6.dp,
-                    activeColor = Color.White.copy(alpha = 0.90f),
-                    inactiveColor = Color.White.copy(alpha = 0.20f),
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 48.dp, end = 6.dp, bottom = 0.dp)
-                        .fillMaxWidth(),
-                )
             }
 
             Spacer(Modifier.width(8.dp))

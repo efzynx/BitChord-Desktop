@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. पेज रीफ़्रेश करें (F5) और किसी भी रिक्वेस्ट पर क्लिक करें।</string>
     <string name="d_copy_cookie_step_4">4. "Headers" के तहत "cookie:" खोजें, राइट-क्लिक करें और "Copy value" चुनें।</string>
     <string name="d_copy_cookie_step_5">5. नीचे कुकी हेडर पेस्ट करें और साइन इन पर क्लिक करें।</string>
+    <string name="d_maximize_player">प्लेयर बड़ा करें</string>
 </resources>

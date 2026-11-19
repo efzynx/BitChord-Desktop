@@ -51,6 +51,8 @@ internal fun DesktopThinSlider(
     transitionWindow: ClosedFloatingPointRange<Float>? = null,
     idleHeight: Dp = 7.dp,
     activeHeight: Dp = 12.dp,
+    hitTargetHeight: Dp = activeHeight + 22.dp,
+    barAlignment: Alignment = Alignment.Center,
     activeColor: Color = Color.White.copy(alpha = 0.92f),
     inactiveColor: Color = Color.White.copy(alpha = 0.26f),
     /** Halfway between the two track colours: visible against unplayed, invisible under played. */
@@ -69,7 +71,7 @@ internal fun DesktopThinSlider(
     Box(
         modifier = modifier
             // Generous invisible hit target — the visible bar is only ~7dp.
-            .height(activeHeight + 22.dp)
+            .height(hitTargetHeight)
             // One gesture loop for both clicks and drags.
             .pointerInput(Unit) {
                 awaitEachGesture {
@@ -94,7 +96,7 @@ internal fun DesktopThinSlider(
                     onValueChangeFinished?.invoke()
                 }
             },
-        contentAlignment = Alignment.Center,
+        contentAlignment = barAlignment,
     ) {
         Canvas(
             Modifier

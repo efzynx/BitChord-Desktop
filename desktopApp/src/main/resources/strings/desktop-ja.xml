@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. ページを更新（F5）し、任意の通信リクエスト（例: "browse"）をクリックします。</string>
     <string name="d_copy_cookie_step_4">4. 「ヘッダー」>「リクエストヘッダー」で "cookie:" を右クリックし「値をコピー」します。</string>
     <string name="d_copy_cookie_step_5">5. 下の入力欄にCookieヘッダーを貼り付け、ログインをクリックします。</string>
+    <string name="d_maximize_player">プレーヤーを最大化</string>
 </resources>

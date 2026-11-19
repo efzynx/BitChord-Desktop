@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. Aktualisieren Sie die Seite (F5) und klicken Sie auf eine beliebige Anfrage.</string>
     <string name="d_copy_cookie_step_4">4. Unter "Header" > "Anforderungs-Header" suchen Sie "cookie:", Rechtsklick > "Wert kopieren".</string>
     <string name="d_copy_cookie_step_5">5. Fügen Sie den Cookie-Header unten ein und klicken Sie auf Anmelden.</string>
+    <string name="d_maximize_player">Player vergrößern</string>
 </resources>

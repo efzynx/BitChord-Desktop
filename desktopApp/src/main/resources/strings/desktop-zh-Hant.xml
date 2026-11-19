@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. 重新整理頁面 (F5) 並按一下任一網路請求（如 "browse"）。</string>
     <string name="d_copy_cookie_step_4">4. 在「標頭 (Headers)」>「請求標頭」中找到 "cookie:"，按右鍵選取「複製值」。</string>
     <string name="d_copy_cookie_step_5">5. 將 Cookie 貼至下方並按一下登入。</string>
+    <string name="d_maximize_player">最大化播放器</string>
 </resources>

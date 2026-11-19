@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. רענן את הדף (F5) ולחץ על בקשה כלשהי.</string>
     <string name="d_copy_cookie_step_4">4. תחת "כותרות" > "כותרות בקשה", מצא את "cookie:", לחץ לחיצה ימנית ובחר "העתק ערך".</string>
     <string name="d_copy_cookie_step_5">5. הדבק את ה-cookie למטה ולחץ על התחבר.</string>
+    <string name="d_maximize_player">הגדל נגן</string>
 </resources>

@@ -142,4 +142,5 @@
     <string name="d_copy_cookie_step_3">3. 刷新页面 (F5) 并点击任意网络请求（如 "browse"）。</string>
     <string name="d_copy_cookie_step_4">4. 在“标头 (Headers)”>“请求标头”中找到 "cookie:"，右键选择“复制值”。</string>
     <string name="d_copy_cookie_step_5">5. 将 Cookie 粘贴到下方并点击登录。</string>
+    <string name="d_maximize_player">最大化播放器</string>
 </resources>
