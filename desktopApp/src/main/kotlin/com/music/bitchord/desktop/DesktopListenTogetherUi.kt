@@ -473,6 +473,28 @@ private fun CloudflareTunnelSection(
                     )
                 }
             }
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Share this link with friends so they can join your party",
+                    color = DesktopSecondary,
+                    fontSize = 11.sp,
+                )
+                TextButton(
+                    onClick = {
+                        onServerChange("http://127.0.0.1:${tunnelState.port}")
+                        onSaveServer()
+                    },
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                    modifier = Modifier.height(24.dp),
+                ) {
+                    Text("Use local address", color = DesktopAccent, fontSize = 11.sp)
+                }
+            }
         }
     }
 }

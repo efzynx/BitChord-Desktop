@@ -18,6 +18,7 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.timeout
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
@@ -29,6 +30,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
@@ -133,6 +135,9 @@ internal object DesktopListenTogether {
         install(HttpTimeout) {
             requestTimeoutMillis = 20_000
             connectTimeoutMillis = 15_000
+        }
+        defaultRequest {
+            header(HttpHeaders.UserAgent, "Mozilla/5.0 (X11; Linux x86_64) BitChord/1.9")
         }
     }
 
@@ -774,7 +779,9 @@ internal object DesktopListenTogether {
             }
             response.status.isSuccess() && response.bodyAsText().contains(HEALTH_OK)
         }.getOrElse { failure ->
-            DesktopTrackLog.log("listen together: health check failed: ${redact(failure.message)}")
+            val errName = failure::class.simpleName ?: "Exception"
+            val errMsg = failure.message ?: failure.cause?.message ?: "unresolved/offline"
+            DesktopTrackLog.log("listen together: health check failed: $errName: ${redact(errMsg)}")
             false
         }
         return online to if (online) (clock.nowMs() - started).coerceAtLeast(0L) else 0L

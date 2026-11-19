@@ -6146,10 +6146,9 @@ private fun DesktopAppleMusicBottomBar(
                     Column(
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .padding(top = 4.dp)
+                            .padding(top = 6.dp)
                             .graphicsLayer { alpha = textAlpha }
                             .then(if (textBlur > 0.5.dp) Modifier.blur(textBlur) else Modifier),
-                        verticalArrangement = Arrangement.Center,
                     ) {
                         Text(
                             text = song.title,
@@ -6201,13 +6200,14 @@ private fun DesktopAppleMusicBottomBar(
                             .fillMaxWidth()
                             .height(16.dp)
                             .hoverable(sliderInteractionSource),
-                        contentAlignment = Alignment.Center,
+                        contentAlignment = Alignment.BottomCenter,
                     ) {
-                        // Normal idle thin line (height 2.5dp)
+                        // Normal idle thin line (height 2.5dp) at the very bottom
                         if (thinBarAlpha > 0.01f) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(bottom = 2.dp)
                                     .height(2.5.dp)
                                     .graphicsLayer { alpha = thinBarAlpha }
                                     .clip(RoundedCornerShape(percent = 50)),
@@ -6231,6 +6231,7 @@ private fun DesktopAppleMusicBottomBar(
                         if (scrubberAlpha > 0.01f) {
                             Row(
                                 modifier = Modifier
+                                    .align(Alignment.Center)
                                     .fillMaxWidth()
                                     .graphicsLayer { alpha = scrubberAlpha },
                                 verticalAlignment = Alignment.CenterVertically,

@@ -96,42 +96,55 @@ internal object DesktopCloudflareTunnel {
         monitorJob?.cancel()
         monitorJob = scope.launch {
             try {
-                // 1. Ensure local party server is running on the target port
-                if (!isLocalHealthOk(port)) {
+                // 1. Ensure local party server is running on an active port (try preferred, 8000, or 8080)
+                val actualPort = when {
+                    isLocalHealthOk(port) -> port
+                    isLocalHealthOk(8000) -> 8000
+                    isLocalHealthOk(8080) -> 8080
+                    else -> port
+                }
+
+                if (!isLocalHealthOk(actualPort)) {
                     val backendDir = listOf(
                         File("backend"),
                         File(System.getProperty("user.dir"), "backend"),
                         File(System.getProperty("user.home"), "Project/BitChord-Desktop/backend"),
                     ).firstOrNull { it.isDirectory }
 
-                    if (backendDir != null) {
-                        val serverBinary = File(backendDir, if (DesktopPlatform.isWindows) "party-server.exe" else "party-server")
-                        val goExe = findExecutable("go")
+                    val serverBinary = backendDir?.let {
+                        File(it, if (DesktopPlatform.isWindows) "party-server.exe" else "party-server")
+                    } ?: findExecutable("party-server")?.let { File(it) }
 
-                        val pb = when {
-                            serverBinary.canExecute() -> {
-                                ProcessBuilder(serverBinary.absolutePath)
-                                    .directory(backendDir)
-                            }
-                            goExe != null -> {
-                                ProcessBuilder(goExe, "run", ".")
-                                    .directory(backendDir)
-                            }
-                            else -> null
-                        }
+                    val goExe = findExecutable("go")
 
-                        if (pb != null) {
-                            pb.environment()["PORT"] = port.toString()
-                            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD)
-                            pb.redirectError(ProcessBuilder.Redirect.DISCARD)
-                            serverProcess = pb.start()
+                    val pb = when {
+                        serverBinary != null && serverBinary.canExecute() -> {
+                            ProcessBuilder(serverBinary.absolutePath)
+                                .directory(backendDir ?: serverBinary.parentFile)
                         }
+                        backendDir != null && goExe != null -> {
+                            ProcessBuilder(goExe, "run", ".")
+                                .directory(backendDir)
+                        }
+                        else -> null
+                    }
+
+                    if (pb != null) {
+                        pb.environment()["PORT"] = actualPort.toString()
+                        pb.redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                        pb.redirectError(ProcessBuilder.Redirect.DISCARD)
+                        serverProcess = pb.start()
                     }
 
                     // Poll for local server readiness (up to 8 seconds)
                     for (i in 0 until 40) {
-                        if (isLocalHealthOk(port)) break
+                        if (isLocalHealthOk(actualPort)) break
                         delay(200)
+                    }
+
+                    if (!isLocalHealthOk(actualPort)) {
+                        _state.value = State(Status.ERROR, error = "Local party server failed to start on port $actualPort", port = actualPort)
+                        return@launch
                     }
                 }
 
@@ -141,7 +154,7 @@ internal object DesktopCloudflareTunnel {
                     cloudflaredExe,
                     "tunnel",
                     "--url",
-                    "http://127.0.0.1:$port",
+                    "http://127.0.0.1:$actualPort",
                     "--no-autoupdate",
                 ).redirectErrorStream(true)
 
@@ -161,23 +174,55 @@ internal object DesktopCloudflareTunnel {
                     }
                 }
 
-                if (capturedUrl != null) {
-                    // 3. Wait up to 10 seconds for Cloudflare edge routing to be live
-                    for (attempt in 0 until 10) {
-                        val ok = runCatching {
-                            val conn = URI("$capturedUrl/healthz").toURL().openConnection() as HttpURLConnection
-                            conn.connectTimeout = 2000
-                            conn.readTimeout = 2000
-                            conn.responseCode in 200..299
-                        }.getOrDefault(false)
-                        if (ok) break
-                        delay(1000)
-                    }
+                if (capturedUrl == null) {
+                    _state.value = State(Status.ERROR, error = "Failed to obtain trycloudflare.com URL", port = actualPort)
+                    proc.destroy()
+                    return@launch
+                }
 
-                    _state.value = State(Status.RUNNING, url = capturedUrl, port = port)
-                    onUrlAssigned?.invoke(capturedUrl)
-                } else {
-                    _state.value = State(Status.ERROR, error = "Failed to obtain trycloudflare.com URL", port = port)
+                // Continuously drain tunnel process stdout/stderr so pipe buffer never fills and freezes cloudflared
+                val drainJob = scope.launch(Dispatchers.IO) {
+                    runCatching {
+                        val buf = CharArray(2048)
+                        while (proc.isAlive && reader.read(buf) != -1) {
+                            // drain
+                        }
+                    }
+                }
+
+                // 3. Set negative DNS cache TTL to 1 second so JVM doesn't cache transient NXDOMAIN
+                runCatching {
+                    java.security.Security.setProperty("networkaddress.cache.negative.ttl", "1")
+                }
+
+                // 4. Wait up to 20 seconds for Cloudflare edge routing to be live
+                for (attempt in 0 until 20) {
+                    val ok = runCatching {
+                        val conn = URI("$capturedUrl/healthz").toURL().openConnection() as HttpURLConnection
+                        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) BitChord/1.9")
+                        conn.connectTimeout = 2000
+                        conn.readTimeout = 2000
+                        if (conn.responseCode in 200..299) {
+                            val body = conn.inputStream.bufferedReader().use { it.readText() }
+                            body.contains("\"ok\":true")
+                        } else {
+                            false
+                        }
+                    }.getOrDefault(false)
+                    if (ok) break
+                    delay(1000)
+                }
+
+                _state.value = State(Status.RUNNING, url = capturedUrl, port = actualPort)
+                onUrlAssigned?.invoke(capturedUrl)
+
+                // 5. Monitor tunnel lifetime
+                while (proc.isAlive) {
+                    delay(1500)
+                }
+                drainJob.cancel()
+                if (_state.value.status == Status.RUNNING) {
+                    _state.value = State(Status.STOPPED, port = actualPort)
                 }
             } catch (e: Exception) {
                 _state.value = State(Status.ERROR, error = e.message ?: "Tunnel failed to start", port = port)
