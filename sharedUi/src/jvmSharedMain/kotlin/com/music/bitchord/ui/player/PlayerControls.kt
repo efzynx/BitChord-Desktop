@@ -472,17 +472,59 @@ internal fun TransportRow(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     compact: Boolean = false,
+    shuffleEnabled: Boolean? = null,
+    onToggleShuffle: (() -> Unit)? = null,
+    repeatMode: Int? = null,
+    onCycleRepeat: (() -> Unit)? = null,
 ) {
     val playSize = if (compact) 58.dp else 74.dp
     val playTouch = if (compact) 76.dp else 92.dp
     val skipSize = if (compact) 44.dp else PLAYER_SKIP_ICON_SIZE
+    val secondarySize = if (compact) 20.dp else 24.dp
+    val secondaryTouch = if (compact) 36.dp else 44.dp
+    val haptics = rememberHaptics()
     Row(
         modifier = Modifier.fillMaxWidth(),
         // SpaceAround, not SpaceEvenly: the outer margins take half a gap, so
-        // the three buttons spread a little further apart from each other.
+        // the buttons spread a little further apart from each other.
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (onToggleShuffle != null && shuffleEnabled != null) {
+            val shuffleAlpha by animateFloatAsState(
+                targetValue = if (shuffleEnabled) 1f else 0.40f,
+                label = "transportShuffleAlpha",
+            )
+            Box(
+                modifier = Modifier
+                    .size(secondaryTouch)
+                    .clip(CircleShape)
+                    .then(
+                        if (shuffleEnabled) {
+                            Modifier.background(Color.White.copy(alpha = 0.18f))
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) {
+                        haptics.play(if (shuffleEnabled) Haptic.ToggleOff else Haptic.ToggleOn)
+                        onToggleShuffle()
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = BitChordIcons.Shuffle,
+                    contentDescription = stringResource(
+                        if (shuffleEnabled) Res.string.shuffle_on else Res.string.shuffle_off,
+                    ),
+                    tint = Color.White.copy(alpha = shuffleAlpha),
+                    modifier = Modifier.size(secondarySize),
+                )
+            }
+        }
         TransportGlyph(
             icon = Res.drawable.ic_player_previous,
             contentDescription = stringResource(Res.string.widget_previous),
@@ -523,6 +565,66 @@ internal fun TransportRow(
             enabled = nextEnabled,
             haptic = Haptic.SkipNext,
         )
+        if (onCycleRepeat != null && repeatMode != null) {
+            val isRepeatActive = repeatMode != RepeatModes.OFF
+            val repeatAlpha by animateFloatAsState(
+                targetValue = if (isRepeatActive) 1f else 0.40f,
+                label = "transportRepeatAlpha",
+            )
+            Box(
+                modifier = Modifier
+                    .size(secondaryTouch)
+                    .clip(CircleShape)
+                    .then(
+                        if (isRepeatActive) {
+                            Modifier.background(Color.White.copy(alpha = 0.18f))
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) {
+                        haptics.play(
+                            when (repeatMode) {
+                                RepeatModes.OFF -> Haptic.ToggleOn
+                                RepeatModes.ONE -> Haptic.ToggleOff
+                                else -> Haptic.Select
+                            }
+                        )
+                        onCycleRepeat()
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                if (repeatMode == RepeatModes.ONE) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = BitChordIcons.Repeat,
+                            contentDescription = stringResource(Res.string.repeat_one),
+                            tint = Color.White.copy(alpha = repeatAlpha),
+                            modifier = Modifier.size(secondarySize),
+                        )
+                        Text(
+                            text = "1",
+                            color = Color.White.copy(alpha = repeatAlpha),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = if (compact) 9.sp else 10.sp,
+                            modifier = Modifier.align(Alignment.Center),
+                        )
+                    }
+                } else {
+                    Icon(
+                        imageVector = BitChordIcons.Repeat,
+                        contentDescription = stringResource(
+                            if (repeatMode == RepeatModes.ALL) Res.string.repeat_all else Res.string.repeat_off,
+                        ),
+                        tint = Color.White.copy(alpha = repeatAlpha),
+                        modifier = Modifier.size(secondarySize),
+                    )
+                }
+            }
+        }
     }
 }
 

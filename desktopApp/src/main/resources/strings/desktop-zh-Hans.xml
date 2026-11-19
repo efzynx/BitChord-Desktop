@@ -134,4 +134,13 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_save_playlist">保存播放列表</string>
+    <string name="d_playlist_saved">已将"%1$s"保存到播放列表（%2$d 首歌曲）</string>
+    <string name="d_copy_cookie_guide_title">如何复制会话 Cookie：</string>
+    <string name="d_copy_cookie_step_1">1. 在浏览器中打开 music.youtube.com 并登录。</string>
+    <string name="d_copy_cookie_step_2">2. 按 F12（开发者工具）并选择“网络 (Network)”标签页。</string>
+    <string name="d_copy_cookie_step_3">3. 刷新页面 (F5) 并点击任意网络请求（如 "browse"）。</string>
+    <string name="d_copy_cookie_step_4">4. 在“标头 (Headers)”>“请求标头”中找到 "cookie:"，右键选择“复制值”。</string>
+    <string name="d_copy_cookie_step_5">5. 将 Cookie 粘贴到下方并点击登录。</string>
+    <string name="d_maximize_player">最大化播放器</string>
 </resources>

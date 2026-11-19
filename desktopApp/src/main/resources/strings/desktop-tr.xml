@@ -134,4 +134,13 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_save_playlist">Çalma listesini kaydet</string>
+    <string name="d_playlist_saved">"%1$s" çalma listelerinize kaydedildi (%2$d şarkı)</string>
+    <string name="d_copy_cookie_guide_title">Oturum çerezi nasıl kopyalanır:</string>
+    <string name="d_copy_cookie_step_1">1. Tarayıcınızda music.youtube.com adresini açın ve giriş yapın.</string>
+    <string name="d_copy_cookie_step_2">2. F12 tuşuna basın ve "Ağ" (Network) sekmesine gidin.</string>
+    <string name="d_copy_cookie_step_3">3. Sayfayı yenileyin (F5) ve herhangi bir isteğe tıklayın.</string>
+    <string name="d_copy_cookie_step_4">4. "Başlıklar" altında "cookie:" satırını bulun, sağ tıklayıp "Değeri kopyala"yı seçin.</string>
+    <string name="d_copy_cookie_step_5">5. Kopyalanan çerezi aşağıdaki alana yapıştırın ve Giriş Yap'a tıklayın.</string>
+    <string name="d_maximize_player">Oynatıcıyı büyüt</string>
 </resources>

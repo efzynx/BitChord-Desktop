@@ -134,4 +134,13 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_save_playlist">プレイリストを保存</string>
+    <string name="d_playlist_saved">"%1$s" をプレイリストに保存しました (%2$d 曲)</string>
+    <string name="d_copy_cookie_guide_title">セッションCookieのコピー方法：</string>
+    <string name="d_copy_cookie_step_1">1. ブラウザで music.youtube.com を開いてログインします。</string>
+    <string name="d_copy_cookie_step_2">2. F12キー（開発者ツール）を押し、「ネットワーク」タブを開きます。</string>
+    <string name="d_copy_cookie_step_3">3. ページを更新（F5）し、任意の通信リクエスト（例: "browse"）をクリックします。</string>
+    <string name="d_copy_cookie_step_4">4. 「ヘッダー」>「リクエストヘッダー」で "cookie:" を右クリックし「値をコピー」します。</string>
+    <string name="d_copy_cookie_step_5">5. 下の入力欄にCookieヘッダーを貼り付け、ログインをクリックします。</string>
+    <string name="d_maximize_player">プレーヤーを最大化</string>
 </resources>

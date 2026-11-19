@@ -65,6 +65,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -75,6 +78,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -85,6 +90,13 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import com.music.bitchord.ui.player.artistCredits
+import com.music.bitchord.data.model.creditSegments
+import com.music.bitchord.data.model.ArtistCredit
+import com.music.bitchord.data.model.CreditSegment
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -155,6 +167,7 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.NorthWest
+import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -1185,6 +1198,18 @@ fun BitChordDesktopApp() {
 
     fun openAlbum(browseId: String) = openCollection(browseId)
 
+    fun openAlbumByName(name: String) {
+        scope.launch {
+            val match = DesktopSearchClient.search(name, SearchFilter.ALBUMS)
+                .getOrDefault(emptyList())
+                .filterIsInstance<SearchResult.Browse>()
+                .map { it.item }
+                .firstOrNull { it.browseId.isNotBlank() }
+                ?: return@launch
+            openAlbum(match.browseId)
+        }
+    }
+
     /** Opens Liked Music playlist (VLLM), or the local liked collection when offline/not signed in. */
     fun openLikedMusic() {
         if (youtubeSignedIn) {
@@ -1600,6 +1625,23 @@ fun BitChordDesktopApp() {
         } else {
             null
         }
+    }
+
+    fun saveCollectionAsPlaylist(collection: DesktopCollection) {
+        val songsToSave = collection.songs
+        if (songsToSave.isEmpty()) return
+        val title = collection.title.ifBlank { "Playlist" }
+        val newPlaylist = DesktopPlaylist(title = title, songs = songsToSave)
+        playlists = playlists + newPlaylist
+        persistence.savePlaylists(playlists)
+        DesktopPlayerHost.showMessage(
+            DesktopStrings.format(
+                "d_playlist_saved",
+                title,
+                songsToSave.size,
+                fallback = "Saved \"$title\" to your playlists (${songsToSave.size} songs)"
+            )
+        )
     }
 
     fun addToPlaylist(playlist: DesktopPlaylist) {
@@ -2061,14 +2103,24 @@ fun BitChordDesktopApp() {
         if (destination != DesktopDestination.HISTORY || !youtubeSignedIn) return@LaunchedEffect
         DesktopSearchClient.history().onSuccess { remoteHistory = it }
     }
-    LaunchedEffect(selectedSong?.videoId, overlays.nowPlaying) {
+    LaunchedEffect(selectedSong?.videoId) {
         trackLinks = null
         val current = selectedSong ?: return@LaunchedEffect
-        // Only while the player is up, so playing from the mini player costs
-        // nothing, and only when something is actually missing.
-        if (!overlays.nowPlaying) return@LaunchedEffect
-        if (current.artistId != null && current.albumId != null) return@LaunchedEffect
+        if (current.artistId != null && current.albumId != null && current.artists.isNotEmpty() && !current.albumName.isNullOrBlank()) {
+            return@LaunchedEffect
+        }
         trackLinks = DesktopSearchClient.trackLinks(current.videoId).getOrNull()
+    }
+    val effectiveSong = remember(selectedSong, trackLinks) {
+        val current = selectedSong ?: return@remember null
+        trackLinks?.takeIf { it.videoId == current.videoId }?.let { extra ->
+            current.copy(
+                artistId = current.artistId ?: extra.artistId,
+                artists = current.artists.ifEmpty { extra.artists },
+                albumId = current.albumId ?: extra.albumId,
+                albumName = current.albumName ?: extra.albumName,
+            )
+        } ?: current
     }
     // Keyed on the same things, plus the rate: Discord counts the bar down on
     // its own clock, so only a change to what it was told is worth another push.
@@ -3430,7 +3482,7 @@ fun BitChordDesktopApp() {
                 },
                 bottomBar = { _ ->
                     DesktopAppleMusicBottomBar(
-                        song = selectedSong,
+                        song = effectiveSong,
                         isPlaying = playback.isPlaying,
                         isLoading = playback.isLoading,
                         previousEnabled = liveQueue.hasPrevious ||
@@ -3439,6 +3491,13 @@ fun BitChordDesktopApp() {
                             playback.positionMs.toFloat() / playback.durationMs.toFloat()
                         } else {
                             0f
+                        },
+                        positionMs = playback.positionMs,
+                        durationMs = playback.durationMs,
+                        onSeek = { fraction ->
+                            if (playback.durationMs > 0L) {
+                                seekPlayer((fraction * playback.durationMs).toLong().coerceIn(0L, playback.durationMs))
+                            }
                         },
                         volume = playback.volume,
                         shuffle = shuffle,
@@ -3452,6 +3511,16 @@ fun BitChordDesktopApp() {
                             persistence.saveString("repeat_mode", it.name)
                         },
                         onOpenNowPlaying = { overlays.nowPlaying = true },
+                        onOpenArtist = { id, name ->
+                            if (!id.isNullOrBlank()) openArtist(id, name) else openArtistByName(name)
+                        },
+                        onOpenAlbum = { id, name ->
+                            if (!id.isNullOrBlank()) {
+                                openAlbum(id)
+                            } else if (!name.isNullOrBlank()) {
+                                openAlbumByName(name)
+                            }
+                        },
                         onVolumeChange = {
                             volume = it
                             persistence.saveString("volume", it.toString())
@@ -3460,7 +3529,7 @@ fun BitChordDesktopApp() {
                         onOpenLyrics = { overlays.toggleSidePanel(DesktopSidePanel.LYRICS) },
                         onOpenQueue = { overlays.toggleSidePanel(DesktopSidePanel.QUEUE) },
                         sidePanel = overlays.sidePanel,
-                        menu = selectedSong?.let { s ->
+                        menu = effectiveSong?.let { s ->
                             {
                                 DesktopSongMenuAnchor(
                                     song = s,
@@ -4329,6 +4398,7 @@ fun BitChordDesktopApp() {
                             onShuffle = { songs ->
                                 playSongs(songs.shuffled(), 0, openedCollection?.let { collectionSource(it) })
                             },
+                            onSavePlaylist = ::saveCollectionAsPlaylist,
                             onDownloadAll = ::downloadAll,
                             animatedCanvas = animatedCanvas,
                             onToggleLike = { song ->
@@ -5750,12 +5820,120 @@ private fun DesktopSidebarFlyoutItem(
 }
 
 @Composable
+private fun HoverableLinkText(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    color: Color = DesktopSecondary,
+    fontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
+    lineHeight: androidx.compose.ui.unit.TextUnit = 12.sp,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+    Text(
+        text = text,
+        color = if (isHovered) Color.White else color,
+        fontSize = fontSize,
+        lineHeight = lineHeight,
+        textDecoration = if (isHovered) TextDecoration.Underline else TextDecoration.None,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+            .hoverable(interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            ),
+    )
+}
+
+@Composable
+private fun DesktopTimelineSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    scrubberAlpha: Float,
+    interactionSource: MutableInteractionSource,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .hoverable(interactionSource)
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    onValueChange((down.position.x / size.width).coerceIn(0f, 1f))
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val pointer = event.changes.firstOrNull { it.id == down.id } ?: break
+                        if (!pointer.pressed) {
+                            pointer.consume()
+                            break
+                        }
+                        if (pointer.positionChanged()) {
+                            onValueChange((pointer.position.x / size.width).coerceIn(0f, 1f))
+                            pointer.consume()
+                        }
+                    }
+                    onValueChangeFinished()
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val centerY = size.height / 2f
+            val trackH = (2.5f + (5.0f - 2.5f) * scrubberAlpha).dp.toPx()
+            val thumbR = (5.5f * scrubberAlpha).dp.toPx()
+            val corner = CornerRadius(trackH / 2f)
+
+            val inactiveAlpha = 0.16f + (0.28f - 0.16f) * scrubberAlpha
+            val activeAlpha = 0.75f + (0.95f - 0.75f) * scrubberAlpha
+
+            val trackTop = centerY - trackH / 2f
+
+            // Inactive background track
+            drawRoundRect(
+                color = Color.White.copy(alpha = inactiveAlpha),
+                topLeft = Offset(0f, trackTop),
+                size = androidx.compose.ui.geometry.Size(size.width, trackH),
+                cornerRadius = corner,
+            )
+
+            // Active played track
+            val frac = value.coerceIn(0f, 1f)
+            val playedWidth = size.width * frac
+            if (playedWidth > 0f) {
+                drawRoundRect(
+                    color = Color.White.copy(alpha = activeAlpha),
+                    topLeft = Offset(0f, trackTop),
+                    size = androidx.compose.ui.geometry.Size(playedWidth, trackH),
+                    cornerRadius = corner,
+                )
+            }
+
+            // Circle thumb handle (smoothly scales up with scrubberAlpha)
+            if (thumbR > 0.5f) {
+                drawCircle(
+                    color = Color.White,
+                    radius = thumbR,
+                    center = Offset(playedWidth.coerceIn(thumbR, size.width - thumbR), centerY),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun DesktopAppleMusicBottomBar(
     song: Song?,
     isPlaying: Boolean,
     isLoading: Boolean,
     previousEnabled: Boolean,
     progress: Float,
+    positionMs: Long = 0L,
+    durationMs: Long = 0L,
+    onSeek: (Float) -> Unit,
     volume: Float,
     shuffle: Boolean,
     repeatMode: DesktopRepeatMode,
@@ -5765,6 +5943,8 @@ private fun DesktopAppleMusicBottomBar(
     onShuffleChange: (Boolean) -> Unit,
     onRepeatModeChange: (DesktopRepeatMode) -> Unit,
     onOpenNowPlaying: () -> Unit,
+    onOpenArtist: ((id: String?, name: String) -> Unit)? = null,
+    onOpenAlbum: ((id: String?, name: String?) -> Unit)? = null,
     onVolumeChange: (Float) -> Unit,
     onOpenAudioOutput: (() -> Unit)? = null,
     onOpenLyrics: () -> Unit,
@@ -5775,19 +5955,44 @@ private fun DesktopAppleMusicBottomBar(
     if (song == null) return
 
     val shape = RoundedCornerShape(percent = 50)
-    Surface(
+    val sidePanelPadding by animateDpAsState(
+        targetValue = if (sidePanel != null) 360.dp else 0.dp,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "bottomBarSidePanelPadding",
+    )
+    val maxBarWidth by animateDpAsState(
+        targetValue = if (sidePanel != null) 600.dp else 760.dp,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "bottomBarMaxWidth",
+    )
+
+    var isSeeking by remember { mutableStateOf(false) }
+    var seekProgress by remember { mutableStateOf(0f) }
+    val displayedProgress = if (isSeeking) seekProgress else progress.coerceIn(0f, 1f)
+
+    Box(
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-            .widthIn(max = 760.dp)
             .fillMaxWidth()
-            .height(58.dp)
-            .shadow(16.dp, shape)
-            .clip(shape)
-            .desktopBarGlass(shape),
-        shape = shape,
-        color = Color.Transparent,
-        tonalElevation = 0.dp,
+            .padding(
+                start = 16.dp,
+                end = 16.dp + sidePanelPadding,
+                top = 10.dp,
+                bottom = 10.dp,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
+        Surface(
+            modifier = Modifier
+                .widthIn(max = maxBarWidth)
+                .fillMaxWidth()
+                .height(60.dp)
+                .shadow(16.dp, shape)
+                .clip(shape)
+                .desktopBarGlass(shape),
+            shape = shape,
+            color = Color.Transparent,
+            tonalElevation = 0.dp,
+        ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -5877,71 +6082,237 @@ private fun DesktopAppleMusicBottomBar(
 
             Spacer(Modifier.width(10.dp))
 
-            // Center: Track info & progress line
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .padding(vertical = 4.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable(onClick = onOpenNowPlaying)
-                    .padding(horizontal = 6.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    DesktopArtwork(
-                        song.thumbnailUrl,
-                        Modifier.size(38.dp).clip(RoundedCornerShape(6.dp)),
-                        px = ROW_ART_PX,
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Column(
-                        Modifier.weight(1f),
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Text(
-                            text = song.title,
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = buildString {
-                                append(song.artist)
-                                if (!song.albumName.isNullOrBlank()) {
-                                    append(" — ")
-                                    append(song.albumName)
-                                }
-                            },
-                            color = DesktopSecondary,
-                            fontSize = 11.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                // Thin progress line along the bottom of the card
+            // Center: Unified Apple Music Section (Cover art + Title/Artist + Scrubber)
+            val artInteractionSource = remember { MutableInteractionSource() }
+                val isArtHovered by artInteractionSource.collectIsHoveredAsState()
+                val artScale by animateFloatAsState(
+                    targetValue = if (isArtHovered) 1.08f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow,
+                    ),
+                    label = "artScale",
+                )
+                val artHoverAlpha by animateFloatAsState(
+                    targetValue = if (isArtHovered) 1f else 0f,
+                    animationSpec = tween(durationMillis = 140),
+                    label = "artHoverAlpha",
+                )
+
+                val sliderInteractionSource = remember { MutableInteractionSource() }
+                val isSliderHovered by sliderInteractionSource.collectIsHoveredAsState()
+                val isScrubActive = isSliderHovered || isSeeking
+
+                val textBlur by animateDpAsState(
+                    targetValue = if (isScrubActive) 9.dp else 0.dp,
+                    animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                    label = "textBlur",
+                )
+                val textAlpha by animateFloatAsState(
+                    targetValue = if (isScrubActive) 0.18f else 1f,
+                    animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                    label = "textAlpha",
+                )
+                val scrubberAlpha by animateFloatAsState(
+                    targetValue = if (isScrubActive) 1f else 0f,
+                    animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+                    label = "scrubberAlpha",
+                )
+
                 Box(
-                    Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 48.dp, bottom = 2.dp)
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .clip(RoundedCornerShape(1.dp))
-                        .background(Color.White.copy(alpha = 0.18f)),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
                 ) {
+                    // 1. Background layer: Cover art & Track info (blurs on scrub hover as in Gambar 2)
                     Box(
-                        Modifier
-                            .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
-                            .fillMaxHeight()
-                            .background(Color.White.copy(alpha = 0.90f)),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { alpha = textAlpha }
+                            .then(
+                                if (textBlur > 0.5.dp) {
+                                    Modifier.blur(textBlur, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                                } else {
+                                    Modifier
+                                }
+                            ),
+                        contentAlignment = Alignment.TopStart,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(top = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            // Cover art: zoom on hover + maximize icon overlay + click to maximize
+                            Box(
+                                modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .hoverable(artInteractionSource)
+                                .clickable(
+                                    interactionSource = artInteractionSource,
+                                    indication = null,
+                                    onClick = onOpenNowPlaying,
+                                ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                DesktopArtwork(
+                                    song.thumbnailUrl,
+                                    Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = artScale
+                                            scaleY = artScale
+                                        },
+                                    px = ROW_ART_PX,
+                                )
+                                if (artHoverAlpha > 0.01f) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer { alpha = artHoverAlpha }
+                                            .background(Color.Black.copy(alpha = 0.52f)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.OpenInFull,
+                                            contentDescription = DesktopStrings["d_maximize_player", "Maximize player"],
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.width(10.dp))
+
+                            // Title & Multi-Artist / Album Column (tight 0.5 - 1 px gap between title and artist)
+                            Column(
+                                modifier = Modifier.weight(1f, fill = false),
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Text(
+                                    text = song.title,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.5.sp,
+                                    lineHeight = 13.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Spacer(Modifier.height(0.5.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.clipToBounds(),
+                                ) {
+                                    val credits = remember(song.artist, song.artists, song.artistId) {
+                                        artistCredits(song.artist, song.artists, song.artistId)
+                                    }
+                                    val segments = remember(song.artist, credits) {
+                                        creditSegments(song.artist, credits)
+                                    }
+                                    val albumName = song.albumName
+                                    val albumId = song.albumId
+
+                                    segments.forEach { segment ->
+                                        val credit = segment.credit
+                                        if (credit != null) {
+                                            HoverableLinkText(
+                                                text = segment.text,
+                                                onClick = { onOpenArtist?.invoke(credit.browseId, credit.name) },
+                                                fontSize = 11.sp,
+                                                lineHeight = 12.sp,
+                                            )
+                                        } else {
+                                            Text(
+                                                text = segment.text,
+                                                color = DesktopSecondary,
+                                                fontSize = 11.sp,
+                                                lineHeight = 12.sp,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                            )
+                                        }
+                                    }
+                                    if (!albumName.isNullOrBlank()) {
+                                        Text(
+                                            text = " — ",
+                                            color = DesktopSecondary.copy(alpha = 0.6f),
+                                            fontSize = 11.sp,
+                                            lineHeight = 12.sp,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                        )
+                                        HoverableLinkText(
+                                            text = albumName,
+                                            onClick = {
+                                                onOpenAlbum?.invoke(albumId, albumName)
+                                            },
+                                            fontSize = 11.sp,
+                                            lineHeight = 12.sp,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Active timestamps above scrubber
+                    if (scrubberAlpha > 0.01f) {
+                        val currentMs = if (isSeeking) {
+                            (seekProgress * durationMs).toLong().coerceIn(0L, durationMs)
+                        } else {
+                            positionMs.coerceIn(0L, durationMs.coerceAtLeast(0L))
+                        }
+                        val elapsedStr = formatTime(currentMs)
+                        val remainingMs = (durationMs - currentMs).coerceAtLeast(0L)
+                        val remainingStr = "-" + formatTime(remainingMs)
+
+                        // Timestamps above the scrubber track
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.TopCenter)
+                                .padding(top = 18.dp)
+                                .graphicsLayer { alpha = scrubberAlpha },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = elapsedStr,
+                                color = Color.White.copy(alpha = 0.95f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = remainingStr,
+                                color = Color.White.copy(alpha = 0.95f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+
+                    // 3. Unified timeline slider (always responsive to clicks and hover with generous hit target)
+                    DesktopTimelineSlider(
+                        value = displayedProgress,
+                        onValueChange = { frac ->
+                            isSeeking = true
+                            seekProgress = frac
+                        },
+                        onValueChangeFinished = {
+                            isSeeking = false
+                            onSeek(seekProgress)
+                        },
+                        scrubberAlpha = scrubberAlpha,
+                        interactionSource = sliderInteractionSource,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(bottom = 2.dp)
+                            .height(22.dp),
                     )
                 }
-            }
 
             Spacer(Modifier.width(8.dp))
 
@@ -6037,6 +6408,7 @@ private fun DesktopAppleMusicBottomBar(
             }
         }
     }
+}
 }
 
 @Composable
@@ -7090,6 +7462,7 @@ private fun DesktopSettingsScreen(
                             DropdownMenu(
                                 expanded = speedMenuOpen,
                                 onDismissRequest = { speedMenuOpen = false },
+                                offset = DpOffset(x = (-200).dp, y = 0.dp),
                                 modifier = Modifier
                                     .widthIn(min = 200.dp)
                                     .shadow(16.dp, speedShape)
@@ -7131,6 +7504,7 @@ private fun DesktopSettingsScreen(
                             DropdownMenu(
                                 expanded = sleepMenuOpen,
                                 onDismissRequest = { sleepMenuOpen = false },
+                                offset = DpOffset(x = (-260).dp, y = 0.dp),
                                 modifier = Modifier
                                     .widthIn(min = 260.dp)
                                     .shadow(16.dp, sleepShape)
@@ -7224,6 +7598,7 @@ private fun DesktopSettingsScreen(
                             DropdownMenu(
                                 expanded = languageMenuOpen,
                                 onDismissRequest = { languageMenuOpen = false },
+                                offset = DpOffset(x = (-220).dp, y = 0.dp),
                                 modifier = Modifier
                                     .widthIn(min = 220.dp)
                                     .shadow(16.dp, langShape)
@@ -7994,6 +8369,7 @@ private fun DesktopCollectionPage(
     likedIds: Set<String>,
     onPlaySongs: (List<Song>, Int) -> Unit,
     onShuffle: (List<Song>) -> Unit,
+    onSavePlaylist: ((DesktopCollection) -> Unit)? = null,
     onDownloadAll: (List<Song>) -> Unit,
     animatedCanvas: Boolean,
     onToggleLike: (Song) -> Unit,
@@ -8124,6 +8500,13 @@ private fun DesktopCollectionPage(
                                 onClick = { if (songs.isNotEmpty()) onPlaySongs(songs, 0) },
                                 iconOnly = true,
                             )
+                            onSavePlaylist?.let { save ->
+                                DesktopCircleButton(
+                                    Icons.AutoMirrored.Rounded.PlaylistAdd,
+                                    DesktopStrings["d_save_playlist", "Save playlist"],
+                                    onClick = { save(collection) },
+                                )
+                            }
                             DesktopCircleButton(
                                 if (searching) Icons.Rounded.Close else BitChordIcons.Search,
                                 if (searching) DesktopStrings["close_search", "Close search"] else DesktopStrings["search_this_list", "Search this list"],
@@ -8152,6 +8535,16 @@ private fun DesktopCollectionPage(
                                             onDownloadAll(songs)
                                         },
                                     )
+                                    onSavePlaylist?.let { save ->
+                                        DropdownMenuItem(
+                                            text = { Text(DesktopStrings["d_save_playlist", "Save playlist"]) },
+                                            leadingIcon = { Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null) },
+                                            onClick = {
+                                                moreOpen = false
+                                                save(collection)
+                                            },
+                                        )
+                                    }
                                     onShare?.let { share ->
                                         DropdownMenuItem(
                                             text = { Text(DesktopStrings["share", "Share"]) },

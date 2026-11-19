@@ -134,4 +134,13 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_save_playlist">Salvar playlist</string>
+    <string name="d_playlist_saved">"%1$s" salvo nas suas playlists (%2$d músicas)</string>
+    <string name="d_copy_cookie_guide_title">Como copiar o cookie de sessão:</string>
+    <string name="d_copy_cookie_step_1">1. Abra music.youtube.com no seu navegador e faça login.</string>
+    <string name="d_copy_cookie_step_2">2. Pressione F12 (Ferramentas do desenvolvedor) e selecione a guia "Rede".</string>
+    <string name="d_copy_cookie_step_3">3. Atualize a página (F5) e clique em qualquer requisição (ex.: "browse").</string>
+    <string name="d_copy_cookie_step_4">4. Em "Cabeçalhos" > "Cabeçalhos da requisição", localize "cookie:", clique com o botão direito e "Copiar valor".</string>
+    <string name="d_copy_cookie_step_5">5. Cole o cabeçalho do cookie abaixo e clique em Entrar.</string>
+    <string name="d_maximize_player">Maximizar reprodutor</string>
 </resources>

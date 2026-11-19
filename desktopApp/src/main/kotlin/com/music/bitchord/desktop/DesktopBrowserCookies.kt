@@ -59,7 +59,16 @@ internal object DesktopBrowserCookies {
             runCatching {
                 Files.list(root).use { entries ->
                     entries.filter { Files.isRegularFile(it.resolve(COOKIES_FIREFOX)) }
-                        .forEach { add(Profile(name, it.fileName.toString(), Family.FIREFOX, it.resolve(COOKIES_FIREFOX))) }
+                        .forEach {
+                            add(
+                                Profile(
+                                    browser = name,
+                                    profile = cleanFirefoxProfileName(it.fileName.toString()),
+                                    family = Family.FIREFOX,
+                                    database = it.resolve(COOKIES_FIREFOX),
+                                ),
+                            )
+                        }
                 }
             }
         }
@@ -92,6 +101,8 @@ internal object DesktopBrowserCookies {
                 }
             }
         }
+    }.distinctBy {
+        runCatching { it.database.toRealPath().toString() }.getOrDefault(it.database.toAbsolutePath().normalize().toString())
     }.sortedBy { it.label }
 
     /** Reads [profile]'s YouTube cookies as a `Cookie` header value. */
@@ -320,13 +331,27 @@ internal object DesktopBrowserCookies {
             .orEmpty()
     }.getOrDefault(emptyMap())
 
+    private fun cleanFirefoxProfileName(folderName: String): String {
+        val dotIndex = folderName.indexOf('.')
+        return if (dotIndex in 1..12) folderName.substring(dotIndex + 1) else folderName
+    }
+
     private val LINUX_FIREFOX_ROOTS = listOf(
+        "Firefox" to ".config/mozilla/firefox",
         "Firefox" to ".mozilla/firefox",
         "Firefox" to ".var/app/org.mozilla.firefox/.mozilla/firefox",
+        "Firefox" to ".var/app/org.mozilla.firefox/.config/mozilla/firefox",
+        "Firefox" to "snap/firefox/common/.mozilla/firefox",
+        "Firefox" to ".config/firefox",
         "LibreWolf" to ".librewolf",
+        "LibreWolf" to ".config/librewolf",
         "LibreWolf" to ".var/app/io.gitlab.librewolf-community/.librewolf",
         "Waterfox" to ".waterfox",
+        "Waterfox" to ".config/waterfox",
         "Zen" to ".zen",
+        "Zen" to ".config/zen",
+        "Floorp" to ".floorp",
+        "Floorp" to ".config/floorp",
     )
 
     /** Browser to profile root and the keyring name it files its key under. */
@@ -346,11 +371,15 @@ internal object DesktopBrowserCookies {
 
     private fun firefoxRoots(): List<Pair<String, Path>> = if (DesktopPlatform.isWindows) {
         val roaming = System.getenv("APPDATA")?.let(Paths::get) ?: home.resolve("AppData/Roaming")
+        val local = System.getenv("LOCALAPPDATA")?.let(Paths::get) ?: home.resolve("AppData/Local")
         listOf(
             "Firefox" to roaming.resolve("Mozilla/Firefox/Profiles"),
+            "Firefox" to roaming.resolve("Mozilla/Firefox"),
+            "Firefox" to local.resolve("Mozilla/Firefox/Profiles"),
             "LibreWolf" to roaming.resolve("librewolf/Profiles"),
             "Waterfox" to roaming.resolve("Waterfox/Profiles"),
             "Zen" to roaming.resolve("zen/Profiles"),
+            "Floorp" to roaming.resolve("Floorp/Profiles"),
         )
     } else {
         LINUX_FIREFOX_ROOTS.map { (name, relative) -> name to home.resolve(relative) }

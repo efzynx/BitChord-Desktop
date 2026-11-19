@@ -134,4 +134,13 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_save_playlist">Сохранить плейлист</string>
+    <string name="d_playlist_saved">"%1$s" сохранен в ваших плейлистах (%2$d треков)</string>
+    <string name="d_copy_cookie_guide_title">Как скопировать сессионный cookie:</string>
+    <string name="d_copy_cookie_step_1">1. Откройте music.youtube.com в браузере и войдите в аккаунт.</string>
+    <string name="d_copy_cookie_step_2">2. Нажмите F12 (Инструменты разработчика) и перейдите на вкладку "Сеть".</string>
+    <string name="d_copy_cookie_step_3">3. Обновите страницу (F5) и нажмите на любой запрос (напр. "browse").</string>
+    <string name="d_copy_cookie_step_4">4. Во вкладке "Заголовки" > "Заголовки запроса" найдите "cookie:", правой кнопкой "Копировать значение".</string>
+    <string name="d_copy_cookie_step_5">5. Вставьте заголовок cookie в поле ниже и нажмите Войти.</string>
+    <string name="d_maximize_player">Развернуть плеер</string>
 </resources>

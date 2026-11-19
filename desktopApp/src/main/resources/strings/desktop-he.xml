@@ -134,4 +134,13 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_save_playlist">שמור פלייליסט</string>
+    <string name="d_playlist_saved">"%1$s" נשמר בפלייליסטים שלך (%2$d שירים)</string>
+    <string name="d_copy_cookie_guide_title">כיצד להעתיק קובץ cookie של הפעלה:</string>
+    <string name="d_copy_cookie_step_1">1. פתח את music.youtube.com בדפדפן והתחבר.</string>
+    <string name="d_copy_cookie_step_2">2. לחץ על F12 ובחר בלשונית "רשת" (Network).</string>
+    <string name="d_copy_cookie_step_3">3. רענן את הדף (F5) ולחץ על בקשה כלשהי.</string>
+    <string name="d_copy_cookie_step_4">4. תחת "כותרות" > "כותרות בקשה", מצא את "cookie:", לחץ לחיצה ימנית ובחר "העתק ערך".</string>
+    <string name="d_copy_cookie_step_5">5. הדבק את ה-cookie למטה ולחץ על התחבר.</string>
+    <string name="d_maximize_player">הגדל נגן</string>
 </resources>
