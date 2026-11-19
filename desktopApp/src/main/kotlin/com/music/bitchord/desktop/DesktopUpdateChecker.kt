@@ -97,7 +97,7 @@ internal object DesktopUpdateChecker {
     const val RELEASES_API_URL =
         "https://api.github.com/repos/efzynx/BitChord-Desktop/releases?per_page=20"
 
-    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.9.3-beta.4"
+    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.9.2-beta.4"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -197,14 +197,14 @@ internal object DesktopUpdateChecker {
             InstallType.DEB -> assets.firstOrNull { it.name.endsWith(".deb", ignoreCase = true) }
             InstallType.RPM -> assets.firstOrNull { it.name.endsWith(".rpm", ignoreCase = true) }
             InstallType.WINDOWS_PORTABLE -> assets.firstOrNull { it.name.contains("windows-portable", ignoreCase = true) || it.name.endsWith(".zip", ignoreCase = true) }
-            InstallType.WINDOWS_INSTALLED -> assets.firstOrNull { it.name.endsWith("-setup.exe", ignoreCase = true) || it.name.endsWith(".msi", ignoreCase = true) }
+            InstallType.WINDOWS_INSTALLED -> assets.firstOrNull { it.name.endsWith("-setup.exe", ignoreCase = true) || it.name.endsWith(".exe", ignoreCase = true) || it.name.endsWith(".msi", ignoreCase = true) }
             else -> null
         }
         if (preferred != null) return preferred.downloadUrl
 
         // Fallback berdasarkan OS
         val fallback = when {
-            DesktopPlatform.isWindows -> assets.firstOrNull { it.name.endsWith("-setup.exe", ignoreCase = true) || it.name.endsWith(".zip", ignoreCase = true) }
+            DesktopPlatform.isWindows -> assets.firstOrNull { it.name.endsWith("-setup.exe", ignoreCase = true) || it.name.endsWith(".exe", ignoreCase = true) || it.name.endsWith(".zip", ignoreCase = true) }
             DesktopPlatform.isLinux -> assets.firstOrNull { it.name.endsWith(".AppImage", ignoreCase = true) || it.name.endsWith(".deb", ignoreCase = true) }
             else -> assets.firstOrNull()
         }
