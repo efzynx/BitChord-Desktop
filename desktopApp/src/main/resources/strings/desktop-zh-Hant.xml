@@ -134,4 +134,12 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_save_playlist">儲存播放清單</string>
+    <string name="d_playlist_saved">已將「%1$s」儲存至播放清單（%2$d 首歌曲）</string>
+    <string name="d_copy_cookie_guide_title">如何複製工作階段 Cookie：</string>
+    <string name="d_copy_cookie_step_1">1. 在瀏覽器中開啟 music.youtube.com 並登入。</string>
+    <string name="d_copy_cookie_step_2">2. 按 F12（開發人員工具）並選取「網路 (Network)」分頁。</string>
+    <string name="d_copy_cookie_step_3">3. 重新整理頁面 (F5) 並按一下任一網路請求（如 "browse"）。</string>
+    <string name="d_copy_cookie_step_4">4. 在「標頭 (Headers)」>「請求標頭」中找到 "cookie:"，按右鍵選取「複製值」。</string>
+    <string name="d_copy_cookie_step_5">5. 將 Cookie 貼至下方並按一下登入。</string>
 </resources>

@@ -65,6 +65,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -1600,6 +1603,23 @@ fun BitChordDesktopApp() {
         } else {
             null
         }
+    }
+
+    fun saveCollectionAsPlaylist(collection: DesktopCollection) {
+        val songsToSave = collection.songs
+        if (songsToSave.isEmpty()) return
+        val title = collection.title.ifBlank { "Playlist" }
+        val newPlaylist = DesktopPlaylist(title = title, songs = songsToSave)
+        playlists = playlists + newPlaylist
+        persistence.savePlaylists(playlists)
+        DesktopPlayerHost.showMessage(
+            DesktopStrings.format(
+                "d_playlist_saved",
+                title,
+                songsToSave.size,
+                fallback = "Saved \"$title\" to your playlists (${songsToSave.size} songs)"
+            )
+        )
     }
 
     fun addToPlaylist(playlist: DesktopPlaylist) {
@@ -3440,6 +3460,11 @@ fun BitChordDesktopApp() {
                         } else {
                             0f
                         },
+                        onSeek = { fraction ->
+                            if (playback.durationMs > 0L) {
+                                seekPlayer((fraction * playback.durationMs).toLong().coerceIn(0L, playback.durationMs))
+                            }
+                        },
                         volume = playback.volume,
                         shuffle = shuffle,
                         repeatMode = repeatMode,
@@ -4329,6 +4354,7 @@ fun BitChordDesktopApp() {
                             onShuffle = { songs ->
                                 playSongs(songs.shuffled(), 0, openedCollection?.let { collectionSource(it) })
                             },
+                            onSavePlaylist = ::saveCollectionAsPlaylist,
                             onDownloadAll = ::downloadAll,
                             animatedCanvas = animatedCanvas,
                             onToggleLike = { song ->
@@ -5756,6 +5782,7 @@ private fun DesktopAppleMusicBottomBar(
     isLoading: Boolean,
     previousEnabled: Boolean,
     progress: Float,
+    onSeek: (Float) -> Unit,
     volume: Float,
     shuffle: Boolean,
     repeatMode: DesktopRepeatMode,
@@ -5775,19 +5802,44 @@ private fun DesktopAppleMusicBottomBar(
     if (song == null) return
 
     val shape = RoundedCornerShape(percent = 50)
-    Surface(
+    val sidePanelPadding by animateDpAsState(
+        targetValue = if (sidePanel != null) 360.dp else 0.dp,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "bottomBarSidePanelPadding",
+    )
+    val maxBarWidth by animateDpAsState(
+        targetValue = if (sidePanel != null) 600.dp else 760.dp,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "bottomBarMaxWidth",
+    )
+
+    var isSeeking by remember { mutableStateOf(false) }
+    var seekProgress by remember { mutableStateOf(0f) }
+    val displayedProgress = if (isSeeking) seekProgress else progress.coerceIn(0f, 1f)
+
+    Box(
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-            .widthIn(max = 760.dp)
             .fillMaxWidth()
-            .height(58.dp)
-            .shadow(16.dp, shape)
-            .clip(shape)
-            .desktopBarGlass(shape),
-        shape = shape,
-        color = Color.Transparent,
-        tonalElevation = 0.dp,
+            .padding(
+                start = 16.dp,
+                end = 16.dp + sidePanelPadding,
+                top = 10.dp,
+                bottom = 10.dp,
+            ),
+        contentAlignment = Alignment.Center,
     ) {
+        Surface(
+            modifier = Modifier
+                .widthIn(max = maxBarWidth)
+                .fillMaxWidth()
+                .height(58.dp)
+                .shadow(16.dp, shape)
+                .clip(shape)
+                .desktopBarGlass(shape),
+            shape = shape,
+            color = Color.Transparent,
+            tonalElevation = 0.dp,
+        ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -5924,23 +5976,26 @@ private fun DesktopAppleMusicBottomBar(
                         )
                     }
                 }
-                // Thin progress line along the bottom of the card
-                Box(
-                    Modifier
+                // Interactive progress slider along the bottom of the card
+                DesktopThinSlider(
+                    value = displayedProgress,
+                    onValueChange = { frac ->
+                        isSeeking = true
+                        seekProgress = frac
+                    },
+                    onValueChangeFinished = {
+                        isSeeking = false
+                        onSeek(seekProgress)
+                    },
+                    idleHeight = 3.dp,
+                    activeHeight = 6.dp,
+                    activeColor = Color.White.copy(alpha = 0.90f),
+                    inactiveColor = Color.White.copy(alpha = 0.20f),
+                    modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(start = 48.dp, bottom = 2.dp)
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .clip(RoundedCornerShape(1.dp))
-                        .background(Color.White.copy(alpha = 0.18f)),
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth(fraction = progress.coerceIn(0f, 1f))
-                            .fillMaxHeight()
-                            .background(Color.White.copy(alpha = 0.90f)),
-                    )
-                }
+                        .padding(start = 48.dp, end = 6.dp, bottom = 0.dp)
+                        .fillMaxWidth(),
+                )
             }
 
             Spacer(Modifier.width(8.dp))
@@ -6037,6 +6092,7 @@ private fun DesktopAppleMusicBottomBar(
             }
         }
     }
+}
 }
 
 @Composable
@@ -7090,6 +7146,7 @@ private fun DesktopSettingsScreen(
                             DropdownMenu(
                                 expanded = speedMenuOpen,
                                 onDismissRequest = { speedMenuOpen = false },
+                                offset = DpOffset(x = (-200).dp, y = 0.dp),
                                 modifier = Modifier
                                     .widthIn(min = 200.dp)
                                     .shadow(16.dp, speedShape)
@@ -7131,6 +7188,7 @@ private fun DesktopSettingsScreen(
                             DropdownMenu(
                                 expanded = sleepMenuOpen,
                                 onDismissRequest = { sleepMenuOpen = false },
+                                offset = DpOffset(x = (-260).dp, y = 0.dp),
                                 modifier = Modifier
                                     .widthIn(min = 260.dp)
                                     .shadow(16.dp, sleepShape)
@@ -7224,6 +7282,7 @@ private fun DesktopSettingsScreen(
                             DropdownMenu(
                                 expanded = languageMenuOpen,
                                 onDismissRequest = { languageMenuOpen = false },
+                                offset = DpOffset(x = (-220).dp, y = 0.dp),
                                 modifier = Modifier
                                     .widthIn(min = 220.dp)
                                     .shadow(16.dp, langShape)
@@ -7994,6 +8053,7 @@ private fun DesktopCollectionPage(
     likedIds: Set<String>,
     onPlaySongs: (List<Song>, Int) -> Unit,
     onShuffle: (List<Song>) -> Unit,
+    onSavePlaylist: ((DesktopCollection) -> Unit)? = null,
     onDownloadAll: (List<Song>) -> Unit,
     animatedCanvas: Boolean,
     onToggleLike: (Song) -> Unit,
@@ -8124,6 +8184,13 @@ private fun DesktopCollectionPage(
                                 onClick = { if (songs.isNotEmpty()) onPlaySongs(songs, 0) },
                                 iconOnly = true,
                             )
+                            onSavePlaylist?.let { save ->
+                                DesktopCircleButton(
+                                    Icons.AutoMirrored.Rounded.PlaylistAdd,
+                                    DesktopStrings["d_save_playlist", "Save playlist"],
+                                    onClick = { save(collection) },
+                                )
+                            }
                             DesktopCircleButton(
                                 if (searching) Icons.Rounded.Close else BitChordIcons.Search,
                                 if (searching) DesktopStrings["close_search", "Close search"] else DesktopStrings["search_this_list", "Search this list"],
@@ -8152,6 +8219,16 @@ private fun DesktopCollectionPage(
                                             onDownloadAll(songs)
                                         },
                                     )
+                                    onSavePlaylist?.let { save ->
+                                        DropdownMenuItem(
+                                            text = { Text(DesktopStrings["d_save_playlist", "Save playlist"]) },
+                                            leadingIcon = { Icon(Icons.AutoMirrored.Rounded.PlaylistAdd, null) },
+                                            onClick = {
+                                                moreOpen = false
+                                                save(collection)
+                                            },
+                                        )
+                                    }
                                     onShare?.let { share ->
                                         DropdownMenuItem(
                                             text = { Text(DesktopStrings["share", "Share"]) },

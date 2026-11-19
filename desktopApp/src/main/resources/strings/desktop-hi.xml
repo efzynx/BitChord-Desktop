@@ -134,4 +134,12 @@
     <string name="liked_songs">Liked songs</string>
     <string name="d_tap_to_change">Tap to change</string>
     <string name="d_playlists_empty_hint">Your playlists will appear here</string>
+    <string name="d_save_playlist">प्लेलिस्ट सहेजें</string>
+    <string name="d_playlist_saved">"%1$s" आपकी प्लेलिस्ट में सहेजा गया (%2$d गाने)</string>
+    <string name="d_copy_cookie_guide_title">सत्र कुकी कैसे कॉपी करें:</string>
+    <string name="d_copy_cookie_step_1">1. अपने ब्राउज़र में music.youtube.com खोलें और साइन इन करें।</string>
+    <string name="d_copy_cookie_step_2">2. F12 दबाएं और "Network" टैब चुनें।</string>
+    <string name="d_copy_cookie_step_3">3. पेज रीफ़्रेश करें (F5) और किसी भी रिक्वेस्ट पर क्लिक करें।</string>
+    <string name="d_copy_cookie_step_4">4. "Headers" के तहत "cookie:" खोजें, राइट-क्लिक करें और "Copy value" चुनें।</string>
+    <string name="d_copy_cookie_step_5">5. नीचे कुकी हेडर पेस्ट करें और साइन इन पर क्लिक करें।</string>
 </resources>

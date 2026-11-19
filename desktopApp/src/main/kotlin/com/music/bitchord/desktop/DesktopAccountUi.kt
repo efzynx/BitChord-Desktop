@@ -423,9 +423,7 @@ internal fun DesktopSignInDialog(
         scope.launch {
             refreshingProfiles = true
             profiles = withContext(Dispatchers.IO) {
-                DesktopBrowserCookies.profiles().filterNot {
-                    DesktopPlatform.isWindows && it.family == DesktopBrowserCookies.Family.CHROMIUM
-                }
+                DesktopBrowserCookies.profiles()
             }
             refreshingProfiles = false
         }
@@ -510,6 +508,39 @@ internal fun DesktopSignInDialog(
             }
             when {
                 pasting -> {
+                    Column(
+                        modifier = Modifier
+                            .padding(horizontal = 20.dp, vertical = 6.dp)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.05f))
+                            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                            .padding(14.dp),
+                    ) {
+                        Text(
+                            text = DesktopStrings["d_copy_cookie_guide_title", "How to copy session cookie:"],
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        listOf(
+                            DesktopStrings["d_copy_cookie_step_1", "1. Open music.youtube.com in your browser and sign in."],
+                            DesktopStrings["d_copy_cookie_step_2", "2. Press F12 (Developer Tools) and select the \"Network\" tab."],
+                            DesktopStrings["d_copy_cookie_step_3", "3. Refresh the page (F5) and click any request (e.g. \"browse\")."],
+                            DesktopStrings["d_copy_cookie_step_4", "4. Under \"Headers\" > \"Request Headers\", find \"cookie:\", right-click and choose \"Copy value\"."],
+                            DesktopStrings["d_copy_cookie_step_5", "5. Paste the cookie header into the box below and click Sign in."],
+                        ).forEach { step ->
+                            Text(
+                                text = step,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = DesktopSecondary,
+                                modifier = Modifier.padding(vertical = 2.dp),
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         DesktopStrings["d_paste_the_cookie_header_for_music_youtube_com", "Paste the Cookie header for music.youtube.com."],
                         style = MaterialTheme.typography.bodySmall,
@@ -523,9 +554,9 @@ internal fun DesktopSignInDialog(
                         textStyle = MaterialTheme.typography.bodySmall.copy(color = Color.White),
                         cursorBrush = SolidColor(DesktopAccent),
                         modifier = Modifier
-                            .padding(horizontal = 22.dp, vertical = 10.dp)
+                            .padding(horizontal = 20.dp, vertical = 8.dp)
                             .fillMaxWidth()
-                            .heightIn(min = 84.dp, max = 160.dp)
+                            .heightIn(min = 72.dp, max = 130.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color.White.copy(alpha = 0.08f))
                             .padding(12.dp),

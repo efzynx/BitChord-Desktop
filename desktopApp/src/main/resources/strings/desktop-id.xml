@@ -134,4 +134,12 @@
     <string name="liked_songs">Lagu yang disukai</string>
     <string name="d_tap_to_change">Ketuk untuk mengubah</string>
     <string name="d_playlists_empty_hint">Daftar putar Anda akan muncul di sini</string>
+    <string name="d_save_playlist">Simpan playlist</string>
+    <string name="d_playlist_saved">\"%1$s\" berhasil disimpan ke playlist (%2$d lagu)</string>
+    <string name="d_copy_cookie_guide_title">Cara meng-copy session cookie:</string>
+    <string name="d_copy_cookie_step_1">1. Buka music.youtube.com di browser dan pastikan sudah login.</string>
+    <string name="d_copy_cookie_step_2">2. Tekan F12 (Developer Tools) lalu pilih tab \"Network\".</string>
+    <string name="d_copy_cookie_step_3">3. Muat ulang halaman (F5) dan klik salah satu request (misal \"browse\").</string>
+    <string name="d_copy_cookie_step_4">4. Di tab \"Headers\" > \"Request Headers\", cari \"cookie:\", klik kanan lalu \"Copy value\".</string>
+    <string name="d_copy_cookie_step_5">5. Tempel (paste) cookie tersebut ke kolom di bawah dan klik Masuk.</string>
 </resources>
