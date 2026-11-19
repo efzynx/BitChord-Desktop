@@ -5946,7 +5946,7 @@ private fun DesktopAppleMusicBottomBar(
             modifier = Modifier
                 .widthIn(max = maxBarWidth)
                 .fillMaxWidth()
-                .height(58.dp)
+                .height(60.dp)
                 .shadow(16.dp, shape)
                 .clip(shape)
                 .desktopBarGlass(shape),
@@ -6043,18 +6043,11 @@ private fun DesktopAppleMusicBottomBar(
 
             Spacer(Modifier.width(10.dp))
 
-            // Center: Apple Music style track info & dynamic blurred scrubber timeline
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .padding(vertical = 4.dp, horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                val artInteractionSource = remember { MutableInteractionSource() }
+            // Center: Unified Apple Music Section (Cover art + Title/Artist + Scrubber)
+            val artInteractionSource = remember { MutableInteractionSource() }
                 val isArtHovered by artInteractionSource.collectIsHoveredAsState()
                 val artScale by animateFloatAsState(
-                    targetValue = if (isArtHovered) 1.08f else 1.0f,
+                    targetValue = if (isArtHovered) 1.08f else 1f,
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
                         stiffness = Spring.StiffnessMediumLow,
@@ -6067,61 +6060,17 @@ private fun DesktopAppleMusicBottomBar(
                     label = "artHoverAlpha",
                 )
 
-                // Cover art: zoom on hover + maximize icon overlay + click to maximize
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(7.dp))
-                        .hoverable(artInteractionSource)
-                        .clickable(
-                            interactionSource = artInteractionSource,
-                            indication = null,
-                            onClick = onOpenNowPlaying,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    DesktopArtwork(
-                        song.thumbnailUrl,
-                        Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                scaleX = artScale
-                                scaleY = artScale
-                            },
-                        px = ROW_ART_PX,
-                    )
-                    if (artHoverAlpha > 0.01f) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer { alpha = artHoverAlpha }
-                                .background(Color.Black.copy(alpha = 0.52f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Rounded.OpenInFull,
-                                contentDescription = DesktopStrings["d_maximize_player", "Maximize player"],
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
-                }
-
-                Spacer(Modifier.width(10.dp))
-
-                // Timeline container: Top is Text Area (artist/album clickable), Bottom is Slider Area (hoverable)
                 val sliderInteractionSource = remember { MutableInteractionSource() }
                 val isSliderHovered by sliderInteractionSource.collectIsHoveredAsState()
                 val isScrubActive = isSliderHovered || isSeeking
 
                 val textBlur by animateDpAsState(
-                    targetValue = if (isScrubActive) 6.dp else 0.dp,
+                    targetValue = if (isScrubActive) 8.dp else 0.dp,
                     animationSpec = tween(160),
                     label = "textBlur",
                 )
                 val textAlpha by animateFloatAsState(
-                    targetValue = if (isScrubActive) 0.25f else 1f,
+                    targetValue = if (isScrubActive) 0.20f else 1f,
                     animationSpec = tween(160),
                     label = "textAlpha",
                 )
@@ -6141,151 +6090,205 @@ private fun DesktopAppleMusicBottomBar(
                         .weight(1f)
                         .fillMaxHeight(),
                 ) {
-                    // 1. Text Area (Top / Middle): Song title & clickable artist/album
-                    // Not hoverable for slider, so hovering text never triggers scrubber
-                    Column(
+                    // 1. Background layer: Cover art & Track info (blurs on scrub hover as in Gambar 2)
+                    Row(
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .padding(top = 6.dp)
+                            .padding(top = 8.dp)
                             .graphicsLayer { alpha = textAlpha }
                             .then(if (textBlur > 0.5.dp) Modifier.blur(textBlur) else Modifier),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            text = song.title,
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Spacer(Modifier.height(1.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                        // Cover art: zoom on hover + maximize icon overlay + click to maximize
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .hoverable(artInteractionSource)
+                                .clickable(
+                                    interactionSource = artInteractionSource,
+                                    indication = null,
+                                    onClick = onOpenNowPlaying,
+                                ),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            val artist = song.artist
-                            val artistId = song.artistId
-                            val albumName = song.albumName
-                            val albumId = song.albumId
-
-                            HoverableLinkText(
-                                text = artist,
-                                onClick = { onOpenArtist?.invoke(artistId, artist) },
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                            if (!albumName.isNullOrBlank()) {
-                                Text(
-                                    text = " — ",
-                                    color = DesktopSecondary.copy(alpha = 0.6f),
-                                    fontSize = 11.sp,
-                                )
-                                HoverableLinkText(
-                                    text = albumName,
-                                    onClick = {
-                                        if (!albumId.isNullOrBlank()) {
-                                            onOpenAlbum?.invoke(albumId)
-                                        } else {
-                                            onOpenArtist?.invoke(artistId, artist)
-                                        }
+                            DesktopArtwork(
+                                song.thumbnailUrl,
+                                Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        scaleX = artScale
+                                        scaleY = artScale
                                     },
+                                px = ROW_ART_PX,
+                            )
+                            if (artHoverAlpha > 0.01f) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer { alpha = artHoverAlpha }
+                                        .background(Color.Black.copy(alpha = 0.52f)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.OpenInFull,
+                                        contentDescription = DesktopStrings["d_maximize_player", "Maximize player"],
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.width(10.dp))
+
+                        // Title & Artist Column
+                        Column(
+                            modifier = Modifier.weight(1f, fill = false),
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                text = song.title,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.5.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Spacer(Modifier.height(1.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                val artist = song.artist
+                                val artistId = song.artistId
+                                val albumName = song.albumName
+                                val albumId = song.albumId
+
+                                HoverableLinkText(
+                                    text = artist,
+                                    onClick = { onOpenArtist?.invoke(artistId, artist) },
+                                    fontSize = 11.sp,
                                     modifier = Modifier.weight(1f, fill = false),
                                 )
+                                if (!albumName.isNullOrBlank()) {
+                                    Text(
+                                        text = " — ",
+                                        color = DesktopSecondary.copy(alpha = 0.6f),
+                                        fontSize = 11.sp,
+                                    )
+                                    HoverableLinkText(
+                                        text = albumName,
+                                        onClick = {
+                                            if (!albumId.isNullOrBlank()) {
+                                                onOpenAlbum?.invoke(albumId)
+                                            } else {
+                                                onOpenArtist?.invoke(artistId, artist)
+                                            }
+                                        },
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.weight(1f, fill = false),
+                                    )
+                                }
                             }
                         }
                     }
 
-                    // 2. Timeline Strip Area (Bottom): ONLY this bottom strip detects slider hover
+                    // 2. Idle thin progress line (Gambar 1: starts from cover art across full width)
+                    if (thinBarAlpha > 0.01f) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .padding(bottom = 5.dp)
+                                .height(2.5.dp)
+                                .graphicsLayer { alpha = thinBarAlpha }
+                                .clip(RoundedCornerShape(percent = 50)),
+                        ) {
+                            Canvas(Modifier.fillMaxSize()) {
+                                val corner = CornerRadius(size.height / 2f)
+                                drawRoundRect(color = Color.White.copy(alpha = 0.16f), cornerRadius = corner)
+                                val playedWidth = size.width * displayedProgress.coerceIn(0f, 1f)
+                                if (playedWidth > 0f) {
+                                    drawRoundRect(
+                                        color = Color.White.copy(alpha = 0.75f),
+                                        size = androidx.compose.ui.geometry.Size(playedWidth, size.height),
+                                        cornerRadius = corner,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. Active hovered scrubber (Gambar 2: elapsed at top-start, remaining at top-end, thick scrubber at bottom)
+                    if (scrubberAlpha > 0.01f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer { alpha = scrubberAlpha },
+                        ) {
+                            val currentMs = if (isSeeking) {
+                                (seekProgress * durationMs).toLong().coerceIn(0L, durationMs)
+                            } else {
+                                positionMs.coerceIn(0L, durationMs.coerceAtLeast(0L))
+                            }
+                            val elapsedStr = formatTime(currentMs)
+                            val remainingMs = (durationMs - currentMs).coerceAtLeast(0L)
+                            val remainingStr = "-" + formatTime(remainingMs)
+
+                            // Timestamps above the scrubber track
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = 18.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = elapsedStr,
+                                    color = Color.White.copy(alpha = 0.95f),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = remainingStr,
+                                    color = Color.White.copy(alpha = 0.95f),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+
+                            // Full-width scrubber bar at bottom
+                            AppleMusicScrubber(
+                                value = displayedProgress,
+                                onValueChange = { frac ->
+                                    isSeeking = true
+                                    seekProgress = frac
+                                },
+                                onValueChangeFinished = {
+                                    isSeeking = false
+                                    onSeek(seekProgress)
+                                },
+                                trackHeight = 5.5.dp,
+                                thumbRadius = 5.5.dp,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .padding(bottom = 3.dp)
+                                    .height(18.dp),
+                            )
+                        }
+                    }
+
+                    // 4. Hover detection strip at the bottom
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
-                            .height(16.dp)
+                            .height(18.dp)
                             .hoverable(sliderInteractionSource),
-                        contentAlignment = Alignment.BottomCenter,
-                    ) {
-                        // Normal idle thin line (height 2.5dp) at the very bottom
-                        if (thinBarAlpha > 0.01f) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 2.dp)
-                                    .height(2.5.dp)
-                                    .graphicsLayer { alpha = thinBarAlpha }
-                                    .clip(RoundedCornerShape(percent = 50)),
-                            ) {
-                                Canvas(Modifier.fillMaxSize()) {
-                                    val corner = CornerRadius(size.height / 2f)
-                                    drawRoundRect(color = Color.White.copy(alpha = 0.16f), cornerRadius = corner)
-                                    val playedWidth = size.width * displayedProgress.coerceIn(0f, 1f)
-                                    if (playedWidth > 0f) {
-                                        drawRoundRect(
-                                            color = Color.White.copy(alpha = 0.75f),
-                                            size = androidx.compose.ui.geometry.Size(playedWidth, size.height),
-                                            cornerRadius = corner,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Hovered scrubber with timestamps and 5dp track + circle thumb knob
-                        if (scrubberAlpha > 0.01f) {
-                            Row(
-                                modifier = Modifier
-                                    .align(Alignment.Center)
-                                    .fillMaxWidth()
-                                    .graphicsLayer { alpha = scrubberAlpha },
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                val currentMs = if (isSeeking) {
-                                    (seekProgress * durationMs).toLong().coerceIn(0L, durationMs)
-                                } else {
-                                    positionMs.coerceIn(0L, durationMs.coerceAtLeast(0L))
-                                }
-                                val elapsedStr = formatTime(currentMs)
-                                val remainingMs = (durationMs - currentMs).coerceAtLeast(0L)
-                                val remainingStr = "-" + formatTime(remainingMs)
-
-                                Text(
-                                    text = elapsedStr,
-                                    color = Color.White.copy(alpha = 0.90f),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.width(32.dp),
-                                    textAlign = TextAlign.Start,
-                                )
-
-                                Spacer(Modifier.width(4.dp))
-
-                                AppleMusicScrubber(
-                                    value = displayedProgress,
-                                    onValueChange = { frac ->
-                                        isSeeking = true
-                                        seekProgress = frac
-                                    },
-                                    onValueChangeFinished = {
-                                        isSeeking = false
-                                        onSeek(seekProgress)
-                                    },
-                                    trackHeight = 5.dp,
-                                    thumbRadius = 5.dp,
-                                    modifier = Modifier.weight(1f),
-                                )
-
-                                Spacer(Modifier.width(4.dp))
-
-                                Text(
-                                    text = remainingStr,
-                                    color = Color.White.copy(alpha = 0.90f),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.width(34.dp),
-                                    textAlign = TextAlign.End,
-                                )
-                            }
-                        }
-                    }
+                    )
                 }
-            }
 
             Spacer(Modifier.width(8.dp))
 

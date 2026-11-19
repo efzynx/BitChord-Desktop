@@ -418,16 +418,39 @@ private fun CloudflareTunnelSection(
                             }
                         },
                         enabled = !isStarting,
-                        colors = ButtonDefaults.buttonColors(containerColor = DesktopAccent),
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = DesktopAccent,
+                            contentColor = Color.Black,
+                            disabledContainerColor = DesktopAccent.copy(alpha = 0.5f),
+                            disabledContentColor = Color.Black.copy(alpha = 0.5f),
+                        ),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                         modifier = Modifier.height(32.dp),
                     ) {
-                        Text(
-                            if (isStarting) "Connecting…" else "Start tunnel",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                        if (isStarting) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(13.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color.Black,
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    "Connecting…",
+                                    color = Color.Black,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        } else {
+                            Text(
+                                "Start tunnel",
+                                color = Color.Black,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
                 }
             }
