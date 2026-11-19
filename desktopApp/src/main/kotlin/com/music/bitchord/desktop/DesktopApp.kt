@@ -91,6 +91,7 @@ import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -5793,6 +5794,7 @@ private fun HoverableLinkText(
     modifier: Modifier = Modifier,
     color: Color = DesktopSecondary,
     fontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
+    lineHeight: androidx.compose.ui.unit.TextUnit = 12.sp,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
@@ -5800,6 +5802,7 @@ private fun HoverableLinkText(
         text = text,
         color = if (isHovered) Color.White else color,
         fontSize = fontSize,
+        lineHeight = lineHeight,
         textDecoration = if (isHovered) TextDecoration.Underline else TextDecoration.None,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -6065,23 +6068,23 @@ private fun DesktopAppleMusicBottomBar(
                 val isScrubActive = isSliderHovered || isSeeking
 
                 val textBlur by animateDpAsState(
-                    targetValue = if (isScrubActive) 8.dp else 0.dp,
-                    animationSpec = tween(160),
+                    targetValue = if (isScrubActive) 9.dp else 0.dp,
+                    animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
                     label = "textBlur",
                 )
                 val textAlpha by animateFloatAsState(
-                    targetValue = if (isScrubActive) 0.20f else 1f,
-                    animationSpec = tween(160),
+                    targetValue = if (isScrubActive) 0.18f else 1f,
+                    animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
                     label = "textAlpha",
                 )
                 val scrubberAlpha by animateFloatAsState(
                     targetValue = if (isScrubActive) 1f else 0f,
-                    animationSpec = tween(160),
+                    animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
                     label = "scrubberAlpha",
                 )
                 val thinBarAlpha by animateFloatAsState(
                     targetValue = if (isScrubActive) 0f else 1f,
-                    animationSpec = tween(160),
+                    animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
                     label = "thinBarAlpha",
                 )
 
@@ -6091,103 +6094,118 @@ private fun DesktopAppleMusicBottomBar(
                         .fillMaxHeight(),
                 ) {
                     // 1. Background layer: Cover art & Track info (blurs on scrub hover as in Gambar 2)
-                    Row(
+                    Box(
                         modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(top = 8.dp)
+                            .fillMaxSize()
                             .graphicsLayer { alpha = textAlpha }
-                            .then(if (textBlur > 0.5.dp) Modifier.blur(textBlur) else Modifier),
-                        verticalAlignment = Alignment.CenterVertically,
+                            .then(
+                                if (textBlur > 0.5.dp) {
+                                    Modifier.blur(textBlur, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                                } else {
+                                    Modifier
+                                }
+                            ),
+                        contentAlignment = Alignment.TopStart,
                     ) {
-                        // Cover art: zoom on hover + maximize icon overlay + click to maximize
-                        Box(
+                        Row(
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .hoverable(artInteractionSource)
-                                .clickable(
-                                    interactionSource = artInteractionSource,
-                                    indication = null,
-                                    onClick = onOpenNowPlaying,
-                                ),
-                            contentAlignment = Alignment.Center,
+                                .padding(top = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            DesktopArtwork(
-                                song.thumbnailUrl,
-                                Modifier
-                                    .fillMaxSize()
-                                    .graphicsLayer {
-                                        scaleX = artScale
-                                        scaleY = artScale
-                                    },
-                                px = ROW_ART_PX,
-                            )
-                            if (artHoverAlpha > 0.01f) {
-                                Box(
-                                    modifier = Modifier
+                            // Cover art: zoom on hover + maximize icon overlay + click to maximize
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .hoverable(artInteractionSource)
+                                    .clickable(
+                                        interactionSource = artInteractionSource,
+                                        indication = null,
+                                        onClick = onOpenNowPlaying,
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                DesktopArtwork(
+                                    song.thumbnailUrl,
+                                    Modifier
                                         .fillMaxSize()
-                                        .graphicsLayer { alpha = artHoverAlpha }
-                                        .background(Color.Black.copy(alpha = 0.52f)),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.OpenInFull,
-                                        contentDescription = DesktopStrings["d_maximize_player", "Maximize player"],
-                                        tint = Color.White,
-                                        modifier = Modifier.size(16.dp),
-                                    )
+                                        .graphicsLayer {
+                                            scaleX = artScale
+                                            scaleY = artScale
+                                        },
+                                    px = ROW_ART_PX,
+                                )
+                                if (artHoverAlpha > 0.01f) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .graphicsLayer { alpha = artHoverAlpha }
+                                            .background(Color.Black.copy(alpha = 0.52f)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.OpenInFull,
+                                            contentDescription = DesktopStrings["d_maximize_player", "Maximize player"],
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
                                 }
                             }
-                        }
 
-                        Spacer(Modifier.width(10.dp))
+                            Spacer(Modifier.width(10.dp))
 
-                        // Title & Artist Column
-                        Column(
-                            modifier = Modifier.weight(1f, fill = false),
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Text(
-                                text = song.title,
-                                color = Color.White,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 12.5.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Spacer(Modifier.height(1.dp))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
+                            // Title & Artist Column (tight 0.5 - 1 px gap between title and artist)
+                            Column(
+                                modifier = Modifier.weight(1f, fill = false),
+                                verticalArrangement = Arrangement.Center,
                             ) {
-                                val artist = song.artist
-                                val artistId = song.artistId
-                                val albumName = song.albumName
-                                val albumId = song.albumId
-
-                                HoverableLinkText(
-                                    text = artist,
-                                    onClick = { onOpenArtist?.invoke(artistId, artist) },
-                                    fontSize = 11.sp,
-                                    modifier = Modifier.weight(1f, fill = false),
+                                Text(
+                                    text = song.title,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.5.sp,
+                                    lineHeight = 13.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
-                                if (!albumName.isNullOrBlank()) {
-                                    Text(
-                                        text = " — ",
-                                        color = DesktopSecondary.copy(alpha = 0.6f),
-                                        fontSize = 11.sp,
-                                    )
+                                Spacer(Modifier.height(0.5.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    val artist = song.artist
+                                    val artistId = song.artistId
+                                    val albumName = song.albumName
+                                    val albumId = song.albumId
+
                                     HoverableLinkText(
-                                        text = albumName,
-                                        onClick = {
-                                            if (!albumId.isNullOrBlank()) {
-                                                onOpenAlbum?.invoke(albumId)
-                                            } else {
-                                                onOpenArtist?.invoke(artistId, artist)
-                                            }
-                                        },
+                                        text = artist,
+                                        onClick = { onOpenArtist?.invoke(artistId, artist) },
                                         fontSize = 11.sp,
+                                        lineHeight = 12.sp,
                                         modifier = Modifier.weight(1f, fill = false),
                                     )
+                                    if (!albumName.isNullOrBlank()) {
+                                        Text(
+                                            text = " — ",
+                                            color = DesktopSecondary.copy(alpha = 0.6f),
+                                            fontSize = 11.sp,
+                                            lineHeight = 12.sp,
+                                        )
+                                        HoverableLinkText(
+                                            text = albumName,
+                                            onClick = {
+                                                if (!albumId.isNullOrBlank()) {
+                                                    onOpenAlbum?.invoke(albumId)
+                                                } else {
+                                                    onOpenArtist?.invoke(artistId, artist)
+                                                }
+                                            },
+                                            fontSize = 11.sp,
+                                            lineHeight = 12.sp,
+                                            modifier = Modifier.weight(1f, fill = false),
+                                        )
+                                    }
                                 }
                             }
                         }
