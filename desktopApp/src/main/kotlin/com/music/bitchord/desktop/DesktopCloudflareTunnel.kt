@@ -12,7 +12,9 @@ import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
+import java.net.HttpURLConnection
 import java.net.Socket
+import java.net.URI
 
 /**
  * Manages an ephemeral Cloudflare Quick Tunnel and embedded party server
@@ -80,6 +82,13 @@ internal object DesktopCloudflareTunnel {
         Socket("127.0.0.1", port).use { true }
     }.getOrDefault(false)
 
+    private fun isLocalHealthOk(port: Int): Boolean = runCatching {
+        val conn = URI("http://127.0.0.1:$port/healthz").toURL().openConnection() as HttpURLConnection
+        conn.connectTimeout = 1200
+        conn.readTimeout = 1200
+        conn.responseCode in 200..299
+    }.getOrDefault(false)
+
     fun start(port: Int = 8080, onUrlAssigned: ((String) -> Unit)? = null) {
         if (_state.value.status == Status.STARTING || _state.value.status == Status.RUNNING) return
         _state.value = State(Status.STARTING, port = port)
@@ -88,37 +97,41 @@ internal object DesktopCloudflareTunnel {
         monitorJob = scope.launch {
             try {
                 // 1. Ensure local party server is running on the target port
-                if (!isPortInUse(port)) {
-                    val backendDir = File("backend")
-                    if (backendDir.isDirectory) {
+                if (!isLocalHealthOk(port)) {
+                    val backendDir = listOf(
+                        File("backend"),
+                        File(System.getProperty("user.dir"), "backend"),
+                        File(System.getProperty("user.home"), "Project/BitChord-Desktop/backend"),
+                    ).firstOrNull { it.isDirectory }
+
+                    if (backendDir != null) {
+                        val serverBinary = File(backendDir, if (DesktopPlatform.isWindows) "party-server.exe" else "party-server")
                         val goExe = findExecutable("go")
-                        val pb = if (File(backendDir, "party-server").canExecute()) {
-                            ProcessBuilder("./party-server")
-                                .directory(backendDir)
-                        } else if (goExe != null) {
-                            ProcessBuilder(goExe, "run", ".")
-                                .directory(backendDir)
-                        } else {
-                            null
+
+                        val pb = when {
+                            serverBinary.canExecute() -> {
+                                ProcessBuilder(serverBinary.absolutePath)
+                                    .directory(backendDir)
+                            }
+                            goExe != null -> {
+                                ProcessBuilder(goExe, "run", ".")
+                                    .directory(backendDir)
+                            }
+                            else -> null
                         }
+
                         if (pb != null) {
                             pb.environment()["PORT"] = port.toString()
-                            pb.redirectErrorStream(true)
+                            pb.redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                            pb.redirectError(ProcessBuilder.Redirect.DISCARD)
                             serverProcess = pb.start()
                         }
                     }
 
-                    // Poll for port readiness (up to 8 seconds)
-                    var ready = false
+                    // Poll for local server readiness (up to 8 seconds)
                     for (i in 0 until 40) {
-                        if (isPortInUse(port)) {
-                            ready = true
-                            break
-                        }
+                        if (isLocalHealthOk(port)) break
                         delay(200)
-                    }
-                    if (!ready && !isPortInUse(port)) {
-                        // Port might still be starting, continue to launch tunnel
                     }
                 }
 
@@ -149,6 +162,18 @@ internal object DesktopCloudflareTunnel {
                 }
 
                 if (capturedUrl != null) {
+                    // 3. Wait up to 10 seconds for Cloudflare edge routing to be live
+                    for (attempt in 0 until 10) {
+                        val ok = runCatching {
+                            val conn = URI("$capturedUrl/healthz").toURL().openConnection() as HttpURLConnection
+                            conn.connectTimeout = 2000
+                            conn.readTimeout = 2000
+                            conn.responseCode in 200..299
+                        }.getOrDefault(false)
+                        if (ok) break
+                        delay(1000)
+                    }
+
                     _state.value = State(Status.RUNNING, url = capturedUrl, port = port)
                     onUrlAssigned?.invoke(capturedUrl)
                 } else {
