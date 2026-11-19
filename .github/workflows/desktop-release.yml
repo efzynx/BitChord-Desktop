@@ -143,8 +143,12 @@ jobs:
       - name: Collect DEB and RPM packages
         run: |
           mkdir -p dist/linux
-          find desktopApp/build/compose/binaries -name "*.deb" -exec cp {} dist/linux/ \;
-          find desktopApp/build/compose/binaries -name "*.rpm" -exec cp {} dist/linux/ \;
+          for f in $(find desktopApp/build/compose/binaries -name "*.deb"); do
+            cp "$f" "dist/linux/bitchord_${{ env.VERSION }}_amd64.deb"
+          done
+          for f in $(find desktopApp/build/compose/binaries -name "*.rpm"); do
+            cp "$f" "dist/linux/bitchord-${{ env.VERSION }}.x86_64.rpm"
+          done
           ls -lh dist/linux/
 
       - name: Upload Linux Artifacts
@@ -193,8 +197,12 @@ jobs:
         run: |
           mkdir -p dist/windows
           find desktopApp/build/distributions -name "*windows-portable.zip" -exec cp {} dist/windows/ \;
-          find desktopApp/build/compose/binaries -name "*.msi" -exec cp {} dist/windows/ \;
-          find desktopApp/build/compose/binaries -name "*.exe" -exec cp {} dist/windows/ \;
+          for f in $(find desktopApp/build/compose/binaries -name "*.msi"); do
+            cp "$f" "dist/windows/BitChord-${{ env.VERSION }}.msi"
+          done
+          for f in $(find desktopApp/build/compose/binaries -name "*.exe"); do
+            cp "$f" "dist/windows/BitChord-${{ env.VERSION }}.exe"
+          done
           ls -lh dist/windows/
 
       - name: Upload Windows Artifacts
