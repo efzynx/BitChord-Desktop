@@ -92,6 +92,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.BlurredEdgeTreatment
+import com.music.bitchord.ui.player.artistCredits
+import com.music.bitchord.data.model.creditSegments
+import com.music.bitchord.data.model.ArtistCredit
+import com.music.bitchord.data.model.CreditSegment
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -1194,6 +1198,18 @@ fun BitChordDesktopApp() {
 
     fun openAlbum(browseId: String) = openCollection(browseId)
 
+    fun openAlbumByName(name: String) {
+        scope.launch {
+            val match = DesktopSearchClient.search(name, SearchFilter.ALBUMS)
+                .getOrDefault(emptyList())
+                .filterIsInstance<SearchResult.Browse>()
+                .map { it.item }
+                .firstOrNull { it.browseId.isNotBlank() }
+                ?: return@launch
+            openAlbum(match.browseId)
+        }
+    }
+
     /** Opens Liked Music playlist (VLLM), or the local liked collection when offline/not signed in. */
     fun openLikedMusic() {
         if (youtubeSignedIn) {
@@ -2087,14 +2103,24 @@ fun BitChordDesktopApp() {
         if (destination != DesktopDestination.HISTORY || !youtubeSignedIn) return@LaunchedEffect
         DesktopSearchClient.history().onSuccess { remoteHistory = it }
     }
-    LaunchedEffect(selectedSong?.videoId, overlays.nowPlaying) {
+    LaunchedEffect(selectedSong?.videoId) {
         trackLinks = null
         val current = selectedSong ?: return@LaunchedEffect
-        // Only while the player is up, so playing from the mini player costs
-        // nothing, and only when something is actually missing.
-        if (!overlays.nowPlaying) return@LaunchedEffect
-        if (current.artistId != null && current.albumId != null) return@LaunchedEffect
+        if (current.artistId != null && current.albumId != null && current.artists.isNotEmpty() && !current.albumName.isNullOrBlank()) {
+            return@LaunchedEffect
+        }
         trackLinks = DesktopSearchClient.trackLinks(current.videoId).getOrNull()
+    }
+    val effectiveSong = remember(selectedSong, trackLinks) {
+        val current = selectedSong ?: return@remember null
+        trackLinks?.takeIf { it.videoId == current.videoId }?.let { extra ->
+            current.copy(
+                artistId = current.artistId ?: extra.artistId,
+                artists = current.artists.ifEmpty { extra.artists },
+                albumId = current.albumId ?: extra.albumId,
+                albumName = current.albumName ?: extra.albumName,
+            )
+        } ?: current
     }
     // Keyed on the same things, plus the rate: Discord counts the bar down on
     // its own clock, so only a change to what it was told is worth another push.
@@ -3456,7 +3482,7 @@ fun BitChordDesktopApp() {
                 },
                 bottomBar = { _ ->
                     DesktopAppleMusicBottomBar(
-                        song = selectedSong,
+                        song = effectiveSong,
                         isPlaying = playback.isPlaying,
                         isLoading = playback.isLoading,
                         previousEnabled = liveQueue.hasPrevious ||
@@ -3488,7 +3514,13 @@ fun BitChordDesktopApp() {
                         onOpenArtist = { id, name ->
                             if (!id.isNullOrBlank()) openArtist(id, name) else openArtistByName(name)
                         },
-                        onOpenAlbum = { id -> openAlbum(id) },
+                        onOpenAlbum = { id, name ->
+                            if (!id.isNullOrBlank()) {
+                                openAlbum(id)
+                            } else if (!name.isNullOrBlank()) {
+                                openAlbumByName(name)
+                            }
+                        },
                         onVolumeChange = {
                             volume = it
                             persistence.saveString("volume", it.toString())
@@ -3497,7 +3529,7 @@ fun BitChordDesktopApp() {
                         onOpenLyrics = { overlays.toggleSidePanel(DesktopSidePanel.LYRICS) },
                         onOpenQueue = { overlays.toggleSidePanel(DesktopSidePanel.QUEUE) },
                         sidePanel = overlays.sidePanel,
-                        menu = selectedSong?.let { s ->
+                        menu = effectiveSong?.let { s ->
                             {
                                 DesktopSongMenuAnchor(
                                     song = s,
@@ -5817,19 +5849,17 @@ private fun HoverableLinkText(
 }
 
 @Composable
-private fun AppleMusicScrubber(
+private fun DesktopTimelineSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
+    scrubberAlpha: Float,
+    interactionSource: MutableInteractionSource,
     modifier: Modifier = Modifier,
-    trackHeight: androidx.compose.ui.unit.Dp = 5.dp,
-    thumbRadius: androidx.compose.ui.unit.Dp = 5.dp,
-    activeColor: Color = Color.White.copy(alpha = 0.95f),
-    inactiveColor: Color = Color.White.copy(alpha = 0.28f),
 ) {
     Box(
         modifier = modifier
-            .fillMaxHeight()
+            .hoverable(interactionSource)
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -5851,16 +5881,20 @@ private fun AppleMusicScrubber(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(Modifier.fillMaxWidth().fillMaxHeight()) {
+        Canvas(Modifier.fillMaxSize()) {
             val centerY = size.height / 2f
-            val trackH = trackHeight.toPx()
-            val thumbR = thumbRadius.toPx()
+            val trackH = (2.5f + (5.0f - 2.5f) * scrubberAlpha).dp.toPx()
+            val thumbR = (5.5f * scrubberAlpha).dp.toPx()
             val corner = CornerRadius(trackH / 2f)
 
-            // Inactive background track
+            val inactiveAlpha = 0.16f + (0.28f - 0.16f) * scrubberAlpha
+            val activeAlpha = 0.75f + (0.95f - 0.75f) * scrubberAlpha
+
             val trackTop = centerY - trackH / 2f
+
+            // Inactive background track
             drawRoundRect(
-                color = inactiveColor,
+                color = Color.White.copy(alpha = inactiveAlpha),
                 topLeft = Offset(0f, trackTop),
                 size = androidx.compose.ui.geometry.Size(size.width, trackH),
                 cornerRadius = corner,
@@ -5871,19 +5905,21 @@ private fun AppleMusicScrubber(
             val playedWidth = size.width * frac
             if (playedWidth > 0f) {
                 drawRoundRect(
-                    color = activeColor,
+                    color = Color.White.copy(alpha = activeAlpha),
                     topLeft = Offset(0f, trackTop),
                     size = androidx.compose.ui.geometry.Size(playedWidth, trackH),
                     cornerRadius = corner,
                 )
             }
 
-            // Circle thumb handle
-            drawCircle(
-                color = Color.White,
-                radius = thumbR,
-                center = Offset(playedWidth.coerceIn(thumbR, size.width - thumbR), centerY),
-            )
+            // Circle thumb handle (smoothly scales up with scrubberAlpha)
+            if (thumbR > 0.5f) {
+                drawCircle(
+                    color = Color.White,
+                    radius = thumbR,
+                    center = Offset(playedWidth.coerceIn(thumbR, size.width - thumbR), centerY),
+                )
+            }
         }
     }
 }
@@ -5908,7 +5944,7 @@ private fun DesktopAppleMusicBottomBar(
     onRepeatModeChange: (DesktopRepeatMode) -> Unit,
     onOpenNowPlaying: () -> Unit,
     onOpenArtist: ((id: String?, name: String) -> Unit)? = null,
-    onOpenAlbum: ((id: String) -> Unit)? = null,
+    onOpenAlbum: ((id: String?, name: String?) -> Unit)? = null,
     onVolumeChange: (Float) -> Unit,
     onOpenAudioOutput: (() -> Unit)? = null,
     onOpenLyrics: () -> Unit,
@@ -6082,11 +6118,6 @@ private fun DesktopAppleMusicBottomBar(
                     animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
                     label = "scrubberAlpha",
                 )
-                val thinBarAlpha by animateFloatAsState(
-                    targetValue = if (isScrubActive) 0f else 1f,
-                    animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
-                    label = "thinBarAlpha",
-                )
 
                 Box(
                     modifier = Modifier
@@ -6115,14 +6146,14 @@ private fun DesktopAppleMusicBottomBar(
                             // Cover art: zoom on hover + maximize icon overlay + click to maximize
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .hoverable(artInteractionSource)
-                                    .clickable(
-                                        interactionSource = artInteractionSource,
-                                        indication = null,
-                                        onClick = onOpenNowPlaying,
-                                    ),
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .hoverable(artInteractionSource)
+                                .clickable(
+                                    interactionSource = artInteractionSource,
+                                    indication = null,
+                                    onClick = onOpenNowPlaying,
+                                ),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 DesktopArtwork(
@@ -6155,7 +6186,7 @@ private fun DesktopAppleMusicBottomBar(
 
                             Spacer(Modifier.width(10.dp))
 
-                            // Title & Artist Column (tight 0.5 - 1 px gap between title and artist)
+                            // Title & Multi-Artist / Album Column (tight 0.5 - 1 px gap between title and artist)
                             Column(
                                 modifier = Modifier.weight(1f, fill = false),
                                 verticalArrangement = Arrangement.Center,
@@ -6172,38 +6203,53 @@ private fun DesktopAppleMusicBottomBar(
                                 Spacer(Modifier.height(0.5.dp))
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.clipToBounds(),
                                 ) {
-                                    val artist = song.artist
-                                    val artistId = song.artistId
+                                    val credits = remember(song.artist, song.artists, song.artistId) {
+                                        artistCredits(song.artist, song.artists, song.artistId)
+                                    }
+                                    val segments = remember(song.artist, credits) {
+                                        creditSegments(song.artist, credits)
+                                    }
                                     val albumName = song.albumName
                                     val albumId = song.albumId
 
-                                    HoverableLinkText(
-                                        text = artist,
-                                        onClick = { onOpenArtist?.invoke(artistId, artist) },
-                                        fontSize = 11.sp,
-                                        lineHeight = 12.sp,
-                                        modifier = Modifier.weight(1f, fill = false),
-                                    )
+                                    segments.forEach { segment ->
+                                        val credit = segment.credit
+                                        if (credit != null) {
+                                            HoverableLinkText(
+                                                text = segment.text,
+                                                onClick = { onOpenArtist?.invoke(credit.browseId, credit.name) },
+                                                fontSize = 11.sp,
+                                                lineHeight = 12.sp,
+                                            )
+                                        } else {
+                                            Text(
+                                                text = segment.text,
+                                                color = DesktopSecondary,
+                                                fontSize = 11.sp,
+                                                lineHeight = 12.sp,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                            )
+                                        }
+                                    }
                                     if (!albumName.isNullOrBlank()) {
                                         Text(
                                             text = " — ",
                                             color = DesktopSecondary.copy(alpha = 0.6f),
                                             fontSize = 11.sp,
                                             lineHeight = 12.sp,
+                                            maxLines = 1,
+                                            softWrap = false,
                                         )
                                         HoverableLinkText(
                                             text = albumName,
                                             onClick = {
-                                                if (!albumId.isNullOrBlank()) {
-                                                    onOpenAlbum?.invoke(albumId)
-                                                } else {
-                                                    onOpenArtist?.invoke(artistId, artist)
-                                                }
+                                                onOpenAlbum?.invoke(albumId, albumName)
                                             },
                                             fontSize = 11.sp,
                                             lineHeight = 12.sp,
-                                            modifier = Modifier.weight(1f, fill = false),
                                         )
                                     }
                                 }
@@ -6211,100 +6257,60 @@ private fun DesktopAppleMusicBottomBar(
                         }
                     }
 
-                    // 2. Idle thin progress line (Gambar 1: starts from cover art across full width)
-                    if (thinBarAlpha > 0.01f) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .fillMaxWidth()
-                                .padding(bottom = 5.dp)
-                                .height(2.5.dp)
-                                .graphicsLayer { alpha = thinBarAlpha }
-                                .clip(RoundedCornerShape(percent = 50)),
-                        ) {
-                            Canvas(Modifier.fillMaxSize()) {
-                                val corner = CornerRadius(size.height / 2f)
-                                drawRoundRect(color = Color.White.copy(alpha = 0.16f), cornerRadius = corner)
-                                val playedWidth = size.width * displayedProgress.coerceIn(0f, 1f)
-                                if (playedWidth > 0f) {
-                                    drawRoundRect(
-                                        color = Color.White.copy(alpha = 0.75f),
-                                        size = androidx.compose.ui.geometry.Size(playedWidth, size.height),
-                                        cornerRadius = corner,
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // 3. Active hovered scrubber (Gambar 2: elapsed at top-start, remaining at top-end, thick scrubber at bottom)
+                    // 2. Active timestamps above scrubber
                     if (scrubberAlpha > 0.01f) {
-                        Box(
+                        val currentMs = if (isSeeking) {
+                            (seekProgress * durationMs).toLong().coerceIn(0L, durationMs)
+                        } else {
+                            positionMs.coerceIn(0L, durationMs.coerceAtLeast(0L))
+                        }
+                        val elapsedStr = formatTime(currentMs)
+                        val remainingMs = (durationMs - currentMs).coerceAtLeast(0L)
+                        val remainingStr = "-" + formatTime(remainingMs)
+
+                        // Timestamps above the scrubber track
+                        Row(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxWidth()
+                                .align(Alignment.TopCenter)
+                                .padding(top = 18.dp)
                                 .graphicsLayer { alpha = scrubberAlpha },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            val currentMs = if (isSeeking) {
-                                (seekProgress * durationMs).toLong().coerceIn(0L, durationMs)
-                            } else {
-                                positionMs.coerceIn(0L, durationMs.coerceAtLeast(0L))
-                            }
-                            val elapsedStr = formatTime(currentMs)
-                            val remainingMs = (durationMs - currentMs).coerceAtLeast(0L)
-                            val remainingStr = "-" + formatTime(remainingMs)
-
-                            // Timestamps above the scrubber track
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .align(Alignment.TopCenter)
-                                    .padding(top = 18.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = elapsedStr,
-                                    color = Color.White.copy(alpha = 0.95f),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Text(
-                                    text = remainingStr,
-                                    color = Color.White.copy(alpha = 0.95f),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
-
-                            // Full-width scrubber bar at bottom
-                            AppleMusicScrubber(
-                                value = displayedProgress,
-                                onValueChange = { frac ->
-                                    isSeeking = true
-                                    seekProgress = frac
-                                },
-                                onValueChangeFinished = {
-                                    isSeeking = false
-                                    onSeek(seekProgress)
-                                },
-                                trackHeight = 5.5.dp,
-                                thumbRadius = 5.5.dp,
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .fillMaxWidth()
-                                    .padding(bottom = 3.dp)
-                                    .height(18.dp),
+                            Text(
+                                text = elapsedStr,
+                                color = Color.White.copy(alpha = 0.95f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = remainingStr,
+                                color = Color.White.copy(alpha = 0.95f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
                             )
                         }
                     }
 
-                    // 4. Hover detection strip at the bottom
-                    Box(
+                    // 3. Unified timeline slider (always responsive to clicks and hover with generous hit target)
+                    DesktopTimelineSlider(
+                        value = displayedProgress,
+                        onValueChange = { frac ->
+                            isSeeking = true
+                            seekProgress = frac
+                        },
+                        onValueChangeFinished = {
+                            isSeeking = false
+                            onSeek(seekProgress)
+                        },
+                        scrubberAlpha = scrubberAlpha,
+                        interactionSource = sliderInteractionSource,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
-                            .height(18.dp)
-                            .hoverable(sliderInteractionSource),
+                            .padding(bottom = 2.dp)
+                            .height(22.dp),
                     )
                 }
 
