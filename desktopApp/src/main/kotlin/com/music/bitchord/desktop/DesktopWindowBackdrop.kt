@@ -31,7 +31,7 @@ internal object DesktopWindowBackdrop {
      */
     val available: Boolean =
         (DesktopPlatform.isWindows && DesktopPlatform.drawsOwnWindowFrame &&
-            System.getProperty("os.name").orEmpty().contains("11")) ||
+            DesktopPlatform.isWindows11) ||
         DesktopPlatform.isMac
 
     private val _selected = MutableStateFlow(

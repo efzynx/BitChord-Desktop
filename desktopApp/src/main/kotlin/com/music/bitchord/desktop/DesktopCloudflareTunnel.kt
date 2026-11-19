@@ -44,17 +44,7 @@ internal object DesktopCloudflareTunnel {
     private var serverProcess: Process? = null
     private var monitorJob: Job? = null
 
-    val isAvailable: Boolean by lazy {
-        findExecutable("cloudflared") != null
-    }
-
-    init {
-        Runtime.getRuntime().addShutdownHook(Thread {
-            stop()
-        })
-    }
-
-    private fun findExecutable(name: String): String? {
+    fun findExecutable(name: String = "cloudflared"): String? {
         val pathDirs = (System.getenv("PATH") ?: "")
             .split(File.pathSeparatorChar)
             .filter { it.isNotBlank() }
@@ -62,20 +52,59 @@ internal object DesktopCloudflareTunnel {
         for (dir in pathDirs) {
             for (n in names) {
                 val f = File(dir, n)
-                if (f.isFile && f.canExecute()) return f.absolutePath
+                if (f.isFile && (f.canExecute() || DesktopPlatform.isWindows)) return f.absolutePath
             }
         }
-        val common = listOf(
-            "/usr/bin/$name",
-            "/usr/local/bin/$name",
-            "/opt/homebrew/bin/$name",
-            "/bin/$name",
-        )
+        val common = if (DesktopPlatform.isWindows) {
+            val progFiles = System.getenv("ProgramFiles") ?: "C:\\Program Files"
+            val progFilesX86 = System.getenv("ProgramFiles(x86)") ?: "C:\\Program Files (x86)"
+            val localAppData = System.getenv("LOCALAPPDATA")
+            val userProfile = System.getenv("USERPROFILE")
+            val choco = System.getenv("ChocolateyInstall") ?: "C:\\ProgramData\\chocolatey"
+            listOfNotNull(
+                "$progFiles\\cloudflared\\$name.exe",
+                "$progFiles\\cloudflared\\bin\\$name.exe",
+                "$progFilesX86\\cloudflared\\$name.exe",
+                "$progFilesX86\\cloudflared\\bin\\$name.exe",
+                localAppData?.let { "$it\\Microsoft\\WinGet\\Links\\$name.exe" },
+                localAppData?.let { "$it\\Programs\\cloudflared\\$name.exe" },
+                userProfile?.let { "$it\\scoop\\shims\\$name.exe" },
+                "$choco\\bin\\$name.exe",
+            )
+        } else {
+            val home = System.getProperty("user.home") ?: ""
+            listOf(
+                "/usr/bin/$name",
+                "/usr/local/bin/$name",
+                "/opt/homebrew/bin/$name",
+                "/bin/$name",
+                "$home/.local/bin/$name",
+                "$home/bin/$name",
+            )
+        }
         for (c in common) {
             val f = File(c)
-            if (f.isFile && f.canExecute()) return f.absolutePath
+            if (f.isFile && (f.canExecute() || DesktopPlatform.isWindows)) return f.absolutePath
         }
         return null
+    }
+
+    private val _isAvailable = MutableStateFlow(findExecutable() != null)
+    val isAvailable: StateFlow<Boolean> = _isAvailable.asStateFlow()
+
+    fun refreshAvailable(): Boolean {
+        val available = findExecutable() != null
+        _isAvailable.value = available
+        return available
+    }
+
+    val installedPath: String?
+        get() = findExecutable()
+
+    init {
+        Runtime.getRuntime().addShutdownHook(Thread {
+            stop()
+        })
     }
 
     private fun isPortInUse(port: Int): Boolean = runCatching {
@@ -90,6 +119,14 @@ internal object DesktopCloudflareTunnel {
     }.getOrDefault(false)
 
     fun start(port: Int = 8080, onUrlAssigned: ((String) -> Unit)? = null) {
+        if (!refreshAvailable()) {
+            _state.value = State(
+                Status.ERROR,
+                error = "cloudflared CLI belum terpasang di sistem ini. Harap pasang cloudflared terlebih dahulu.",
+                port = port,
+            )
+            return
+        }
         if (_state.value.status == Status.STARTING || _state.value.status == Status.RUNNING) return
         _state.value = State(Status.STARTING, port = port)
 

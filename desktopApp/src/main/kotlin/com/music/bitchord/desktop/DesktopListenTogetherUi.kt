@@ -23,9 +23,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.RemoveCircleOutline
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
@@ -35,10 +37,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -339,9 +343,15 @@ private fun CloudflareTunnelSection(
     onSaveServer: () -> Unit,
 ) {
     val tunnelState by DesktopCloudflareTunnel.state.collectAsState()
-    val isAvailable = DesktopCloudflareTunnel.isAvailable
+    val isAvailable by DesktopCloudflareTunnel.isAvailable.collectAsState()
     val isRunning = tunnelState.status == DesktopCloudflareTunnel.Status.RUNNING
     val isStarting = tunnelState.status == DesktopCloudflareTunnel.Status.STARTING
+
+    var copiedInstallCmd by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        DesktopCloudflareTunnel.refreshAvailable()
+    }
 
     Column(
         modifier = Modifier
@@ -362,40 +372,70 @@ private fun CloudflareTunnelSection(
                         fontSize = 13.sp,
                     )
                     Spacer(Modifier.width(8.dp))
-                    if (isRunning) {
+                    if (isAvailable) {
+                        if (isRunning) {
+                            Box(
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF28C840)),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "Online",
+                                color = Color(0xFF28C840),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        } else if (isStarting) {
+                            CircularProgressIndicator(
+                                color = DesktopAccent,
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(12.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "Starting…",
+                                color = DesktopSecondary,
+                                fontSize = 11.sp,
+                            )
+                        } else {
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color(0xFF28C840).copy(alpha = 0.14f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                            ) {
+                                Text(
+                                    "Ready",
+                                    color = Color(0xFF28C840),
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                    } else {
                         Box(
                             Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF28C840)),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            "Online",
-                            color = Color(0xFF28C840),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    } else if (isStarting) {
-                        CircularProgressIndicator(
-                            color = DesktopAccent,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(12.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            "Starting…",
-                            color = DesktopSecondary,
-                            fontSize = 11.sp,
-                        )
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFFFFB300).copy(alpha = 0.16f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        ) {
+                            Text(
+                                "Belum terpasang",
+                                color = Color(0xFFFFB300),
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
                 }
                 Spacer(Modifier.height(2.dp))
                 Text(
                     if (isAvailable) {
-                        "Host local party server and generate a free public link for friends."
+                        "Host local party server dan buat tautan publik gratis untuk teman."
                     } else {
-                        "cloudflared is not detected on this system. Install it to enable 1-click Quick Tunnel."
+                        "Membutuhkan cloudflared CLI agar server lokal dapat diakses teman via internet."
                     },
                     color = DesktopSecondary,
                     fontSize = 11.sp,
@@ -451,6 +491,125 @@ private fun CloudflareTunnelSection(
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
+                    }
+                }
+            } else {
+                OutlinedButton(
+                    onClick = { DesktopCloudflareTunnel.refreshAvailable() },
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    modifier = Modifier.height(30.dp),
+                ) {
+                    Icon(
+                        Icons.Rounded.Refresh,
+                        contentDescription = "Periksa Ulang",
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Text("Periksa Ulang", fontSize = 11.5.sp, color = Color.White)
+                }
+            }
+        }
+
+        // Informational notice when cloudflared is not installed
+        if (!isAvailable) {
+            Spacer(Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFFFB300).copy(alpha = 0.08f))
+                    .border(1.dp, Color(0xFFFFB300).copy(alpha = 0.22f), RoundedCornerShape(8.dp))
+                    .padding(12.dp),
+            ) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Rounded.Info,
+                            contentDescription = null,
+                            tint = Color(0xFFFFB300),
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Pemberitahuan: Membutuhkan cloudflared CLI",
+                            color = Color(0xFFFFD54F),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp,
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Jika ingin party server lokal Anda dapat diakses oleh teman melalui internet, sistem Anda memerlukan utilitas 'cloudflared'. Setelah dipasang, klik tombol \"Periksa Ulang\" di atas.",
+                        color = Color.White.copy(alpha = 0.88f),
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    val installCmd = if (DesktopPlatform.isWindows) {
+                        "winget install --id Cloudflare.cloudflared"
+                    } else {
+                        "sudo apt install cloudflared"
+                    }
+
+                    Text(
+                        text = if (DesktopPlatform.isWindows) "Perintah instalasi (Windows PowerShell / CMD):" else "Perintah instalasi (Linux Terminal):",
+                        color = DesktopSecondary,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color.Black.copy(alpha = 0.45f))
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = installCmd,
+                            color = DesktopAccent,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                DesktopExternalLinks.copy(installCmd)
+                                copiedInstallCmd = true
+                            },
+                            modifier = Modifier.size(24.dp),
+                        ) {
+                            Icon(
+                                Icons.Rounded.ContentCopy,
+                                contentDescription = "Copy command",
+                                tint = if (copiedInstallCmd) DesktopAccent else Color.White.copy(alpha = 0.7f),
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
+                    }
+
+                    if (!DesktopPlatform.isWindows) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Arch / CachyOS: sudo pacman -S cloudflared",
+                            color = DesktopSecondary,
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    }
+
+                    if (copiedInstallCmd) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Perintah berhasil disalin ke clipboard!",
+                            color = DesktopAccent,
+                            fontSize = 10.5.sp,
+                        )
                     }
                 }
             }
