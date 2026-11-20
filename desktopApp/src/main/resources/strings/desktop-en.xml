@@ -145,4 +145,81 @@
     <string name="d_copy_cookie_step_4">4. Under \"Headers\" > \"Request Headers\", find \"cookie:\", right-click and choose \"Copy value\".</string>
     <string name="d_copy_cookie_step_5">5. Paste the cookie header into the box below and click Sign in.</string>
     <string name="d_maximize_player">Maximize player</string>
+
+    <!-- Cloudflare Quick Tunnel -->
+    <string name="d_tunnel_title">Cloudflare Quick Tunnel</string>
+    <string name="d_tunnel_online">Online</string>
+    <string name="d_tunnel_starting">Starting…</string>
+    <string name="d_tunnel_ready">Ready</string>
+    <string name="d_tunnel_not_installed">Not installed</string>
+    <string name="d_tunnel_error_not_installed">cloudflared CLI is not installed on this system. Please install cloudflared first.</string>
+    <string name="d_tunnel_desc_ready">Host local party server and generate a free public link for friends.</string>
+    <string name="d_tunnel_desc_missing">Requires cloudflared CLI so local party server can be accessed over the internet.</string>
+    <string name="d_tunnel_stop">Stop tunnel</string>
+    <string name="d_tunnel_start">Start tunnel</string>
+    <string name="d_tunnel_connecting">Connecting…</string>
+    <string name="d_tunnel_recheck">Check again</string>
+    <string name="d_tunnel_notice_title">Notice: Requires cloudflared CLI</string>
+    <string name="d_tunnel_notice_body">To allow your local party server to be accessed by friends over the internet, your system requires the \'cloudflared\' utility. Once installed, click \"Check again\" above.</string>
+    <string name="d_tunnel_cmd_windows">Installation command (Windows PowerShell / CMD):</string>
+    <string name="d_tunnel_cmd_linux">Installation command (Linux Terminal):</string>
+    <string name="d_tunnel_copied">Command copied to clipboard!</string>
+    <string name="d_copy_command">Copy command</string>
+    <string name="d_copy_url">Copy URL</string>
+    <string name="d_tunnel_share_hint">Share this link with friends so they can join your party</string>
+    <string name="d_tunnel_use_local">Use local address</string>
+
+    <!-- Updates Page & Status -->
+    <string name="d_checking_github">Checking for latest releases on efzynx/BitChord-Desktop…</string>
+    <string name="d_up_to_date_title">BitChord Desktop is up to date.</string>
+    <string name="d_up_to_date_subtitle">No new releases available at this time.</string>
+    <string name="d_new_version_available">New Version Available: v%s</string>
+    <string name="d_release_notes">Release Notes:</string>
+    <string name="d_download_installer">Download Installer</string>
+    <string name="d_open_github_release">Open GitHub Release</string>
+    <string name="d_settings_version_summary">Version %1$s (%2$s) · Check updates &amp; install method</string>
+    <string name="d_updates_system_info">Updates &amp; System Info</string>
+    <string name="d_update_error">An error occurred while checking for updates.</string>
+    <string name="d_update_github_error">Failed to connect to GitHub server (%d).</string>
+    <string name="d_update_invalid_json">Invalid GitHub release response.</string>
+
+    <!-- Party Server -->
+    <string name="d_party_server">Party server</string>
+    <string name="d_party_server_desc">Leave blank to use the server included with this build.</string>
+    <string name="d_use_builtin">Use built-in</string>
+    <string name="d_party_checking">Checking the party server…</string>
+    <string name="d_party_offline">Party server is offline</string>
+    <string name="d_party_custom_offline">Custom server is offline · built-in server online · %d ms</string>
+    <string name="d_party_online">Party server online · %d ms</string>
+
+    <!-- Installation Types -->
+    <string name="d_install_appimage_label">AppImage (Linux)</string>
+    <string name="d_install_deb_label">Debian Package (.deb)</string>
+    <string name="d_install_rpm_label">RedHat Package (.rpm)</string>
+    <string name="d_install_local_label">Local User Install (~/.local)</string>
+    <string name="d_install_win_installed_label">Windows Installer (.exe / .msi)</string>
+    <string name="d_install_win_portable_label">Windows Portable (.zip)</string>
+    <string name="d_install_standalone_label">Standalone Distribution</string>
+    <string name="d_install_dev_label">Development / Gradle Run</string>
+
+    <string name="d_install_appimage_desc">Standalone portable Linux package (.AppImage)</string>
+    <string name="d_install_deb_desc">Debian / Ubuntu installation package (.deb)</string>
+    <string name="d_install_rpm_desc">Fedora / RHEL / openSUSE package (.rpm)</string>
+    <string name="d_install_local_desc">Installed in user directory via install-desktop.sh</string>
+    <string name="d_install_win_installed_desc">Installed on Windows via installer (.exe / .msi)</string>
+    <string name="d_install_win_portable_desc">Standalone portable Windows archive (extracted from .zip)</string>
+    <string name="d_install_standalone_desc">Standalone jpackage distribution (bin/BitChord)</string>
+    <string name="d_install_dev_desc">Running directly from source code with Gradle</string>
+
+    <string name="d_uninstall_appimage_hint">Simply delete the .AppImage file from your system.</string>
+    <string name="d_uninstall_deb_hint">Run \'sudo apt remove bitchord\' in the terminal.</string>
+    <string name="d_uninstall_rpm_hint">Run \'sudo dnf remove bitchord\' in the terminal.</string>
+    <string name="d_uninstall_local_hint">Run \'scripts/uninstall-desktop.sh\' from the project directory, or delete ~/.local/share/bitchord.</string>
+    <string name="d_uninstall_win_installed_hint">Open Windows Settings &gt; Apps &gt; Installed apps, search for \'BitChord\', and select Uninstall.</string>
+    <string name="d_uninstall_win_portable_hint">Simply delete this BitChord folder. No registry residue remains.</string>
+    <string name="d_uninstall_standalone_hint">Delete the extracted folder.</string>
+    <string name="d_uninstall_dev_hint">Development environment; no uninstallation required.</string>
+
+    <!-- Search -->
+    <string name="d_clear_search">Clear search</string>
 </resources>

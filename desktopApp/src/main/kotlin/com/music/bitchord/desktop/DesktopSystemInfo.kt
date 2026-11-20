@@ -5,51 +5,51 @@ import java.io.File
 /**
  * Mendeteksi jenis paket atau metode bagaimana BitChord Desktop dipasang di sistem.
  */
-enum class InstallType(
-    val label: String,
-    val formatDescription: String,
-    val uninstallHint: String,
-) {
-    APPIMAGE(
-        label = "AppImage",
-        formatDescription = "Paket portabel mandiri Linux (.AppImage)",
-        uninstallHint = "Cukup hapus file .AppImage dari sistem Anda.",
-    ),
-    DEB(
-        label = "Debian Package (.deb)",
-        formatDescription = "Paket instalasi Debian / Ubuntu (.deb)",
-        uninstallHint = "Jalankan 'sudo apt remove bitchord' di terminal.",
-    ),
-    RPM(
-        label = "RedHat Package (.rpm)",
-        formatDescription = "Paket instalasi Fedora / RHEL / openSUSE (.rpm)",
-        uninstallHint = "Jalankan 'sudo dnf remove bitchord' di terminal.",
-    ),
-    LOCAL_USER(
-        label = "Instalasi Lokal Pengguna (~/.local)",
-        formatDescription = "Terpasang di folder pengguna via script install-desktop.sh",
-        uninstallHint = "Jalankan script 'scripts/uninstall-desktop.sh' dari folder proyek, atau hapus ~/.local/share/bitchord.",
-    ),
-    WINDOWS_INSTALLED(
-        label = "Windows Installer (Setup / MSI)",
-        formatDescription = "Terpasang di sistem Windows via installer (.exe / .msi)",
-        uninstallHint = "Buka Settings Windows > Apps > Installed apps, lalu cari 'BitChord' dan pilih Uninstall.",
-    ),
-    WINDOWS_PORTABLE(
-        label = "Windows Portable (.zip)",
-        formatDescription = "Arsip portabel mandiri Windows (diekstrak dari .zip)",
-        uninstallHint = "Cukup hapus folder BitChord ini. Tidak ada file sisa di registry sistem Windows.",
-    ),
-    STANDALONE(
-        label = "Standalone Distribution",
-        formatDescription = "Distribusi mandiri jpackage (bin/BitChord)",
-        uninstallHint = "Cukup hapus direktori aplikasi ini secara langsung.",
-    ),
-    DEV(
-        label = "Development / Gradle Run",
-        formatDescription = "Dijalankan langsung melalui Gradle dev runner (:desktopApp:run)",
-        uninstallHint = "Tidak terpasang di sistem (berjalan langsung dari source code).",
-    ),
+enum class InstallType {
+    APPIMAGE,
+    DEB,
+    RPM,
+    LOCAL_USER,
+    WINDOWS_INSTALLED,
+    WINDOWS_PORTABLE,
+    STANDALONE,
+    DEV;
+
+    val label: String
+        get() = when (this) {
+            APPIMAGE -> DesktopStrings["d_install_appimage_label", "AppImage (Linux)"]
+            DEB -> DesktopStrings["d_install_deb_label", "Debian Package (.deb)"]
+            RPM -> DesktopStrings["d_install_rpm_label", "RedHat Package (.rpm)"]
+            LOCAL_USER -> DesktopStrings["d_install_local_label", "Local User Install (~/.local)"]
+            WINDOWS_INSTALLED -> DesktopStrings["d_install_win_installed_label", "Windows Installer (.exe / .msi)"]
+            WINDOWS_PORTABLE -> DesktopStrings["d_install_win_portable_label", "Windows Portable (.zip)"]
+            STANDALONE -> DesktopStrings["d_install_standalone_label", "Standalone Distribution"]
+            DEV -> DesktopStrings["d_install_dev_label", "Development / Gradle Run"]
+        }
+
+    val formatDescription: String
+        get() = when (this) {
+            APPIMAGE -> DesktopStrings["d_install_appimage_desc", "Standalone portable Linux package (.AppImage)"]
+            DEB -> DesktopStrings["d_install_deb_desc", "Debian / Ubuntu installation package (.deb)"]
+            RPM -> DesktopStrings["d_install_rpm_desc", "Fedora / RHEL / openSUSE package (.rpm)"]
+            LOCAL_USER -> DesktopStrings["d_install_local_desc", "Installed in user directory via install-desktop.sh"]
+            WINDOWS_INSTALLED -> DesktopStrings["d_install_win_installed_desc", "Installed on Windows via installer (.exe / .msi)"]
+            WINDOWS_PORTABLE -> DesktopStrings["d_install_win_portable_desc", "Standalone portable Windows archive (extracted from .zip)"]
+            STANDALONE -> DesktopStrings["d_install_standalone_desc", "Standalone jpackage distribution (bin/BitChord)"]
+            DEV -> DesktopStrings["d_install_dev_desc", "Running directly from source code with Gradle"]
+        }
+
+    val uninstallHint: String
+        get() = when (this) {
+            APPIMAGE -> DesktopStrings["d_uninstall_appimage_hint", "Simply delete the .AppImage file from your system."]
+            DEB -> DesktopStrings["d_uninstall_deb_hint", "Run 'sudo apt remove bitchord' in the terminal."]
+            RPM -> DesktopStrings["d_uninstall_rpm_hint", "Run 'sudo dnf remove bitchord' in the terminal."]
+            LOCAL_USER -> DesktopStrings["d_uninstall_local_hint", "Run 'scripts/uninstall-desktop.sh' from the project directory, or delete ~/.local/share/bitchord."]
+            WINDOWS_INSTALLED -> DesktopStrings["d_uninstall_win_installed_hint", "Open Windows Settings > Apps > Installed apps, search for 'BitChord', and select Uninstall."]
+            WINDOWS_PORTABLE -> DesktopStrings["d_uninstall_win_portable_hint", "Simply delete this BitChord folder. No registry residue remains."]
+            STANDALONE -> DesktopStrings["d_uninstall_standalone_hint", "Delete the extracted folder."]
+            DEV -> DesktopStrings["d_uninstall_dev_hint", "Development environment; no uninstallation required."]
+        }
 }
 
 /**
