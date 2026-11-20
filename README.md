@@ -39,6 +39,8 @@
 
 ## About This Project
 
+BitChord Desktop is an independent, community-driven desktop port of BitChord by Kushagra Singh.
+
 Originally initiated by [Kushagra Singh](https://github.com/kushagrasinghx) as an Android application (BitChord), earlier desktop prototypes were discontinued in the upstream repository.
 
 **This project ([efzynx/BitChord-Desktop](https://github.com/efzynx/BitChord-Desktop)) is an active, dedicated continuation that reconstructs, modernizes, and maintains high-performance native desktop clients for Linux and Windows.**
@@ -229,7 +231,7 @@ BitChord Desktop is free and open-source software. If you enjoy using BitChord D
 
 ## Disclaimer & Legal Notice
 
-BitChord Desktop is an independent third-party client. It is not affiliated with, endorsed by, or associated with Google LLC, YouTube, Deezer, or Telegram.
+BitChord Desktop is an independent, community-driven desktop port of BitChord by Kushagra Singh. It is not affiliated with, endorsed by, or associated with Google LLC, YouTube, Deezer, or Telegram.
 
 - **No Media Hosting**: BitChord Desktop does not host, upload, or store copyrighted audio content. It functions as an interface to index local storage or stream via public-facing APIs.
 - **Fair Use**: This project is developed for educational and personal research purposes. Users are responsible for ensuring compliance with applicable regional laws and third-party terms of service.
