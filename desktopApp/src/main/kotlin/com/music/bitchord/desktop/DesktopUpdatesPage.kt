@@ -348,7 +348,7 @@ private fun UpdateStatusCard(
                         )
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            text = "Memeriksa rilis terbaru di repository efzynx/BitChord-Desktop...",
+                            text = DesktopStrings["d_checking_github", "Checking for latest releases on efzynx/BitChord-Desktop…"],
                             style = MaterialTheme.typography.bodyMedium,
                             color = DesktopSecondary,
                         )
@@ -371,13 +371,13 @@ private fun UpdateStatusCard(
                         Spacer(Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "BitChord Desktop sudah versi terbaru.",
+                                text = DesktopStrings["d_up_to_date_title", "BitChord Desktop is up to date."],
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
                             Text(
-                                text = "Tidak ada pembaruan rilis baru saat ini.",
+                                text = DesktopStrings["d_up_to_date_subtitle", "No new releases available at this time."],
                                 style = MaterialTheme.typography.bodySmall,
                                 color = DesktopSecondary,
                             )
@@ -403,7 +403,7 @@ private fun UpdateStatusCard(
                             )
                             Spacer(Modifier.width(10.dp))
                             Text(
-                                text = "Versi Baru Tersedia: v${update.version}",
+                                text = DesktopStrings.format("d_new_version_available", update.version, fallback = "New Version Available: v%s"),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = DesktopAccent,
@@ -413,7 +413,7 @@ private fun UpdateStatusCard(
                         if (!update.notes.isNullOrBlank()) {
                             Spacer(Modifier.height(10.dp))
                             Text(
-                                text = "Catatan Rilis:",
+                                text = DesktopStrings["d_release_notes", "Release Notes:"],
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -441,14 +441,14 @@ private fun UpdateStatusCard(
                                         modifier = Modifier.size(18.dp),
                                     )
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Unduh Installer")
+                                    Text(DesktopStrings["d_download_installer", "Download Installer"])
                                 }
                             }
 
                             OutlinedButton(
                                 onClick = { DesktopExternalLinks.open(update.releaseUrl) },
                             ) {
-                                Text("Buka Rilis GitHub")
+                                Text(DesktopStrings["d_open_github_release", "Open GitHub Release"])
                                 Spacer(Modifier.width(6.dp))
                                 Icon(
                                     imageVector = Icons.Rounded.OpenInNew,

@@ -580,7 +580,7 @@ internal fun DesktopSignInDialog(
                 ) {
                     CircularProgressIndicator(color = DesktopAccent, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(12.dp))
-                    Text(DesktopStrings["d_looking_for_browsers", "Memeriksa browser terpasang…"], color = DesktopSecondary)
+                    Text(DesktopStrings["d_looking_for_browsers", "Looking for browsers…"], color = DesktopSecondary)
                 }
                 else -> LazyColumn(Modifier.heightIn(max = 380.dp)) {
                     val found = profiles.orEmpty()

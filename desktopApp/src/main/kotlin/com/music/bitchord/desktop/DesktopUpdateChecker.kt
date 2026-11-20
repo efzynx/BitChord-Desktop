@@ -97,7 +97,7 @@ internal object DesktopUpdateChecker {
     const val RELEASES_API_URL =
         "https://api.github.com/repos/efzynx/BitChord-Desktop/releases?per_page=20"
 
-    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.9.2-beta.4"
+    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.9.2"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -134,11 +134,13 @@ internal object DesktopUpdateChecker {
         }
 
         if (!response.status.isSuccess()) {
-            return UpdateCheckStatus.Error("Gagal menghubungi server GitHub (${response.status.value}).")
+            return UpdateCheckStatus.Error(
+                DesktopStrings.format("d_update_github_error", response.status.value, fallback = "Failed to connect to GitHub server (${response.status.value}).")
+            )
         }
 
         val releases = runCatching { json.parseToJsonElement(response.bodyAsText()).jsonArray }.getOrNull()
-            ?: return UpdateCheckStatus.Error("Respon rilis GitHub tidak valid.")
+            ?: return UpdateCheckStatus.Error(DesktopStrings["d_update_invalid_json", "Invalid GitHub release response."])
 
         val targetRelease = releases.mapNotNull { it as? JsonObject }.firstOrNull { obj ->
             val draft = obj["draft"]?.jsonPrimitive?.contentOrNull?.toBoolean() ?: false
@@ -181,7 +183,7 @@ internal object DesktopUpdateChecker {
             UpdateCheckStatus.UpToDate(currentVersion, url)
         }
     }.getOrElse {
-        UpdateCheckStatus.Error(it.message ?: "Terjadi kesalahan saat memeriksa pembaruan.")
+        UpdateCheckStatus.Error(it.message ?: DesktopStrings["d_update_error", "An error occurred while checking for updates."])
     }
 
     /**

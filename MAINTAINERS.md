@@ -1,10 +1,11 @@
 # Maintainers
 
-This document lists the maintainers responsible for BitChord.
+This document lists the maintainers responsible for BitChord Desktop.
 
 | Maintainer | GitHub | Responsibilities |
 |---|---|---|
-| Kushagra Singh | [@kushagrasinghx](https://github.com/kushagrasinghx) | Project creator, core architecture, release management, and PR reviews |
+| efzynx | [@efzynx](https://github.com/efzynx) | Desktop project maintainer, desktop architecture, release management, and PR reviews |
+| Kushagra Singh | [@kushagrasinghx](https://github.com/kushagrasinghx) | Original upstream creator (BitChord Android) |
 
 ## Responsibilities
 

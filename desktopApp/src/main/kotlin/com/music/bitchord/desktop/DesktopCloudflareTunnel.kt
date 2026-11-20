@@ -122,7 +122,7 @@ internal object DesktopCloudflareTunnel {
         if (!refreshAvailable()) {
             _state.value = State(
                 Status.ERROR,
-                error = "cloudflared CLI belum terpasang di sistem ini. Harap pasang cloudflared terlebih dahulu.",
+                error = DesktopStrings["d_tunnel_error_not_installed", "cloudflared CLI is not installed on this system. Please install cloudflared first."],
                 port = port,
             )
             return

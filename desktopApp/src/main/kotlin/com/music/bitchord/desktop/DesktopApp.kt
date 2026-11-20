@@ -77,6 +77,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -4349,6 +4350,8 @@ fun BitChordDesktopApp() {
                         openedArtist != null -> DesktopArtistPage(
                             state = artistState,
                             fallbackName = openedArtist!!.name,
+                            isPlaying = playback.isPlaying,
+                            onTogglePlayPause = { if (selectedSong != null) togglePlayPauseFromUser() },
                             onRetry = {
                                 artistState = UiState.Loading
                                 artistReloads++
@@ -4381,6 +4384,8 @@ fun BitChordDesktopApp() {
                             collection = openedCollection!!,
                             loadingMore = collectionLoadingMore,
                             onLoadMore = ::loadMoreCollectionSongs,
+                            isPlaying = playback.isPlaying,
+                            onTogglePlayPause = { if (selectedSong != null) togglePlayPauseFromUser() },
                             onRename = { overlays.rename = true }.takeIf { openedCollection?.owned == true },
                             onShare = openedCollection
                                 ?.takeIf { it.type == BrowseType.ALBUM || it.type == BrowseType.PLAYLIST }
@@ -5827,6 +5832,8 @@ private fun HoverableLinkText(
     color: Color = DesktopSecondary,
     fontSize: androidx.compose.ui.unit.TextUnit = 11.sp,
     lineHeight: androidx.compose.ui.unit.TextUnit = 12.sp,
+    softWrap: Boolean = false,
+    overflow: TextOverflow = TextOverflow.Clip,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isHovered by interactionSource.collectIsHoveredAsState()
@@ -5837,7 +5844,8 @@ private fun HoverableLinkText(
         lineHeight = lineHeight,
         textDecoration = if (isHovered) TextDecoration.Underline else TextDecoration.None,
         maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+        softWrap = softWrap,
+        overflow = overflow,
         modifier = modifier
             .hoverable(interactionSource)
             .clickable(
@@ -6199,11 +6207,24 @@ private fun DesktopAppleMusicBottomBar(
                                     lineHeight = 13.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.basicMarquee(
+                                        iterations = Int.MAX_VALUE,
+                                        initialDelayMillis = 2000,
+                                        repeatDelayMillis = 1500,
+                                        velocity = 30.dp,
+                                    ),
                                 )
                                 Spacer(Modifier.height(0.5.dp))
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.clipToBounds(),
+                                    modifier = Modifier
+                                        .basicMarquee(
+                                            iterations = Int.MAX_VALUE,
+                                            initialDelayMillis = 2000,
+                                            repeatDelayMillis = 1500,
+                                            velocity = 30.dp,
+                                        )
+                                        .clipToBounds(),
                                 ) {
                                     val credits = remember(song.artist, song.artists, song.artistId) {
                                         artistCredits(song.artist, song.artists, song.artistId)
@@ -6454,7 +6475,10 @@ internal fun DesktopSearchField(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { onSearch() }),
             decorationBox = { innerTextField ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Icon(
                         BitChordIcons.Search,
                         contentDescription = null,
@@ -6467,6 +6491,27 @@ internal fun DesktopSearchField(
                             Text(placeholder, color = DesktopSecondary, maxLines = 1)
                         }
                         innerTextField()
+                    }
+                    if (query.isNotEmpty()) {
+                        Spacer(Modifier.width(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.12f))
+                                .clickable {
+                                    onQueryChange("")
+                                    runCatching { focusRequester.requestFocus() }
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Rounded.Close,
+                                contentDescription = DesktopStrings["d_clear_search", "Clear search"],
+                                tint = Color.White.copy(alpha = 0.85f),
+                                modifier = Modifier.size(13.dp),
+                            )
+                        }
                     }
                 }
             },
@@ -6630,6 +6675,8 @@ private fun DesktopArtistPage(
     state: UiState<ArtistPage>,
     fallbackName: String,
     onRetry: () -> Unit,
+    isPlaying: Boolean = false,
+    onTogglePlayPause: () -> Unit = {},
     onPlaySongs: (List<Song>, Int) -> Unit,
     onShuffle: (List<Song>) -> Unit,
     /** The ⋮ on a top song, or a right-click on it. */
@@ -6700,9 +6747,23 @@ private fun DesktopArtistPage(
                                         onClick = { onToggleSubscription(subscription) },
                                     )
                                 }
+                                val isCurrentRow = rememberPlayingRowMatcher(top)
+                                val isArtistPlaying = isPlaying && top.any { isCurrentRow(it) }
                                 DesktopPlayPill(
-                                    label = DesktopStrings["play", "Play"],
-                                    onClick = { if (top.isNotEmpty()) onPlaySongs(top, 0) },
+                                    label = if (isArtistPlaying) DesktopStrings["pause", "Pause"] else DesktopStrings["play", "Play"],
+                                    isPlaying = isArtistPlaying,
+                                    onClick = {
+                                        if (isArtistPlaying) {
+                                            onTogglePlayPause()
+                                        } else {
+                                            val playingIndex = top.indexOfFirst { isCurrentRow(it) }
+                                            if (playingIndex >= 0) {
+                                                onTogglePlayPause()
+                                            } else if (top.isNotEmpty()) {
+                                                onPlaySongs(top, 0)
+                                            }
+                                        }
+                                    },
                                 )
                                 DesktopCircleButton(BitChordIcons.Shuffle, DesktopStrings["shuffle", "Shuffle"], onClick = { onShuffle(top) })
                             }
@@ -8020,8 +8081,13 @@ private fun DesktopSettingsScreen(
                 SettingsGroup(DesktopStrings["d_about", "About & Updates"]) {
                     SettingsRow(
                         Icons.Rounded.Download,
-                        "Pembaruan & Info Sistem",
-                        "Versi ${DesktopSystemInfo.appVersion} (${DesktopSystemInfo.installType.label}) · Cek update & metode instalasi",
+                        DesktopStrings["d_updates_system_info", "Updates & System Info"],
+                        DesktopStrings.format(
+                            "d_settings_version_summary",
+                            DesktopSystemInfo.appVersion,
+                            DesktopSystemInfo.installType.label,
+                            fallback = "Version %1\$s (%2\$s) · Check updates & install method",
+                        ),
                         onOpenUpdates,
                     )
                 }
@@ -8358,6 +8424,8 @@ private fun DesktopCollectionPage(
     collection: DesktopCollection,
     loadingMore: Boolean,
     onLoadMore: () -> Unit,
+    isPlaying: Boolean = false,
+    onTogglePlayPause: () -> Unit = {},
     /** The three edits only a playlist's owner is offered. */
     onRename: (() -> Unit)?,
     onDelete: (() -> Unit)?,
@@ -8417,6 +8485,7 @@ private fun DesktopCollectionPage(
     }.joinToString(" • ").uppercase()
     DesktopPageScaffold(contentPadding) {
         val isCurrentRow = rememberPlayingRowMatcher(songs)
+        val isCollectionPlaying = isPlaying && songs.any { isCurrentRow(it) }
         LazyColumn(
             contentPadding = pagePadding(
                 start = DesktopPageGutter,
@@ -8496,8 +8565,20 @@ private fun DesktopCollectionPage(
                         ) {
                             DesktopCircleButton(BitChordIcons.Shuffle, DesktopStrings["shuffle", "Shuffle"], onClick = { onShuffle(songs) })
                             DesktopPlayPill(
-                                label = DesktopStrings["play", "Play"],
-                                onClick = { if (songs.isNotEmpty()) onPlaySongs(songs, 0) },
+                                label = if (isCollectionPlaying) DesktopStrings["pause", "Pause"] else DesktopStrings["play", "Play"],
+                                isPlaying = isCollectionPlaying,
+                                onClick = {
+                                    if (isCollectionPlaying) {
+                                        onTogglePlayPause()
+                                    } else {
+                                        val playingIndex = songs.indexOfFirst { isCurrentRow(it) }
+                                        if (playingIndex >= 0) {
+                                            onTogglePlayPause()
+                                        } else if (songs.isNotEmpty()) {
+                                            onPlaySongs(songs, 0)
+                                        }
+                                    }
+                                },
                                 iconOnly = true,
                             )
                             onSavePlaylist?.let { save ->

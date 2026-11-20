@@ -143,4 +143,81 @@
     <string name="d_copy_cookie_step_4">4. Di tab \"Headers\" > \"Request Headers\", cari \"cookie:\", klik kanan lalu \"Copy value\".</string>
     <string name="d_copy_cookie_step_5">5. Tempel (paste) cookie tersebut ke kolom di bawah dan klik Masuk.</string>
     <string name="d_maximize_player">Perbesar pemutar</string>
+
+    <!-- Cloudflare Quick Tunnel -->
+    <string name="d_tunnel_title">Cloudflare Quick Tunnel</string>
+    <string name="d_tunnel_online">Online</string>
+    <string name="d_tunnel_starting">Memulai…</string>
+    <string name="d_tunnel_ready">Siap</string>
+    <string name="d_tunnel_not_installed">Belum terpasang</string>
+    <string name="d_tunnel_error_not_installed">cloudflared CLI belum terpasang di sistem ini. Harap pasang cloudflared terlebih dahulu.</string>
+    <string name="d_tunnel_desc_ready">Host party server lokal dan buat tautan publik gratis untuk teman.</string>
+    <string name="d_tunnel_desc_missing">Membutuhkan cloudflared CLI agar server lokal dapat diakses via internet.</string>
+    <string name="d_tunnel_stop">Hentikan tunnel</string>
+    <string name="d_tunnel_start">Mulai tunnel</string>
+    <string name="d_tunnel_connecting">Menghubungkan…</string>
+    <string name="d_tunnel_recheck">Periksa Ulang</string>
+    <string name="d_tunnel_notice_title">Pemberitahuan: Membutuhkan cloudflared CLI</string>
+    <string name="d_tunnel_notice_body">Jika ingin party server lokal Anda dapat diakses oleh teman melalui internet, sistem Anda memerlukan utilitas \'cloudflared\'. Setelah dipasang, klik tombol \"Periksa Ulang\" di atas.</string>
+    <string name="d_tunnel_cmd_windows">Perintah instalasi (Windows PowerShell / CMD):</string>
+    <string name="d_tunnel_cmd_linux">Perintah instalasi (Linux Terminal):</string>
+    <string name="d_tunnel_copied">Perintah berhasil disalin ke papan klip!</string>
+    <string name="d_copy_command">Salin perintah</string>
+    <string name="d_copy_url">Salin URL</string>
+    <string name="d_tunnel_share_hint">Bagikan tautan ini kepada teman agar mereka dapat bergabung</string>
+    <string name="d_tunnel_use_local">Gunakan alamat lokal</string>
+
+    <!-- Updates Page & Status -->
+    <string name="d_checking_github">Memeriksa rilis terbaru di repository efzynx/BitChord-Desktop…</string>
+    <string name="d_up_to_date_title">BitChord Desktop sudah versi terbaru.</string>
+    <string name="d_up_to_date_subtitle">Tidak ada pembaruan rilis baru saat ini.</string>
+    <string name="d_new_version_available">Versi Baru Tersedia: v%s</string>
+    <string name="d_release_notes">Catatan Rilis:</string>
+    <string name="d_download_installer">Unduh Installer</string>
+    <string name="d_open_github_release">Buka Rilis GitHub</string>
+    <string name="d_settings_version_summary">Versi %1$s (%2$s) · Cek update &amp; metode instalasi</string>
+    <string name="d_updates_system_info">Pembaruan &amp; Info Sistem</string>
+    <string name="d_update_error">Terjadi kesalahan saat memeriksa pembaruan.</string>
+    <string name="d_update_github_error">Gagal menghubungi server GitHub (%d).</string>
+    <string name="d_update_invalid_json">Respon rilis GitHub tidak valid.</string>
+
+    <!-- Party Server -->
+    <string name="d_party_server">Server party</string>
+    <string name="d_party_server_desc">Kosongkan untuk menggunakan server bawaan build ini.</string>
+    <string name="d_use_builtin">Gunakan bawaan</string>
+    <string name="d_party_checking">Memeriksa server party…</string>
+    <string name="d_party_offline">Server party offline</string>
+    <string name="d_party_custom_offline">Server kustom offline · server bawaan online · %d ms</string>
+    <string name="d_party_online">Server party online · %d ms</string>
+
+    <!-- Installation Types -->
+    <string name="d_install_appimage_label">AppImage (Linux)</string>
+    <string name="d_install_deb_label">Paket Debian (.deb)</string>
+    <string name="d_install_rpm_label">Paket RedHat (.rpm)</string>
+    <string name="d_install_local_label">Instalasi Lokal Pengguna (~/.local)</string>
+    <string name="d_install_win_installed_label">Installer Windows (.exe / .msi)</string>
+    <string name="d_install_win_portable_label">Windows Portabel (.zip)</string>
+    <string name="d_install_standalone_label">Distribusi Mandiri</string>
+    <string name="d_install_dev_label">Pengembangan / Gradle Run</string>
+
+    <string name="d_install_appimage_desc">Paket portabel mandiri Linux (.AppImage)</string>
+    <string name="d_install_deb_desc">Paket instalasi Debian / Ubuntu (.deb)</string>
+    <string name="d_install_rpm_desc">Paket instalasi Fedora / RHEL / openSUSE (.rpm)</string>
+    <string name="d_install_local_desc">Terpasang di folder pengguna via install-desktop.sh</string>
+    <string name="d_install_win_installed_desc">Terpasang di sistem Windows via installer (.exe / .msi)</string>
+    <string name="d_install_win_portable_desc">Arsip portabel mandiri Windows (diekstrak dari .zip)</string>
+    <string name="d_install_standalone_desc">Distribusi mandiri jpackage (bin/BitChord)</string>
+    <string name="d_install_dev_desc">Berjalan langsung dari kode sumber via Gradle</string>
+
+    <string name="d_uninstall_appimage_hint">Cukup hapus berkas .AppImage dari sistem Anda.</string>
+    <string name="d_uninstall_deb_hint">Jalankan \'sudo apt remove bitchord\' di terminal.</string>
+    <string name="d_uninstall_rpm_hint">Jalankan \'sudo dnf remove bitchord\' di terminal.</string>
+    <string name="d_uninstall_local_hint">Jalankan skrip \'scripts/uninstall-desktop.sh\' dari folder proyek, atau hapus ~/.local/share/bitchord.</string>
+    <string name="d_uninstall_win_installed_hint">Buka Pengaturan Windows &gt; Aplikasi &gt; Aplikasi terinstal, cari \'BitChord\', lalu pilih Copot pemasangan.</string>
+    <string name="d_uninstall_win_portable_hint">Cukup hapus folder BitChord ini. Tidak ada berkas tersisa di registri sistem Windows.</string>
+    <string name="d_uninstall_standalone_hint">Hapus folder yang diekstrak.</string>
+    <string name="d_uninstall_dev_hint">Lingkungan pengembangan; tidak memerlukan pencopotan pemasangan.</string>
+
+    <!-- Search -->
+    <string name="d_clear_search">Hapus pencarian</string>
 </resources>

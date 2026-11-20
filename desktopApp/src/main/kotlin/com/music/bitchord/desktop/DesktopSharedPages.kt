@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -277,6 +278,7 @@ internal fun DesktopPlayPill(
     onClick: () -> Unit,
     iconOnly: Boolean = false,
     size: Dp = 50.dp,
+    isPlaying: Boolean = false,
 ) {
     Row(
         Modifier
@@ -289,14 +291,14 @@ internal fun DesktopPlayPill(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            BitChordIcons.Play,
-            contentDescription = if (iconOnly) label else null,
+            if (isPlaying) Icons.Rounded.Pause else BitChordIcons.Play,
+            contentDescription = if (iconOnly) (if (isPlaying) "Pause" else label) else null,
             tint = Color.Black,
             modifier = Modifier.size(if (iconOnly) size * 0.44f else 18.dp),
         )
         if (!iconOnly) {
             Spacer(Modifier.width(8.dp))
-            Text(label, style = MaterialTheme.typography.titleMedium, color = Color.Black)
+            Text(if (isPlaying) DesktopStrings["pause", "Pause"] else label, style = MaterialTheme.typography.titleMedium, color = Color.Black)
         }
     }
 }

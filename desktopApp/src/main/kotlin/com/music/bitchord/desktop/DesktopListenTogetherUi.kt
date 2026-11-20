@@ -296,8 +296,8 @@ private fun PartyLanding(
                     Icon(Icons.Rounded.Settings, null, tint = DesktopSecondary, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("Party server", fontWeight = FontWeight.Medium)
-                        Text("Leave blank to use the server included with this build.", color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
+                        Text(DesktopStrings["d_party_server", "Party server"], fontWeight = FontWeight.Medium)
+                        Text(DesktopStrings["d_party_server_desc", "Leave blank to use the server included with this build."], color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 Spacer(Modifier.height(12.dp))
@@ -319,11 +319,11 @@ private fun PartyLanding(
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(onClick = onRefreshServer) { Text("Test") }
+                    TextButton(onClick = onRefreshServer) { Text(DesktopStrings["test", "Test"]) }
                     Button(
                         onClick = onSaveServer,
                         colors = ButtonDefaults.buttonColors(containerColor = DesktopCardInsetFill),
-                    ) { Text(if (server.isBlank()) "Use built-in" else "Save") }
+                    ) { Text(if (server.isBlank()) DesktopStrings["d_use_builtin", "Use built-in"] else DesktopStrings["save", "Save"]) }
                 }
                 Spacer(Modifier.height(14.dp))
                 HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
@@ -367,7 +367,7 @@ private fun CloudflareTunnelSection(
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "Cloudflare Quick Tunnel",
+                        DesktopStrings["d_tunnel_title", "Cloudflare Quick Tunnel"],
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 13.sp,
                     )
@@ -382,7 +382,7 @@ private fun CloudflareTunnelSection(
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                "Online",
+                                DesktopStrings["d_tunnel_online", "Online"],
                                 color = Color(0xFF28C840),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium,
@@ -395,7 +395,7 @@ private fun CloudflareTunnelSection(
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                "Starting…",
+                                DesktopStrings["d_tunnel_starting", "Starting…"],
                                 color = DesktopSecondary,
                                 fontSize = 11.sp,
                             )
@@ -407,7 +407,7 @@ private fun CloudflareTunnelSection(
                                     .padding(horizontal = 6.dp, vertical = 2.dp),
                             ) {
                                 Text(
-                                    "Ready",
+                                    DesktopStrings["d_tunnel_ready", "Ready"],
                                     color = Color(0xFF28C840),
                                     fontSize = 10.5.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -422,7 +422,7 @@ private fun CloudflareTunnelSection(
                                 .padding(horizontal = 6.dp, vertical = 2.dp),
                         ) {
                             Text(
-                                "Belum terpasang",
+                                DesktopStrings["d_tunnel_not_installed", "Not installed"],
                                 color = Color(0xFFFFB300),
                                 fontSize = 10.5.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -433,9 +433,9 @@ private fun CloudflareTunnelSection(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     if (isAvailable) {
-                        "Host local party server dan buat tautan publik gratis untuk teman."
+                        DesktopStrings["d_tunnel_desc_ready", "Host local party server and create a free public link for friends."]
                     } else {
-                        "Membutuhkan cloudflared CLI agar server lokal dapat diakses teman via internet."
+                        DesktopStrings["d_tunnel_desc_missing", "Requires cloudflared CLI so local party server can be accessed over the internet."]
                     },
                     color = DesktopSecondary,
                     fontSize = 11.sp,
@@ -447,7 +447,7 @@ private fun CloudflareTunnelSection(
                     TextButton(
                         onClick = { DesktopCloudflareTunnel.stop() },
                     ) {
-                        Text("Stop tunnel", color = DesktopDestructive, fontSize = 12.sp)
+                        Text(DesktopStrings["d_tunnel_stop", "Stop tunnel"], color = DesktopDestructive, fontSize = 12.sp)
                     }
                 } else {
                     Button(
@@ -477,7 +477,7 @@ private fun CloudflareTunnelSection(
                                 )
                                 Spacer(Modifier.width(6.dp))
                                 Text(
-                                    "Connecting…",
+                                    DesktopStrings["d_tunnel_connecting", "Connecting…"],
                                     color = Color.Black,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -485,7 +485,7 @@ private fun CloudflareTunnelSection(
                             }
                         } else {
                             Text(
-                                "Start tunnel",
+                                DesktopStrings["d_tunnel_start", "Start tunnel"],
                                 color = Color.Black,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -502,12 +502,12 @@ private fun CloudflareTunnelSection(
                 ) {
                     Icon(
                         Icons.Rounded.Refresh,
-                        contentDescription = "Periksa Ulang",
+                        contentDescription = DesktopStrings["d_tunnel_recheck", "Check again"],
                         tint = Color.White,
                         modifier = Modifier.size(14.dp),
                     )
                     Spacer(Modifier.width(5.dp))
-                    Text("Periksa Ulang", fontSize = 11.5.sp, color = Color.White)
+                    Text(DesktopStrings["d_tunnel_recheck", "Check again"], fontSize = 11.5.sp, color = Color.White)
                 }
             }
         }
@@ -533,7 +533,7 @@ private fun CloudflareTunnelSection(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Pemberitahuan: Membutuhkan cloudflared CLI",
+                            DesktopStrings["d_tunnel_notice_title", "Notice: Requires cloudflared CLI"],
                             color = Color(0xFFFFD54F),
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 12.sp,
@@ -541,7 +541,7 @@ private fun CloudflareTunnelSection(
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Jika ingin party server lokal Anda dapat diakses oleh teman melalui internet, sistem Anda memerlukan utilitas 'cloudflared'. Setelah dipasang, klik tombol \"Periksa Ulang\" di atas.",
+                        DesktopStrings["d_tunnel_notice_body", "To allow your local party server to be accessed by friends over the internet, your system requires the 'cloudflared' utility. Once installed, click \"Check again\" above."],
                         color = Color.White.copy(alpha = 0.88f),
                         fontSize = 11.sp,
                         lineHeight = 15.sp,
@@ -555,7 +555,11 @@ private fun CloudflareTunnelSection(
                     }
 
                     Text(
-                        text = if (DesktopPlatform.isWindows) "Perintah instalasi (Windows PowerShell / CMD):" else "Perintah instalasi (Linux Terminal):",
+                        text = if (DesktopPlatform.isWindows) {
+                            DesktopStrings["d_tunnel_cmd_windows", "Installation command (Windows PowerShell / CMD):"]
+                        } else {
+                            DesktopStrings["d_tunnel_cmd_linux", "Installation command (Linux Terminal):"]
+                        },
                         color = DesktopSecondary,
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Medium,
@@ -586,7 +590,7 @@ private fun CloudflareTunnelSection(
                         ) {
                             Icon(
                                 Icons.Rounded.ContentCopy,
-                                contentDescription = "Copy command",
+                                contentDescription = DesktopStrings["d_copy_command", "Copy command"],
                                 tint = if (copiedInstallCmd) DesktopAccent else Color.White.copy(alpha = 0.7f),
                                 modifier = Modifier.size(14.dp),
                             )
@@ -606,7 +610,7 @@ private fun CloudflareTunnelSection(
                     if (copiedInstallCmd) {
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "Perintah berhasil disalin ke clipboard!",
+                            DesktopStrings["d_tunnel_copied", "Command copied to clipboard!"],
                             color = DesktopAccent,
                             fontSize = 10.5.sp,
                         )
@@ -649,7 +653,7 @@ private fun CloudflareTunnelSection(
                 ) {
                     Icon(
                         Icons.Rounded.ContentCopy,
-                        contentDescription = "Copy URL",
+                        contentDescription = DesktopStrings["d_copy_url", "Copy URL"],
                         tint = Color.White.copy(alpha = 0.85f),
                         modifier = Modifier.size(15.dp),
                     )
@@ -662,7 +666,7 @@ private fun CloudflareTunnelSection(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Share this link with friends so they can join your party",
+                    DesktopStrings["d_tunnel_share_hint", "Share this link with friends so they can join your party"],
                     color = DesktopSecondary,
                     fontSize = 11.sp,
                 )
@@ -674,7 +678,7 @@ private fun CloudflareTunnelSection(
                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
                     modifier = Modifier.height(24.dp),
                 ) {
-                    Text("Use local address", color = DesktopAccent, fontSize = 11.sp)
+                    Text(DesktopStrings["d_tunnel_use_local", "Use local address"], color = DesktopAccent, fontSize = 11.sp)
                 }
             }
         }
@@ -971,8 +975,8 @@ private fun connectionLine(state: DesktopListenTogether.State): String = when {
 }
 
 private fun serverStatusLine(status: DesktopListenTogether.ServerStatus): String = when {
-    status.health == DesktopListenTogether.Health.CHECKING -> "Checking the party server…"
-    status.health == DesktopListenTogether.Health.OFFLINE -> "Party server is offline"
-    status.isFallback -> "Custom server is offline · built-in server online · ${status.latencyMs} ms"
-    else -> "Party server online · ${status.latencyMs} ms"
+    status.health == DesktopListenTogether.Health.CHECKING -> DesktopStrings["d_party_checking", "Checking the party server…"]
+    status.health == DesktopListenTogether.Health.OFFLINE -> DesktopStrings["d_party_offline", "Party server is offline"]
+    status.isFallback -> DesktopStrings.format("d_party_custom_offline", status.latencyMs, fallback = "Custom server is offline · built-in server online · %d ms")
+    else -> DesktopStrings.format("d_party_online", status.latencyMs, fallback = "Party server online · %d ms")
 }
