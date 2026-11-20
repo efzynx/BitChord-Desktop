@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="152" height="30" viewBox="0 0 152 30">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#181b24"/>
+      <stop offset="100%" stop-color="#11131a"/>
+    </linearGradient>
+    
+  </defs>
+  <rect x="0.5" y="0.5" width="151" height="29" rx="14.5" fill="url(#bg)" stroke="#2d3342" stroke-width="1"/>
+  <g transform="translate(11, 7)">
+    <path d="M1.5 8h2M5 5v6M8.5 2v12M12 4v8M15 7v2" stroke="#f0883e" stroke-width="1.6" stroke-linecap="round"/>
+  </g>
+  <text x="34" y="19.5" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" letter-spacing="0.2">FFmpeg 7.1 Hi-Res</text>
+</svg>

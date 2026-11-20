@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="44" viewBox="0 0 168 44">
+  <defs>
+    <linearGradient id="bg_support-trakteer.svg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1c202a"/>
+      <stop offset="100%" stop-color="#12151d"/>
+    </linearGradient>
+  </defs>
+  <rect x="0.75" y="0.75" width="166.5" height="42.5" rx="8" fill="url(#bg_support-trakteer.svg)" stroke="#2d3342" stroke-width="1.5"/>
+  <g transform="translate(10, 10)">
+    
+          <circle cx="12" cy="12" r="11" fill="#E1251B"/>
+          <path d="M7 8h10M12 8v9M9.5 17h5" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        
+  </g>
+  <text x="42" y="17" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9.5" font-weight="500" letter-spacing="0.5" text-transform="uppercase">Support on</text>
+  <text x="42" y="32" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600">Trakteer</text>
+</svg>

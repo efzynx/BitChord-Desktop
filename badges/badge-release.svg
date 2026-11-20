@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="136" height="30" viewBox="0 0 136 30">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#181b24"/>
+      <stop offset="100%" stop-color="#11131a"/>
+    </linearGradient>
+    
+  </defs>
+  <rect x="0.5" y="0.5" width="135" height="29" rx="14.5" fill="url(#bg)" stroke="#2d3342" stroke-width="1"/>
+  <g transform="translate(11, 7)">
+    <path d="M2.5 7.75a2.75 2.75 0 0 1 2.75-2.75h3.69a2.75 2.75 0 0 1 1.945.805l4.81 4.81a2.75 2.75 0 0 1 0 3.89l-3.69 3.69a2.75 2.75 0 0 1-3.89 0l-4.81-4.81A2.75 2.75 0 0 1 2.5 11.44V7.75Z" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-linejoin="round"/><circle cx="6" cy="8.5" r="1.2" fill="#3fb950"/>
+  </g>
+  <text x="34" y="19.5" fill="#e6edf3" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12" font-weight="500" letter-spacing="0.2">Release v1.9.2</text>
+</svg>
