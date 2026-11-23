@@ -218,4 +218,13 @@
     <string name="d_refresh">Yenile</string>
     <string name="d_auto_download_liked_title">Beğenilen şarkıları otomatik indir</string>
     <string name="d_auto_download_liked_desc">Beğenilen şarkılarınıza eklendiğinde şarkıları otomatik olarak indirin</string>
+
+    <string name="d_automix_art_transition">Kapak geçişi</string>
+    <string name="d_automix_art_transition_desc">AutoMix sırasında parçalar arasındaki kapak resimlerini yumuşakça harmanlar</string>
+    <string name="d_automix_mini_art_transition">Mini oynatıcı kapak geçişi</string>
+    <string name="d_automix_mini_art_transition_desc">AutoMix sırasında mini oynatıcıda kapak geçişlerini gösterir</string>
+    <string name="d_show_best_part_title">En İyi Kısım Düğmesi</string>
+    <string name="d_show_best_part_desc">Kapak resmi üzerinde şarkının en çok dinlenen kısmına atlayan bir düğme</string>
+    <string name="d_show_total_duration_title">Toplam süreyi göster</string>
+    <string name="d_show_total_duration_desc">Kalan süre yerine parçanın toplam uzunluğunu gösterir</string>
 </resources>

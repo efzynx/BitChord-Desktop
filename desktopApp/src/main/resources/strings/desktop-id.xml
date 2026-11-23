@@ -228,4 +228,13 @@
     <string name="d_refresh">Segarkan</string>
     <string name="d_auto_download_liked_title">Unduh otomatis lagu yang disukai</string>
     <string name="d_auto_download_liked_desc">Mengunduh lagu secara otomatis saat ditambahkan ke lagu yang disukai</string>
+
+    <string name="d_automix_art_transition">Transisi sampul album</string>
+    <string name="d_automix_art_transition_desc">Memadukan sampul album dengan mulus antar trek selama AutoMix</string>
+    <string name="d_automix_mini_art_transition">Transisi sampul mini-player</string>
+    <string name="d_automix_mini_art_transition_desc">Menampilkan transisi sampul album di mini-player selama AutoMix</string>
+    <string name="d_show_best_part_title">Tombol Bagian Terbaik (Best Part)</string>
+    <string name="d_show_best_part_desc">Tombol pada sampul album untuk melompat langsung ke bagian lagu yang paling sering diputar ulang</string>
+    <string name="d_show_total_duration_title">Tampilkan total durasi</string>
+    <string name="d_show_total_duration_desc">Menampilkan durasi penuh lagu menggantikan sisa waktu mundur</string>
 </resources>

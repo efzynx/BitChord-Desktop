@@ -218,4 +218,13 @@
     <string name="d_refresh">רענון</string>
     <string name="d_auto_download_liked_title">הורדה אוטומטית של שירים שאהבת</string>
     <string name="d_auto_download_liked_desc">הורד שירים באופן אוטומטי בעת הוספתם לשירים שאהבת</string>
+
+    <string name="d_automix_art_transition">מעבר עטיפה</string>
+    <string name="d_automix_art_transition_desc">מעבר חלק בין עטיפות האלבומים במהלך AutoMix</string>
+    <string name="d_automix_mini_art_transition">מעבר עטיפה בנגן ממוזער</string>
+    <string name="d_automix_mini_art_transition_desc">הצגת מעברי עטיפה בנגן הממוזער במהלך AutoMix</string>
+    <string name="d_show_best_part_title">כפתור החלק הטוב ביותר</string>
+    <string name="d_show_best_part_desc">כפתור על גבי העטיפה לקפיצה לחלק המושמע ביותר בשיר</string>
+    <string name="d_show_total_duration_title">הצג משך כולל</string>
+    <string name="d_show_total_duration_desc">הצגת האורך המלא של השיר במקום הזמן שנותר</string>
 </resources>

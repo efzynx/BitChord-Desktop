@@ -218,4 +218,13 @@
     <string name="d_refresh">Aggiorna</string>
     <string name="d_auto_download_liked_title">Scarica automaticamente i brani piaciuti</string>
     <string name="d_auto_download_liked_desc">Scarica automaticamente i brani quando vengono aggiunti ai brani piaciuti</string>
+
+    <string name="d_automix_art_transition">Transizione copertina</string>
+    <string name="d_automix_art_transition_desc">Sfuma fluidamente le copertine tra i brani durante AutoMix</string>
+    <string name="d_automix_mini_art_transition">Transizione copertina mini-player</string>
+    <string name="d_automix_mini_art_transition_desc">Mostra le transizioni delle copertine nel mini-player durante AutoMix</string>
+    <string name="d_show_best_part_title">Pulsante Parte Migliore</string>
+    <string name="d_show_best_part_desc">Un pulsante sulla copertina per passare alla parte più riascoltata del brano</string>
+    <string name="d_show_total_duration_title">Mostra durata totale</string>
+    <string name="d_show_total_duration_desc">Mostra la durata completa del brano al posto del tempo rimanente</string>
 </resources>

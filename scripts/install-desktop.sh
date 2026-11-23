@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "=== BitChord Linux Desktop Integration Installer ==="
+echo "=== BitChord Desktop Linux Integration Installer ==="
 
 APP_SOURCE="$ROOT_DIR/desktopApp/build/compose/binaries/main/app/BitChord"
 ICON_PNG="$ROOT_DIR/desktopApp/packaging/icons/AppIcon.png"

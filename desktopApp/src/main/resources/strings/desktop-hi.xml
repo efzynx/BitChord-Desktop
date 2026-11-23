@@ -218,4 +218,13 @@
     <string name="d_refresh">रिफ्रेश करें</string>
     <string name="d_auto_download_liked_title">पसंद किए गए गानों को स्वचालित रूप से डाउनलोड करें</string>
     <string name="d_auto_download_liked_desc">पसंद किए गए गानों में जोड़े जाने पर गानों को स्वचालित रूप से डाउनलोड करें</string>
+
+    <string name="d_automix_art_transition">कवर आर्ट ट्रांज़िशन</string>
+    <string name="d_automix_art_transition_desc">AutoMix के दौरान गानों के बीच कवर आर्ट को सहजता से मिश्रित करता है</string>
+    <string name="d_automix_mini_art_transition">मिनी-प्लेयर आर्ट ट्रांज़िशन</string>
+    <string name="d_automix_mini_art_transition_desc">AutoMix के दौरान मिनी-प्लेयर में आर्टवर्क ट्रांज़िशन दिखाता है</string>
+    <string name="d_show_best_part_title">बेस्ट पार्ट बटन</string>
+    <string name="d_show_best_part_desc">आर्टवर्क पर एक बटन जो गाने के सबसे अधिक सुने गए हिस्से पर जाता है</string>
+    <string name="d_show_total_duration_title">कुल अवधि दिखाएं</string>
+    <string name="d_show_total_duration_desc">शेष समय के बजाय गाने की पूरी अवधि दिखाता है</string>
 </resources>

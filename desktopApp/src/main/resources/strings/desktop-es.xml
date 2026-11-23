@@ -218,4 +218,13 @@
     <string name="d_refresh">Actualizar</string>
     <string name="d_auto_download_liked_title">Descargar automáticamente canciones que te gustan</string>
     <string name="d_auto_download_liked_desc">Descarga canciones automáticamente cuando se agregan a tus canciones que te gustan</string>
+
+    <string name="d_automix_art_transition">Transición de portada</string>
+    <string name="d_automix_art_transition_desc">Combina suavemente las portadas entre pistas durante AutoMix</string>
+    <string name="d_automix_mini_art_transition">Transición de portada en mini-reproductor</string>
+    <string name="d_automix_mini_art_transition_desc">Muestra transiciones de portada en el mini-reproductor durante AutoMix</string>
+    <string name="d_show_best_part_title">Botón Mejor Parte</string>
+    <string name="d_show_best_part_desc">Un botón en la portada que salta a la parte más reproducida de la canción</string>
+    <string name="d_show_total_duration_title">Mostrar duración total</string>
+    <string name="d_show_total_duration_desc">Muestra la duración completa de la canción en lugar del tiempo restante</string>
 </resources>

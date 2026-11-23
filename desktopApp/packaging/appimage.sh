@@ -31,7 +31,7 @@ chmod +x "$APPDIR/AppRun"
 cat > "$APPDIR/bitchord.desktop" <<'DESKTOP'
 [Desktop Entry]
 Type=Application
-Name=BitChord
+Name=BitChord Desktop
 GenericName=Music Player
 Comment=Aesthetic YouTube Music client
 Exec=BitChord

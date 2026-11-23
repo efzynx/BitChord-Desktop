@@ -218,4 +218,13 @@
     <string name="d_refresh">更新</string>
     <string name="d_auto_download_liked_title">お気に入りの曲を自動ダウンロード</string>
     <string name="d_auto_download_liked_desc">お気に入りの曲に追加されたときに曲を自動的にダウンロードします</string>
+
+    <string name="d_automix_art_transition">アートワークのトランジション</string>
+    <string name="d_automix_art_transition_desc">AutoMix中にトラック間のカバーアートをスムーズにブレンドします</string>
+    <string name="d_automix_mini_art_transition">ミニプレーヤーのアートトランジション</string>
+    <string name="d_automix_mini_art_transition_desc">AutoMix中にミニプレーヤーでアートワークのトランジションを表示します</string>
+    <string name="d_show_best_part_title">ベストパートボタン</string>
+    <string name="d_show_best_part_desc">アートワーク上のボタンで、最も再生されたハイライト部分へスキップします</string>
+    <string name="d_show_total_duration_title">合計再生時間を表示</string>
+    <string name="d_show_total_duration_desc">残り時間の代わりに曲の合計時間を表示します</string>
 </resources>

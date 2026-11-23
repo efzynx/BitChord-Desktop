@@ -218,4 +218,13 @@
     <string name="d_refresh">Actualiser</string>
     <string name="d_auto_download_liked_title">Télécharger automatiquement les titres aimés</string>
     <string name="d_auto_download_liked_desc">Télécharge automatiquement les titres lorsqu\'ils sont ajoutés aux titres aimés</string>
+
+    <string name="d_automix_art_transition">Transition de pochette</string>
+    <string name="d_automix_art_transition_desc">Fait fondre en douceur les pochettes entre les morceaux pendant AutoMix</string>
+    <string name="d_automix_mini_art_transition">Transition de pochette du mini-lecteur</string>
+    <string name="d_automix_mini_art_transition_desc">Affiche les transitions de pochette dans le mini-lecteur pendant AutoMix</string>
+    <string name="d_show_best_part_title">Bouton Meilleur Passage</string>
+    <string name="d_show_best_part_desc">Bouton sur la pochette permettant d\'accéder directement au passage le plus réécouté</string>
+    <string name="d_show_total_duration_title">Afficher la durée totale</string>
+    <string name="d_show_total_duration_desc">Affiche la durée totale du morceau au lieu du temps restant</string>
 </resources>

@@ -334,6 +334,7 @@ import com.music.bitchord.data.settings.SmartAnalysis
 import com.music.bitchord.data.settings.TrackAnalysisState
 import com.music.bitchord.data.settings.TransitionWindow
 import com.music.bitchord.ui.icons.BitChordIcons
+import com.music.bitchord.ui.player.BestPartStart
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
@@ -699,6 +700,10 @@ fun BitChordDesktopApp() {
                 .getOrDefault(AutomixPerformanceMode.BALANCED),
         )
     }
+    var autoMixArtTransition by remember { mutableStateOf(persistence.boolean("automix_art_transition", false)) }
+    var autoMixMiniArtTransition by remember { mutableStateOf(persistence.boolean("automix_mini_art_transition", false)) }
+    var showBestPart by remember { mutableStateOf(persistence.boolean("show_best_part", true)) }
+    var showTotalDuration by remember { mutableStateOf(persistence.boolean("show_total_duration", false)) }
     var shuffle by remember { mutableStateOf(persistence.boolean("shuffle", false)) }
     var repeatMode by remember {
         mutableStateOf(
@@ -3207,6 +3212,12 @@ fun BitChordDesktopApp() {
         DesktopPlayerSettings.lyricsBlur.value = lyricsBlur
         DesktopPlayerSettings.syncedLyrics.value = syncedLyrics
         DesktopPlayerSettings.showNerdStats.value = showNerdStats
+        DesktopPlayerSettings.showBestPart.value = showBestPart
+        DesktopPlayerSettings.showTotalDuration.value = showTotalDuration
+        DesktopPlayerSettings.autoMixArtwork.value = DesktopPlayerSettings.autoMixArtwork.value.copy(
+            artTransition = autoMixArtTransition,
+            miniPlayerTransition = autoMixMiniArtTransition,
+        )
         DesktopPlayerSettings.smartFadeEnabled.value = automix
         DesktopPlayerSettings.smartAnalysis.value = playback.smartAnalysis
         DesktopPlayerSettings.smartMixInProgress.value = playback.mixing
@@ -4217,6 +4228,26 @@ fun BitChordDesktopApp() {
                                     onAutomixPhraseBarsChange = {
                                         automixPhraseBars = it
                                         persistence.saveString("automix_phrase_bars", it.toString())
+                                    },
+                                    autoMixArtTransition = autoMixArtTransition,
+                                    onAutoMixArtTransitionChange = {
+                                        autoMixArtTransition = it
+                                        DesktopPlayerSettings.setAutoMixArtTransition(it)
+                                    },
+                                    autoMixMiniArtTransition = autoMixMiniArtTransition,
+                                    onAutoMixMiniArtTransitionChange = {
+                                        autoMixMiniArtTransition = it
+                                        DesktopPlayerSettings.setAutoMixMiniPlayerTransition(it)
+                                    },
+                                    showBestPart = showBestPart,
+                                    onShowBestPartChange = {
+                                        showBestPart = it
+                                        DesktopPlayerSettings.setShowBestPart(it)
+                                    },
+                                    showTotalDuration = showTotalDuration,
+                                    onShowTotalDurationChange = {
+                                        showTotalDuration = it
+                                        DesktopPlayerSettings.setShowTotalDuration(it)
                                     },
                                     shuffle = shuffle,
                                     onShuffleChange = ::setShuffle,
@@ -6026,6 +6057,8 @@ private fun DesktopTimelineSlider(
     onValueChangeFinished: () -> Unit,
     scrubberAlpha: Float,
     interactionSource: MutableInteractionSource,
+    bestPartFraction: Float? = null,
+    showBestPart: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -6070,6 +6103,20 @@ private fun DesktopTimelineSlider(
                 size = androidx.compose.ui.geometry.Size(size.width, trackH),
                 cornerRadius = corner,
             )
+
+            // Best Part highlight marker on the scrubber track
+            if (showBestPart && bestPartFraction != null && bestPartFraction in 0.005f..0.995f) {
+                val markerX = size.width * bestPartFraction
+                val markerW = 3.dp.toPx()
+                val markerH = trackH + 3.5.dp.toPx()
+                val markerAlpha = 0.85f * (0.65f + 0.35f * scrubberAlpha)
+                drawRoundRect(
+                    color = Color(0xFFFFD54F).copy(alpha = markerAlpha),
+                    topLeft = Offset(markerX - markerW / 2f, centerY - markerH / 2f),
+                    size = androidx.compose.ui.geometry.Size(markerW, markerH),
+                    cornerRadius = CornerRadius(markerW / 2f),
+                )
+            }
 
             // Active played track
             val frac = value.coerceIn(0f, 1f)
@@ -6140,6 +6187,15 @@ private fun DesktopAppleMusicBottomBar(
     var isSeeking by remember { mutableStateOf(false) }
     var seekProgress by remember { mutableStateOf(0f) }
     val displayedProgress = if (isSeeking) seekProgress else progress.coerceIn(0f, 1f)
+
+    val showTotalDuration by DesktopPlayerSettings.showTotalDuration.collectAsState()
+    val showBestPart by DesktopPlayerSettings.showBestPart.collectAsState()
+    val bestPartMs by produceState<Long?>(null, song.videoId) {
+        value = runCatching { DesktopBestParts.startFor(song).takeIf { it.source != BestPartStart.Source.FALLBACK }?.startMs }.getOrNull()
+    }
+    val bestPartFraction = remember(bestPartMs, durationMs) {
+        if (durationMs > 0 && bestPartMs != null) (bestPartMs!!.toFloat() / durationMs).coerceIn(0f, 1f) else null
+    }
 
     Box(
         modifier = Modifier
@@ -6450,7 +6506,11 @@ private fun DesktopAppleMusicBottomBar(
                         }
                         val elapsedStr = formatTime(currentMs)
                         val remainingMs = (durationMs - currentMs).coerceAtLeast(0L)
-                        val remainingStr = "-" + formatTime(remainingMs)
+                        val remainingStr = if (showTotalDuration && durationMs > 0) {
+                            formatTime(durationMs)
+                        } else {
+                            "-" + formatTime(remainingMs)
+                        }
 
                         // Timestamps above the scrubber track
                         Row(
@@ -6489,6 +6549,8 @@ private fun DesktopAppleMusicBottomBar(
                             onSeek(seekProgress)
                         },
                         scrubberAlpha = scrubberAlpha,
+                        bestPartFraction = bestPartFraction,
+                        showBestPart = showBestPart,
                         interactionSource = sliderInteractionSource,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -7417,6 +7479,14 @@ private fun DesktopSettingsScreen(
     /** Apple-style Automix phrase length in bars: 0 = adaptive, 8 or 16 = fixed. */
     automixPhraseBars: Int,
     onAutomixPhraseBarsChange: (Int) -> Unit,
+    autoMixArtTransition: Boolean,
+    onAutoMixArtTransitionChange: (Boolean) -> Unit,
+    autoMixMiniArtTransition: Boolean,
+    onAutoMixMiniArtTransitionChange: (Boolean) -> Unit,
+    showBestPart: Boolean,
+    onShowBestPartChange: (Boolean) -> Unit,
+    showTotalDuration: Boolean,
+    onShowTotalDurationChange: (Boolean) -> Unit,
     shuffle: Boolean,
     onShuffleChange: (Boolean) -> Unit,
     repeatMode: DesktopRepeatMode,
@@ -7565,6 +7635,20 @@ private fun DesktopSettingsScreen(
                         onAutomixOnSkipChange,
                     )
                     if (automix) {
+                        SettingsToggle(
+                            DesktopStrings["d_automix_art_transition", "Art transition"],
+                            DesktopStrings["d_automix_art_transition_desc", "Smoothly blends cover art between tracks during AutoMix"],
+                            autoMixArtTransition,
+                            onAutoMixArtTransitionChange,
+                        )
+                        SettingsToggle(
+                            DesktopStrings["d_automix_mini_art_transition", "Mini-player art transition"],
+                            DesktopStrings["d_automix_mini_art_transition_desc", "Shows artwork transitions in the mini-player during AutoMix"],
+                            autoMixMiniArtTransition,
+                            onAutoMixMiniArtTransitionChange,
+                        )
+                    }
+                    if (automix) {
                         val phraseTitle = DesktopStrings["automix_phrase_length", "Automix phrase length"]
                         val phraseSubtitle =
                             DesktopStrings["automix_phrase_length_subtitle", "Blend over a fixed number of bars, beat-aligned"]
@@ -7645,6 +7729,18 @@ private fun DesktopSettingsScreen(
                         },
                         dolbyAtmos && DesktopCodecs.supportsDolbyAtmos,
                         { if (DesktopCodecs.supportsDolbyAtmos) onDolbyAtmosChange(it) },
+                    )
+                    SettingsToggle(
+                        DesktopStrings["d_show_best_part_title", "Best Part button"],
+                        DesktopStrings["d_show_best_part_desc", "A button on the artwork that skips to the part of the song people replay most"],
+                        showBestPart,
+                        onShowBestPartChange,
+                    )
+                    SettingsToggle(
+                        DesktopStrings["d_show_total_duration_title", "Show total duration"],
+                        DesktopStrings["d_show_total_duration_desc", "Shows the song's full length instead of the time remaining"],
+                        showTotalDuration,
+                        onShowTotalDurationChange,
                     )
                     SettingsNavigationRow(
                         title = DesktopStrings["equalizer", "Equalizer"],

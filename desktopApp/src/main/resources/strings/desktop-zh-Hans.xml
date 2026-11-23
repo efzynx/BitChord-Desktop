@@ -218,4 +218,13 @@
     <string name="d_refresh">刷新</string>
     <string name="d_auto_download_liked_title">自动下载喜欢的歌曲</string>
     <string name="d_auto_download_liked_desc">添加到喜欢的歌曲时自动下载歌曲</string>
+
+    <string name="d_automix_art_transition">封面过渡</string>
+    <string name="d_automix_art_transition_desc">在 AutoMix 期间平滑混合曲目间的封面</string>
+    <string name="d_automix_mini_art_transition">迷你播放器封面过渡</string>
+    <string name="d_automix_mini_art_transition_desc">在 AutoMix 期间于迷你播放器中显示封面过渡</string>
+    <string name="d_show_best_part_title">高潮片段按钮</string>
+    <string name="d_show_best_part_desc">封面上直接跳至歌曲最常重放片段的按钮</string>
+    <string name="d_show_total_duration_title">显示总时长</string>
+    <string name="d_show_total_duration_desc">显示歌曲完整长度而非剩余倒计时</string>
 </resources>
