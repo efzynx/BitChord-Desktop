@@ -51,7 +51,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.Surface
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
@@ -836,8 +836,17 @@ private fun QueueAddAllButton(locked: Boolean, onClick: () -> Unit) {
     TooltipBox(
         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
         tooltip = {
-            PlainTooltip(containerColor = Color(0xFF282828), contentColor = Color.White) {
-                Text(label, color = Color.White)
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = Color(0xFF282828),
+                contentColor = Color.White,
+            ) {
+                Text(
+                    text = label,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
         },
         state = rememberTooltipState(),
