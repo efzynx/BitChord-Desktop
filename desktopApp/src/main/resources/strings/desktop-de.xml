@@ -227,4 +227,8 @@
     <string name="d_show_best_part_desc">Schaltfläche auf dem Cover, die zum meist wiederholten Teil des Titels springt</string>
     <string name="d_show_total_duration_title">Gesamtdauer anzeigen</string>
     <string name="d_show_total_duration_desc">Zeigt die volle Titellänge anstelle der verbleibenden Zeit</string>
+
+    <string name="d_delete_local_playlist_desc">„%1$s“ wird dauerhaft von diesem Computer gelöscht. Die enthaltenen Titel werden nicht gelöscht.</string>
+    <string name="d_delete_account_playlist_desc">„%1$s“ wird auf allen Geräten von Ihrem YouTube Music-Konto entfernt. Die enthaltenen Titel werden nicht gelöscht.</string>
+    <string name="d_playlist_deleted">Playlist „%1$s“ gelöscht</string>
 </resources>

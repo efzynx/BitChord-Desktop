@@ -237,4 +237,8 @@
     <string name="d_show_best_part_desc">Tombol pada sampul album untuk melompat langsung ke bagian lagu yang paling sering diputar ulang</string>
     <string name="d_show_total_duration_title">Tampilkan total durasi</string>
     <string name="d_show_total_duration_desc">Menampilkan durasi penuh lagu menggantikan sisa waktu mundur</string>
+
+    <string name="d_delete_local_playlist_desc">“%1$s” akan dihapus secara permanen dari komputer ini. Lagu di dalamnya tidak akan terhapus.</string>
+    <string name="d_delete_account_playlist_desc">“%1$s” akan dihapus dari akun YouTube Music Anda di semua perangkat. Lagu di dalamnya tidak akan terhapus.</string>
+    <string name="d_playlist_deleted">Playlist “%1$s” berhasil dihapus</string>
 </resources>

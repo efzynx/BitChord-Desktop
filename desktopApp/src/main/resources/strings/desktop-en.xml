@@ -239,4 +239,8 @@
     <string name="d_show_best_part_desc">A button on the artwork that skips to the part of the song people replay most</string>
     <string name="d_show_total_duration_title">Show total duration</string>
     <string name="d_show_total_duration_desc">Shows the song\'s full length instead of the time remaining</string>
+
+    <string name="d_delete_local_playlist_desc">“%1$s” will be permanently deleted from this computer. The songs in it are not deleted.</string>
+    <string name="d_delete_account_playlist_desc">“%1$s” will be removed from your YouTube Music account, on every device. The songs in it are not deleted.</string>
+    <string name="d_playlist_deleted">Playlist “%1$s” deleted</string>
 </resources>

@@ -227,4 +227,8 @@
     <string name="d_show_best_part_desc">Bouton sur la pochette permettant d\'accéder directement au passage le plus réécouté</string>
     <string name="d_show_total_duration_title">Afficher la durée totale</string>
     <string name="d_show_total_duration_desc">Affiche la durée totale du morceau au lieu du temps restant</string>
+
+    <string name="d_delete_local_playlist_desc">« %1$s » sera définitivement supprimée de cet ordinateur. Les morceaux qu\'elle contient ne seront pas supprimés.</string>
+    <string name="d_delete_account_playlist_desc">« %1$s » sera supprimée de votre compte YouTube Music sur tous les appareils. Les morceaux qu\'elle contient ne seront pas supprimés.</string>
+    <string name="d_playlist_deleted">Playlist « %1$s » supprimée</string>
 </resources>

@@ -227,4 +227,8 @@
     <string name="d_show_best_part_desc">Кнопка на обложке для перехода к самой прослушиваемой части трека</string>
     <string name="d_show_total_duration_title">Показывать общую длительность</string>
     <string name="d_show_total_duration_desc">Показывает полную длину трека вместо оставшегося времени</string>
+
+    <string name="d_delete_local_playlist_desc">«%1$s» будет навсегда удален с этого компьютера. Песни в нем не будут удалены.</string>
+    <string name="d_delete_account_playlist_desc">«%1$s» будет удален из вашего аккаунта YouTube Music на всех устройствах. Песни в нем не будут удалены.</string>
+    <string name="d_playlist_deleted">Плейлист «%1$s» удален</string>
 </resources>

@@ -227,4 +227,8 @@
     <string name="d_show_best_part_desc">Un pulsante sulla copertina per passare alla parte più riascoltata del brano</string>
     <string name="d_show_total_duration_title">Mostra durata totale</string>
     <string name="d_show_total_duration_desc">Mostra la durata completa del brano al posto del tempo rimanente</string>
+
+    <string name="d_delete_local_playlist_desc">“%1$s” verrà eliminata definitivamente da questo computer. I brani contenuti non verranno eliminati.</string>
+    <string name="d_delete_account_playlist_desc">“%1$s” verrà rimossa dal tuo account YouTube Music su tutti i dispositivi. I brani contenuti non verranno eliminati.</string>
+    <string name="d_playlist_deleted">Playlist “%1$s” eliminata</string>
 </resources>

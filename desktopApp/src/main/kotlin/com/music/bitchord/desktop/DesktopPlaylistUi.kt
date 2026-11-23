@@ -331,14 +331,24 @@ internal fun DesktopDeletePlaylistDialog(
     title: String,
     busy: Boolean,
     error: String?,
+    isLocal: Boolean = false,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     DesktopDialogFrame(onDismiss = onDismiss) {
         DialogHeading(
-            "Delete playlist",
-            "“$title” will be removed from your YouTube Music account, on every " +
-                "device. The songs in it are not deleted.",
+            DesktopStrings["delete_playlist", "Delete playlist"],
+            if (isLocal) {
+                DesktopStrings.format(
+                    "d_delete_local_playlist_desc",
+                    title,
+                )
+            } else {
+                DesktopStrings.format(
+                    "d_delete_account_playlist_desc",
+                    title,
+                )
+            },
         )
         error?.let { DialogError(it) }
         DialogButtons(

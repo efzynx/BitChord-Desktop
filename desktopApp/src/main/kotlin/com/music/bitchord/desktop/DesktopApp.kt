@@ -1599,6 +1599,7 @@ fun BitChordDesktopApp() {
                 thumbnailUrl = playlist.songs.firstOrNull()?.thumbnailUrl,
                 type = BrowseType.PLAYLIST,
                 songs = playlist.songs,
+                owned = true,
             ),
         )
     }
@@ -2882,6 +2883,17 @@ fun BitChordDesktopApp() {
 
     fun renameOpenPlaylist(title: String) {
         val collection = openedCollection ?: return
+        val local = playlists.firstOrNull { it.id == collection.browseId }
+        if (local != null) {
+            playlists = playlists.map { if (it.id == local.id) it.copy(title = title) else it }
+            persistence.savePlaylists(playlists)
+            openedCollection = openedCollection
+                ?.takeIf { it.browseId == collection.browseId }
+                ?.copy(title = title)
+                ?: openedCollection
+            closePlaylistDialogs()
+            return
+        }
         playlistBusy = true
         playlistError = null
         scope.launch {
@@ -2908,16 +2920,33 @@ fun BitChordDesktopApp() {
 
     fun deleteOpenPlaylist() {
         val collection = openedCollection ?: return
+        val local = playlists.firstOrNull { it.id == collection.browseId }
+        if (local != null) {
+            playlists = playlists.filterNot { it.id == local.id }
+            persistence.savePlaylists(playlists)
+            closePlaylistDialogs()
+            if (openedCollection?.browseId == collection.browseId) {
+                openedCollection = null
+            }
+            DesktopPlayerHost.showMessage(
+                DesktopStrings.format("d_playlist_deleted", local.title),
+            )
+            return
+        }
         playlistBusy = true
         playlistError = null
         scope.launch {
             DesktopSearchClient.deletePlaylist(collection.playlistId)
                 .onSuccess {
+                    val title = collection.title
                     closePlaylistDialogs()
                     // Its page is the one open, and a deleted playlist has nothing left to show.
                     if (openedCollection?.browseId == collection.browseId) openedCollection = null
                     editPlaylistShelf { items -> items.filterNot { it.browseId == collection.browseId } }
                     libraryStale = true
+                    DesktopPlayerHost.showMessage(
+                        DesktopStrings.format("d_playlist_deleted", title),
+                    )
                 }
                 .onFailure {
                     playlistBusy = false
@@ -2929,6 +2958,20 @@ fun BitChordDesktopApp() {
     /** Takes one row back out of the playlist it is being read in. */
     fun removeFromOpenPlaylist(song: Song) {
         val collection = openedCollection ?: return
+        val local = playlists.firstOrNull { it.id == collection.browseId }
+        if (local != null) {
+            val updatedSongs = local.songs.filterNot { it.videoId == song.videoId }
+            playlists = playlists.map { if (it.id == local.id) it.copy(songs = updatedSongs) else it }
+            persistence.savePlaylists(playlists)
+            val current = openedCollection
+            if (current != null && current.browseId == collection.browseId) {
+                openedCollection = current.copy(
+                    songs = updatedSongs,
+                    subtitle = "Playlist • ${updatedSongs.size} songs",
+                )
+            }
+            return
+        }
         val setVideoId = song.setVideoId ?: return
         scope.launch {
             DesktopSearchClient.removeFromPlaylist(
@@ -2954,6 +2997,17 @@ fun BitChordDesktopApp() {
      */
     fun reorderOpenPlaylist(original: List<Song>, reordered: List<Song>) {
         val collection = openedCollection ?: return
+        val local = playlists.firstOrNull { it.id == collection.browseId }
+        if (local != null) {
+            playlists = playlists.map { if (it.id == local.id) it.copy(songs = reordered) else it }
+            persistence.savePlaylists(playlists)
+            closePlaylistDialogs()
+            val current = openedCollection
+            if (current != null && current.browseId == collection.browseId) {
+                openedCollection = current.copy(songs = reordered)
+            }
+            return
+        }
         playlistBusy = true
         playlistError = null
         scope.launch {
@@ -3570,6 +3624,18 @@ fun BitChordDesktopApp() {
                         onDestinationSelected = ::selectDestination,
                         onOpenAccountPlaylist = { openShelfItem(it, PLAYLISTS_SHELF) },
                         onOpenLocalPlaylist = ::openPlaylist,
+                        onDeleteAccountPlaylist = { playlist ->
+                            openShelfItem(playlist, PLAYLISTS_SHELF)
+                            overlays.delete = true
+                        },
+                        onRenameLocalPlaylist = { playlist ->
+                            openPlaylist(playlist)
+                            overlays.rename = true
+                        },
+                        onDeleteLocalPlaylist = { playlist ->
+                            openPlaylist(playlist)
+                            overlays.delete = true
+                        },
                         onOpenLikedMusic = ::openLikedMusic,
                         onOpenSettings = ::openSettings,
                         focusSearch = searchFocusRequested,
@@ -4071,10 +4137,12 @@ fun BitChordDesktopApp() {
                         )
                     }
                     if (overlays.delete) {
+                        val isLocal = openedCollection?.let { c -> playlists.any { it.id == c.browseId } } == true
                         DesktopDeletePlaylistDialog(
                             title = openedCollection?.title.orEmpty(),
                             busy = playlistBusy,
                             error = playlistError,
+                            isLocal = isLocal,
                             onDelete = ::deleteOpenPlaylist,
                             onDismiss = ::closePlaylistDialogs,
                         )
@@ -5154,6 +5222,9 @@ private fun DesktopSidebar(
     onDestinationSelected: (DesktopDestination) -> Unit,
     onOpenAccountPlaylist: (ShelfItem) -> Unit,
     onOpenLocalPlaylist: (DesktopPlaylist) -> Unit,
+    onDeleteAccountPlaylist: ((ShelfItem) -> Unit)? = null,
+    onRenameLocalPlaylist: ((DesktopPlaylist) -> Unit)? = null,
+    onDeleteLocalPlaylist: ((DesktopPlaylist) -> Unit)? = null,
     onOpenLikedMusic: () -> Unit = {},
     onOpenSettings: () -> Unit,
     /** Search was picked: the sidebar's box is the page's field, so it takes the focus. */
@@ -5509,9 +5580,10 @@ private fun DesktopSidebar(
             ) {
                 items(visibleAccount, key = { "account:${it.browseId}" }) { playlist ->
                     DesktopSidebarItem(
-                        Icons.AutoMirrored.Rounded.PlaylistPlay,
-                        playlist.title,
-                        openedCollectionId == playlist.browseId,
+                        icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                        label = playlist.title,
+                        selected = openedCollectionId == playlist.browseId,
+                        onDelete = onDeleteAccountPlaylist?.let { del -> { del(playlist) } },
                         onClick = { onOpenAccountPlaylist(playlist) },
                         onHide = {
                             DesktopSidebarVisibility.hide("account:${playlist.browseId}", playlist.title)
@@ -5520,9 +5592,11 @@ private fun DesktopSidebar(
                 }
                 items(visibleLocal, key = { "local:${it.id}" }) { playlist ->
                     DesktopSidebarItem(
-                        Icons.AutoMirrored.Rounded.PlaylistPlay,
-                        playlist.title,
-                        openedCollectionId == playlist.id,
+                        icon = Icons.AutoMirrored.Rounded.PlaylistPlay,
+                        label = playlist.title,
+                        selected = openedCollectionId == playlist.id,
+                        onRename = onRenameLocalPlaylist?.let { ren -> { ren(playlist) } },
+                        onDelete = onDeleteLocalPlaylist?.let { del -> { del(playlist) } },
                         onClick = { onOpenLocalPlaylist(playlist) },
                         onHide = { DesktopSidebarVisibility.hide("local:${playlist.id}", playlist.title) },
                     )
@@ -5620,11 +5694,16 @@ private fun DesktopSidebarItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     selected: Boolean,
+    /** When set, a right-click offers to rename the item. */
+    onRename: (() -> Unit)? = null,
+    /** When set, a right-click offers to delete the item. */
+    onDelete: (() -> Unit)? = null,
     /** When set, a right-click offers to hide the row — see [DesktopSidebarVisibility]. */
     onHide: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val hasMenu = onRename != null || onDelete != null || onHide != null
     Box {
         Row(
             Modifier
@@ -5634,8 +5713,8 @@ private fun DesktopSidebarItem(
                 .background(if (selected) Color.White.copy(alpha = 0.12f) else Color.Transparent)
                 .clickable(onClick = onClick)
                 .then(
-                    if (onHide == null) Modifier
-                    else Modifier.pointerInput(onHide) {
+                    if (!hasMenu) Modifier
+                    else Modifier.pointerInput(Unit) {
                         awaitPointerEventScope {
                             while (true) {
                                 val event = awaitPointerEvent(PointerEventPass.Initial)
@@ -5660,7 +5739,7 @@ private fun DesktopSidebarItem(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        if (onHide != null) {
+        if (hasMenu) {
             val menuShape = RoundedCornerShape(12.dp)
             DropdownMenu(
                 expanded = menuOpen,
@@ -5671,13 +5750,33 @@ private fun DesktopSidebarItem(
                 containerColor = Color.Transparent,
                 shape = menuShape,
             ) {
-                DropdownMenuItem(
-                    text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
-                    onClick = {
-                        menuOpen = false
-                        onHide()
-                    },
-                )
+                if (onRename != null) {
+                    DropdownMenuItem(
+                        text = { Text(DesktopStrings["rename", "Rename"]) },
+                        onClick = {
+                            menuOpen = false
+                            onRename()
+                        },
+                    )
+                }
+                if (onDelete != null) {
+                    DropdownMenuItem(
+                        text = { Text(DesktopStrings["delete", "Delete"]) },
+                        onClick = {
+                            menuOpen = false
+                            onDelete()
+                        },
+                    )
+                }
+                if (onHide != null) {
+                    DropdownMenuItem(
+                        text = { Text(DesktopStrings["hide_from_sidebar", "Hide from sidebar"]) },
+                        onClick = {
+                            menuOpen = false
+                            onHide()
+                        },
+                    )
+                }
             }
         }
     }
