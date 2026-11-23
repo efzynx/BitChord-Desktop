@@ -210,4 +210,9 @@
     <string name="d_uninstall_standalone_hint">刪除解壓縮後的資料夾。</string>
     <string name="d_uninstall_dev_hint">開發環境；無需解除安裝。</string>
     <string name="d_clear_search">清除搜尋</string>
+    <string name="d_tunnel_error_server_not_found">未找到本地 party 伺服器二進位檔案 (party-server)。請檢查您的安裝。</string>
+    <string name="d_tunnel_error_server_start_failed">本地 party 伺服器無法在連接埠 %1$d 上啟動。</string>
+    <string name="d_tunnel_error_server_crashed">本地 party 伺服器意外停止 (結束代碼 %1$d): %2$s</string>
+    <string name="d_tunnel_error_url_failed">無法從 cloudflared 取得 trycloudflare.com URL。</string>
+    <string name="d_tunnel_port_switched">連接埠 %1$d 已被佔用；已切換至連接埠 %2$d。</string>
 </resources>

@@ -210,4 +210,9 @@
     <string name="d_uninstall_standalone_hint">Usuń wypakowany folder.</string>
     <string name="d_uninstall_dev_hint">Środowisko programistyczne; odinstalowanie nie jest wymagane.</string>
     <string name="d_clear_search">Wyczyść wyszukiwanie</string>
+    <string name="d_tunnel_error_server_not_found">Nie znaleziono pliku binarnego lokalnego serwera party (party-server). Sprawdź swoją instalację.</string>
+    <string name="d_tunnel_error_server_start_failed">Nie udało się uruchomić lokalnego serwera party na porcie %1$d.</string>
+    <string name="d_tunnel_error_server_crashed">Lokalny serwer party niespodziewanie zakończył działanie (kod wyjścia %1$d): %2$s</string>
+    <string name="d_tunnel_error_url_failed">Nie udało się uzyskać adresu URL trycloudflare.com z cloudflared.</string>
+    <string name="d_tunnel_port_switched">Port %1$d był zajęty; przełączono na port %2$d.</string>
 </resources>

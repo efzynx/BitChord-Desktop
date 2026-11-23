@@ -210,4 +210,9 @@
     <string name="d_uninstall_standalone_hint">Çıkarılan klasörü silin.</string>
     <string name="d_uninstall_dev_hint">Geliştirme ortamı; kaldırma işlemi gerekmez.</string>
     <string name="d_clear_search">Aramayı temizle</string>
+    <string name="d_tunnel_error_server_not_found">Yerel party sunucusu ikili dosyası (party-server) bulunamadı. Lütfen kurulumunuzu doğrulayın.</string>
+    <string name="d_tunnel_error_server_start_failed">Yerel party sunucusu %1$d bağlantı noktasında başlatılamadı.</string>
+    <string name="d_tunnel_error_server_crashed">Yerel party sunucusu beklenmedik şekilde durdu (çıkış kodu %1$d): %2$s</string>
+    <string name="d_tunnel_error_url_failed">cloudflared üzerinden trycloudflare.com URL\'si alınamadı.</string>
+    <string name="d_tunnel_port_switched">%1$d bağlantı noktası kullanımdaydı; %2$d bağlantı noktasına geçildi.</string>
 </resources>

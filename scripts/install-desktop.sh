@@ -31,6 +31,11 @@ echo "1. Memasang file aplikasi ke $APP_DIR..."
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR"
 cp -a "$APP_SOURCE/." "$APP_DIR/"
+if [ -f "$ROOT_DIR/backend/party-server" ]; then
+    echo "   Menyertakan party-server untuk Listen Together..."
+    cp "$ROOT_DIR/backend/party-server" "$APP_DIR/bin/party-server"
+    chmod +x "$APP_DIR/bin/party-server"
+fi
 
 echo "2. Memasang wrapper executable di $BIN_DIR/bitchord..."
 cat > "$BIN_DIR/bitchord" <<'EOF'

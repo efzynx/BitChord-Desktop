@@ -210,4 +210,9 @@
     <string name="d_uninstall_standalone_hint">निकाला गया फ़ोल्डर हटाएं।</string>
     <string name="d_uninstall_dev_hint">विकास परिवेश; अनइंस्टॉल की आवश्यकता नहीं है।</string>
     <string name="d_clear_search">खोज साफ़ करें</string>
+    <string name="d_tunnel_error_server_not_found">स्थानीय पार्टी सर्वर बाइनरी (party-server) नहीं मिली। कृपया अपने इंस्टॉलेशन की जांच करें।</string>
+    <string name="d_tunnel_error_server_start_failed">पोर्ट %1$d पर स्थानीय पार्टी सर्वर प्रारंभ करने में विफल।</string>
+    <string name="d_tunnel_error_server_crashed">स्थानीय पार्टी सर्वर अनपेक्षित रूप से रुक गया (निकास कोड %1$d): %2$s</string>
+    <string name="d_tunnel_error_url_failed">cloudflared से trycloudflare.com URL प्राप्त करने में विफल।</string>
+    <string name="d_tunnel_port_switched">पोर्ट %1$d उपयोग में था; पोर्ट %2$d पर स्विच किया गया।</string>
 </resources>

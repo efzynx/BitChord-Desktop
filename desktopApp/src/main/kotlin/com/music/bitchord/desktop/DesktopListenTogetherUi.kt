@@ -626,6 +626,13 @@ private fun CloudflareTunnelSection(
                 color = DesktopDestructive,
                 fontSize = 11.sp,
             )
+        } else if (!tunnelState.notice.isNullOrBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                tunnelState.notice.orEmpty(),
+                color = DesktopSecondary,
+                fontSize = 11.sp,
+            )
         }
 
         if (isRunning && !tunnelState.url.isNullOrBlank()) {

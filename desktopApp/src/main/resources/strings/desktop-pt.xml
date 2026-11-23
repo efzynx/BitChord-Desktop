@@ -210,4 +210,9 @@
     <string name="d_uninstall_standalone_hint">Exclua a pasta extraída.</string>
     <string name="d_uninstall_dev_hint">Ambiente de desenvolvimento; nenhuma desinstalação necessária.</string>
     <string name="d_clear_search">Limpar pesquisa</string>
+    <string name="d_tunnel_error_server_not_found">O binário do servidor party local (party-server) não foi encontrado. Verifique sua instalação.</string>
+    <string name="d_tunnel_error_server_start_failed">Falha ao iniciar o servidor party local na porta %1$d.</string>
+    <string name="d_tunnel_error_server_crashed">O servidor party local parou inesperadamente (código de saída %1$d): %2$s</string>
+    <string name="d_tunnel_error_url_failed">Falha ao obter o URL trycloudflare.com do cloudflared.</string>
+    <string name="d_tunnel_port_switched">A porta %1$d estava em uso; alternado para a porta %2$d.</string>
 </resources>

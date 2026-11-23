@@ -210,4 +210,9 @@
     <string name="d_uninstall_standalone_hint">מחק את התיקייה שחולצה.</string>
     <string name="d_uninstall_dev_hint">סביבת פיתוח; אין צורך בהסרת התקנה.</string>
     <string name="d_clear_search">נקה חיפוש</string>
+    <string name="d_tunnel_error_server_not_found">הקובץ הבינארי של שרת ה-party המקומי (party-server) לא נמצא. אנא אמת את ההתקנה שלך.</string>
+    <string name="d_tunnel_error_server_start_failed">הפעלת שרת ה-party המקומי ביציאה %1$d נכשלה.</string>
+    <string name="d_tunnel_error_server_crashed">שרת ה-party המקומי נעצר באופן בלתי צפוי (קוד יציאה %1$d): %2$s</string>
+    <string name="d_tunnel_error_url_failed">השגת כתובת ה-URL של trycloudflare.com מ-cloudflared נכשלה.</string>
+    <string name="d_tunnel_port_switched">יציאה %1$d הייתה בשימוש; הועבר ליציאה %2$d.</string>
 </resources>

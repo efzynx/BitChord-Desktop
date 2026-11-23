@@ -210,4 +210,9 @@
     <string name="d_uninstall_standalone_hint">Supprimez le dossier extrait.</string>
     <string name="d_uninstall_dev_hint">Environnement de développement ; aucune désinstallation requise.</string>
     <string name="d_clear_search">Effacer la recherche</string>
+    <string name="d_tunnel_error_server_not_found">Le binaire du serveur party local (party-server) est introuvable. Veuillez vérifier votre installation.</string>
+    <string name="d_tunnel_error_server_start_failed">Échec du démarrage du serveur party local sur le port %1$d.</string>
+    <string name="d_tunnel_error_server_crashed">Le serveur party local s\'est arrêté de manière inattendue (code de sortie %1$d) : %2$s</string>
+    <string name="d_tunnel_error_url_failed">Échec de l\'obtention de l\'URL trycloudflare.com depuis cloudflared.</string>
+    <string name="d_tunnel_port_switched">Le port %1$d était occupé ; basculement vers le port %2$d.</string>
 </resources>

@@ -210,4 +210,9 @@
     <string name="d_uninstall_standalone_hint">Удалите распакованную папку.</string>
     <string name="d_uninstall_dev_hint">Среда разработки; удаление не требуется.</string>
     <string name="d_clear_search">Очистить поиск</string>
+    <string name="d_tunnel_error_server_not_found">Локальный бинарный файл party-сервера (party-server) не найден. Пожалуйста, проверьте вашу установку.</string>
+    <string name="d_tunnel_error_server_start_failed">Не удалось запустить локальный party-сервер на порту %1$d.</string>
+    <string name="d_tunnel_error_server_crashed">Локальный party-сервер неожиданно завершил работу (код выхода %1$d): %2$s</string>
+    <string name="d_tunnel_error_url_failed">Не удалось получить URL trycloudflare.com от cloudflared.</string>
+    <string name="d_tunnel_port_switched">Порт %1$d был занят; переключено на порт %2$d.</string>
 </resources>

@@ -210,4 +210,9 @@
     <string name="d_uninstall_standalone_hint">Löschen Sie den entpackten Ordner.</string>
     <string name="d_uninstall_dev_hint">Entwicklungsumgebung; keine Deinstallation erforderlich.</string>
     <string name="d_clear_search">Suche löschen</string>
+    <string name="d_tunnel_error_server_not_found">Die lokale Party-Server-Binärdatei (party-server) wurde nicht gefunden. Bitte überprüfen Sie Ihre Installation.</string>
+    <string name="d_tunnel_error_server_start_failed">Lokaler Party-Server konnte auf Port %1$d nicht gestartet werden.</string>
+    <string name="d_tunnel_error_server_crashed">Lokaler Party-Server unerwartet beendet (Exit-Code %1$d): %2$s</string>
+    <string name="d_tunnel_error_url_failed">Fehler beim Abrufen der trycloudflare.com-URL von cloudflared.</string>
+    <string name="d_tunnel_port_switched">Port %1$d war belegt; zu Port %2$d gewechselt.</string>
 </resources>

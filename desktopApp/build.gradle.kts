@@ -453,6 +453,9 @@ val windowsPortableAssemble by tasks.registering {
         )
         project.file("packaging/icons/AppIcon.ico").takeIf { it.isFile }?.copyTo(File(target, "BitChord.ico"), overwrite = true)
 
+        // Bundle party-server executable for Windows Listen Together if compiled
+        rootProject.file("backend/party-server.exe").takeIf { it.isFile }?.copyTo(File(target, "party-server.exe"), overwrite = true)
+
         // What "it builds" is not the same as "it runs", and the difference is exactly what shipped
         // a broken archive.
         val jars = lib.listFiles { file: File -> file.name.endsWith(".jar") }.orEmpty()

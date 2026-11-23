@@ -220,4 +220,9 @@
 
     <!-- Search -->
     <string name="d_clear_search">Hapus pencarian</string>
+    <string name="d_tunnel_error_server_not_found">Biner server party lokal (party-server) tidak ditemukan. Harap periksa instalasi Anda.</string>
+    <string name="d_tunnel_error_server_start_failed">Server party lokal gagal dimulai pada port %1$d.</string>
+    <string name="d_tunnel_error_server_crashed">Server party lokal terhenti mendadak (kode keluar %1$d): %2$s</string>
+    <string name="d_tunnel_error_url_failed">Gagal mendapatkan URL trycloudflare.com dari cloudflared.</string>
+    <string name="d_tunnel_port_switched">Port %1$d sedang digunakan; dialihkan ke port %2$d.</string>
 </resources>
