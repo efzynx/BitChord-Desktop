@@ -77,12 +77,13 @@ import com.music.bitchord.ui.icons.BitChordIcons
 /** Where a track goes: one of the account's playlists, a local one, or a new one. */
 @Composable
 internal fun DesktopPlaylistDialog(
-    song: Song?,
+    song: Song? = null,
+    songs: List<Song> = listOfNotNull(song),
     accountPlaylists: List<UserPlaylist>,
     localPlaylists: List<DesktopPlaylist>,
     signedIn: Boolean,
-    /** Whether [song] is something YouTube can be asked to hold. */
-    canUseAccount: Boolean,
+    /** Whether [song] or [songs] is something YouTube can be asked to hold. */
+    canUseAccount: Boolean = songs.all { DesktopSearchClient.isVideoId(it.videoId) },
     busy: Boolean,
     error: String?,
     onPickAccount: (UserPlaylist) -> Unit,
@@ -90,14 +91,14 @@ internal fun DesktopPlaylistDialog(
     onCreate: (String, PlaylistPrivacy) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var creating by remember { mutableStateOf(song == null) }
+    var creating by remember { mutableStateOf(songs.isEmpty()) }
 
     DesktopDialogFrame(onDismiss = onDismiss) {
         if (creating) {
             NewPlaylistForm(
                 // Nowhere to go back to when the dialog opened onto the form; its own dismiss is
                 // the way out.
-                onBack = if (song == null) null else ({ creating = false }),
+                onBack = if (songs.isEmpty()) null else ({ creating = false }),
                 signedIn = signedIn && canUseAccount,
                 busy = busy,
                 error = error,
@@ -106,7 +107,12 @@ internal fun DesktopPlaylistDialog(
             return@DesktopDialogFrame
         }
 
-        DialogHeading(DesktopStrings["add_to_playlist", "Add to playlist"], song?.let { "${it.title} — ${it.artist}" }.orEmpty())
+        val subtitle = when {
+            songs.size == 1 -> "${songs.first().title} — ${songs.first().artist}"
+            songs.size > 1 -> "${songs.size} songs"
+            else -> ""
+        }
+        DialogHeading(DesktopStrings["add_to_playlist", "Add to playlist"], subtitle)
         error?.let { DialogError(it) }
         DialogAction(BitChordIcons.Plus, DesktopStrings["new_playlist", "New playlist"], enabled = !busy) { creating = true }
 

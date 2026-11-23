@@ -368,6 +368,7 @@ internal fun InlineQueue(
     playerDeckInset: Dp = 0.dp,
     /** Phone only: let queue scrolling dismiss/restore the lower half player. */
     collapsePlayerOnScroll: Boolean = false,
+    controlsOpen: Boolean = true,
     onRevealPlayer: () -> Unit = {},
     onHidePlayer: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -558,7 +559,20 @@ internal fun InlineQueue(
                     // Without this the sheet treats the list's leftover scroll as a
                     // drag on itself and slides the whole player away.
                     .nestedScroll(keepScroll)
-                    .then(if (collapsePlayerOnScroll) Modifier.nestedScroll(controlsOnScroll) else Modifier),
+                    .then(if (collapsePlayerOnScroll) Modifier.nestedScroll(controlsOnScroll) else Modifier)
+                    .then(
+                        if (collapsePlayerOnScroll && !controlsOpen && !selectionState.active) {
+                            Modifier
+                                .revealLyricsControlsOnPointerMove(
+                                    enabled = true,
+                                    onReveal = onRevealPlayer,
+                                )
+                                .revealLyricsControlsOnTap(
+                                    enabled = true,
+                                    onReveal = onRevealPlayer,
+                                )
+                        } else Modifier
+                    ),
                 contentPadding = PaddingValues(start = PLAYER_GUTTER, end = PLAYER_GUTTER, bottom = footerHeight + playerDeckInset),
             ) {
                 queueHeadingItem(

@@ -216,4 +216,6 @@
     <string name="d_tunnel_error_url_failed">Fehler beim Abrufen der trycloudflare.com-URL von cloudflared.</string>
     <string name="d_tunnel_port_switched">Port %1$d war belegt; zu Port %2$d gewechselt.</string>
     <string name="d_refresh">Aktualisieren</string>
+    <string name="d_auto_download_liked_title">Geliebte Titel automatisch herunterladen</string>
+    <string name="d_auto_download_liked_desc">Titel automatisch herunterladen, wenn sie zu den geliebten Titeln hinzugefügt werden</string>
 </resources>

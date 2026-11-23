@@ -216,4 +216,6 @@
     <string name="d_tunnel_error_url_failed">cloudflared üzerinden trycloudflare.com URL\'si alınamadı.</string>
     <string name="d_tunnel_port_switched">%1$d bağlantı noktası kullanımdaydı; %2$d bağlantı noktasına geçildi.</string>
     <string name="d_refresh">Yenile</string>
+    <string name="d_auto_download_liked_title">Beğenilen şarkıları otomatik indir</string>
+    <string name="d_auto_download_liked_desc">Beğenilen şarkılarınıza eklendiğinde şarkıları otomatik olarak indirin</string>
 </resources>

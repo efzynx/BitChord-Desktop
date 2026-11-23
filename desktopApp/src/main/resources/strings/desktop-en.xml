@@ -228,4 +228,6 @@
     <string name="d_tunnel_error_url_failed">Failed to obtain trycloudflare.com URL from cloudflared.</string>
     <string name="d_tunnel_port_switched">Port %1$d was in use; switched to port %2$d.</string>
     <string name="d_refresh">Refresh</string>
+    <string name="d_auto_download_liked_title">Auto-download liked songs</string>
+    <string name="d_auto_download_liked_desc">Automatically download songs when added to your liked songs</string>
 </resources>

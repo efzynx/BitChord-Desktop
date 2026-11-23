@@ -4513,6 +4513,7 @@ fun NowPlayingScreen(
                                     onAddAllToPlaylist = onQueueAddAllToPlaylist,
                                     playerDeckInset = queueDeckInset,
                                     collapsePlayerOnScroll = true,
+                                    controlsOpen = queueControlsOpen,
                                     onRevealPlayer = { if (!queueSelection.active) queueControlsOpen = true },
                                     onHidePlayer = { queueControlsOpen = false },
                                     modifier = Modifier.weight(1f),

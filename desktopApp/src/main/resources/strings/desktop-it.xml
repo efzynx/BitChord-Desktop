@@ -216,4 +216,6 @@
     <string name="d_tunnel_error_url_failed">Impossibile ottenere l\'URL trycloudflare.com da cloudflared.</string>
     <string name="d_tunnel_port_switched">La porta %1$d era in uso; commutata sulla porta %2$d.</string>
     <string name="d_refresh">Aggiorna</string>
+    <string name="d_auto_download_liked_title">Scarica automaticamente i brani piaciuti</string>
+    <string name="d_auto_download_liked_desc">Scarica automaticamente i brani quando vengono aggiunti ai brani piaciuti</string>
 </resources>

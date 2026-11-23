@@ -216,4 +216,6 @@
     <string name="d_tunnel_error_url_failed">無法從 cloudflared 取得 trycloudflare.com URL。</string>
     <string name="d_tunnel_port_switched">連接埠 %1$d 已被佔用；已切換至連接埠 %2$d。</string>
     <string name="d_refresh">重新整理</string>
+    <string name="d_auto_download_liked_title">自動下載喜歡的歌曲</string>
+    <string name="d_auto_download_liked_desc">新增至喜歡的歌曲時自動下載歌曲</string>
 </resources>

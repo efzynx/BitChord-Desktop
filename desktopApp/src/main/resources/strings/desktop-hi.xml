@@ -216,4 +216,6 @@
     <string name="d_tunnel_error_url_failed">cloudflared से trycloudflare.com URL प्राप्त करने में विफल।</string>
     <string name="d_tunnel_port_switched">पोर्ट %1$d उपयोग में था; पोर्ट %2$d पर स्विच किया गया।</string>
     <string name="d_refresh">रिफ्रेश करें</string>
+    <string name="d_auto_download_liked_title">पसंद किए गए गानों को स्वचालित रूप से डाउनलोड करें</string>
+    <string name="d_auto_download_liked_desc">पसंद किए गए गानों में जोड़े जाने पर गानों को स्वचालित रूप से डाउनलोड करें</string>
 </resources>

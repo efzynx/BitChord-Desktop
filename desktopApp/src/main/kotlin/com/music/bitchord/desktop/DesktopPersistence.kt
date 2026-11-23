@@ -82,6 +82,10 @@ class DesktopPersistence {
 
     fun saveDownloads(songs: List<Song>) = writeSongs(KEY_DOWNLOADS, songs)
 
+    fun autoDownloadLiked(): Boolean = boolean(KEY_AUTO_DOWNLOAD_LIKED, false)
+
+    fun saveAutoDownloadLiked(value: Boolean) = saveBoolean(KEY_AUTO_DOWNLOAD_LIKED, value)
+
     fun playlists(): List<DesktopPlaylist> = readLines(KEY_PLAYLISTS).mapNotNull(::decodePlaylist)
 
     fun savePlaylists(playlists: List<DesktopPlaylist>) = writeLines(KEY_PLAYLISTS, playlists.map(DesktopPlaylist::toPreferenceLine))
@@ -299,6 +303,7 @@ class DesktopPersistence {
         const val KEY_HISTORY = "history"
         const val KEY_QUEUE = "queue"
         const val KEY_DOWNLOADS = "downloads"
+        const val KEY_AUTO_DOWNLOAD_LIKED = "auto_download_liked"
         const val KEY_PLAYLISTS = "playlists"
         const val KEY_MODULE_INDEX_URL = "module_index_url"
         private const val KEY_ORIGINAL_VERSIONS = "original_versions"

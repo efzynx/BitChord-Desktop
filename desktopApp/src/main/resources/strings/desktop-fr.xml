@@ -216,4 +216,6 @@
     <string name="d_tunnel_error_url_failed">Échec de l\'obtention de l\'URL trycloudflare.com depuis cloudflared.</string>
     <string name="d_tunnel_port_switched">Le port %1$d était occupé ; basculement vers le port %2$d.</string>
     <string name="d_refresh">Actualiser</string>
+    <string name="d_auto_download_liked_title">Télécharger automatiquement les titres aimés</string>
+    <string name="d_auto_download_liked_desc">Télécharge automatiquement les titres lorsqu\'ils sont ajoutés aux titres aimés</string>
 </resources>

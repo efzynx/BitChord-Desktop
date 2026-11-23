@@ -29,7 +29,9 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import com.music.bitchord.data.YtMusicRepository
 import com.music.bitchord.data.model.EntityType
+import com.music.bitchord.data.model.QueueEntryIdentity
 import com.music.bitchord.data.model.SearchHistoryEntity
+import com.music.bitchord.ui.player.QueueBulkAction
 import com.music.bitchord.ui.LocalPullToRefreshEnabled
 import com.music.bitchord.ui.screens.ExploreScreen
 import com.music.bitchord.ui.screens.HomeScreen
@@ -656,6 +658,8 @@ fun BitChordDesktopApp() {
     var replaySummary by remember { mutableStateOf(DesktopListeningStats.summary()) }
     var statsCountedSongs by remember { mutableStateOf<Set<String>>(emptySet()) }
     var playlistTarget by remember { mutableStateOf<Song?>(null) }
+    var playlistTargets by remember { mutableStateOf<List<Song>>(emptyList()) }
+    var autoDownloadLiked by remember { mutableStateOf(persistence.autoDownloadLiked()) }
     // One busy flag and one message for every playlist edit: only one of them can be in flight,
     // because each is driven by a dialog that is modal.
     var playlistBusy by remember { mutableStateOf(false) }
@@ -1014,8 +1018,36 @@ fun BitChordDesktopApp() {
     }
     startSong = ::playSong
 
+    fun downloadSong(song: Song) {
+        // A second tap on something already queued or running calls it off.
+        if (song.videoId in downloadInProgress) {
+            DesktopDownloadQueue.cancel(song.videoId)
+            return
+        }
+        if (song.videoId in downloads.map(Song::videoId) || song.localPath != null) return
+        DesktopDownloadQueue.enqueue(song)
+    }
+
+    /** Deletes the file a download saved and forgets the record. */
+    fun removeDownload(song: Song) {
+        scope.launch {
+            withContext(Dispatchers.IO) { DesktopDownloadManager.delete(song) }
+            downloads = downloads.filterNot { it.videoId == song.videoId }
+            persistence.saveDownloads(downloads)
+        }
+    }
+
+    /** Everything on a page, in the order it is listed. */
+    fun downloadAll(songs: List<Song>) {
+        val have = downloads.map(Song::videoId).toSet()
+        DesktopDownloadQueue.enqueueAll(
+            songs.filterNot { it.videoId in have || it.localPath != null || it.isUnresolvedSpotify },
+        )
+    }
+
     /** Applies a rating locally and carries it to the account. */
     fun rate(song: Song, status: LikeStatus) {
+        val wasLiked = song.videoId in likedIds
         likedIds = if (status == LikeStatus.LIKE) likedIds + song.videoId else likedIds - song.videoId
         dislikedIds = if (status == LikeStatus.DISLIKE) {
             dislikedIds + song.videoId
@@ -1027,6 +1059,9 @@ fun BitChordDesktopApp() {
         scope.launch {
             DesktopSearchClient.rate(song.videoId, status)
                 .onFailure { DesktopTrackLog.log("youtube: rating ${song.videoId} failed: ${it.message}") }
+        }
+        if (status == LikeStatus.LIKE && !wasLiked && autoDownloadLiked) {
+            downloadSong(song)
         }
     }
 
@@ -1265,33 +1300,6 @@ fun BitChordDesktopApp() {
         DesktopPlayerHost.messages.value = DesktopStrings["link_copied", "Link copied to clipboard"]
     }
 
-    fun downloadSong(song: Song) {
-        // A second tap on something already queued or running calls it off.
-        if (song.videoId in downloadInProgress) {
-            DesktopDownloadQueue.cancel(song.videoId)
-            return
-        }
-        if (song.videoId in downloads.map(Song::videoId) || song.localPath != null) return
-        DesktopDownloadQueue.enqueue(song)
-    }
-
-    /** Deletes the file a download saved and forgets the record. */
-    fun removeDownload(song: Song) {
-        scope.launch {
-            withContext(Dispatchers.IO) { DesktopDownloadManager.delete(song) }
-            downloads = downloads.filterNot { it.videoId == song.videoId }
-            persistence.saveDownloads(downloads)
-        }
-    }
-
-    /** Everything on a page, in the order it is listed. */
-    fun downloadAll(songs: List<Song>) {
-        val have = downloads.map(Song::videoId).toSet()
-        DesktopDownloadQueue.enqueueAll(
-            songs.filterNot { it.videoId in have || it.localPath != null || it.isUnresolvedSpotify },
-        )
-    }
-
     /** Keeps a station queued ahead of whatever is playing. */
 
     /**
@@ -1525,6 +1533,7 @@ fun BitChordDesktopApp() {
     fun closePlaylistDialogs() {
         overlays.playlistDialog = false
         playlistTarget = null
+        playlistTargets = emptyList()
         overlays.rename = false
         overlays.delete = false
         overlays.reorder = false
@@ -1536,19 +1545,20 @@ fun BitChordDesktopApp() {
     fun createPlaylist(title: String, privacy: PlaylistPrivacy) {
         val name = title.trim()
         if (name.isBlank()) return
-        val seed = playlistTarget
+        val seeds = if (playlistTargets.isNotEmpty()) playlistTargets else listOfNotNull(playlistTarget)
         // A track from another source cannot go in an account playlist, so the playlist made to
         // hold it is one kept here.
-        if (!DesktopYouTubeAuth.isSignedIn || (seed != null && !DesktopSearchClient.isVideoId(seed.videoId))) {
-            playlists = playlists + DesktopPlaylist(title = name, songs = listOfNotNull(seed))
+        if (!DesktopYouTubeAuth.isSignedIn || seeds.any { !DesktopSearchClient.isVideoId(it.videoId) }) {
+            playlists = playlists + DesktopPlaylist(title = name, songs = seeds.distinctBy(Song::videoId))
             persistence.savePlaylists(playlists)
             closePlaylistDialogs()
             return
         }
         playlistBusy = true
         playlistError = null
+        val seed = seeds.firstOrNull()
         scope.launch {
-            DesktopSearchClient.createPlaylist(name, privacy, listOfNotNull(seed?.videoId))
+            DesktopSearchClient.createPlaylist(name, privacy, seeds.map(Song::videoId))
                 .onSuccess { playlistId ->
                     closePlaylistDialogs()
                     editPlaylistShelf { items ->
@@ -1557,7 +1567,7 @@ fun BitChordDesktopApp() {
                             // Only what this request itself establishes: an unseeded playlist gets
                             // a card of just its name rather than a guess at what the feed will
                             // call it.
-                            subtitle = if (seed != null) "1 song" else "",
+                            subtitle = if (seeds.size == 1) "1 song" else if (seeds.size > 1) "${seeds.size} songs" else "",
                             thumbnailUrl = seed?.thumbnailUrl,
                             videoId = null,
                             browseId = "VL$playlistId",
@@ -1647,23 +1657,25 @@ fun BitChordDesktopApp() {
     }
 
     fun addToPlaylist(playlist: DesktopPlaylist) {
-        val song = playlistTarget ?: return
+        val songsToAdd = if (playlistTargets.isNotEmpty()) playlistTargets else listOfNotNull(playlistTarget)
+        if (songsToAdd.isEmpty()) return
         playlists = playlists.map { current ->
-            if (current.id == playlist.id) current.copy(songs = (current.songs + song).distinctBy(Song::videoId)) else current
+            if (current.id == playlist.id) current.copy(songs = (current.songs + songsToAdd).distinctBy(Song::videoId)) else current
         }
         persistence.savePlaylists(playlists)
-        playlistTarget = null
+        closePlaylistDialogs()
     }
 
     fun addToAccountPlaylist(playlist: UserPlaylist) {
-        val song = playlistTarget ?: return
+        val songsToAdd = if (playlistTargets.isNotEmpty()) playlistTargets else listOfNotNull(playlistTarget)
+        if (songsToAdd.isEmpty()) return
         playlistBusy = true
         playlistError = null
         scope.launch {
-            DesktopSearchClient.addToPlaylist(playlist.playlistId, listOf(song.videoId))
+            DesktopSearchClient.addToPlaylist(playlist.playlistId, songsToAdd.map { it.videoId })
                 .onSuccess { closePlaylistDialogs() }
                 .onFailure {
-                    DesktopTrackLog.log("playlist: could not add ${song.videoId}: ${it.message}")
+                    DesktopTrackLog.log("playlist: could not add: ${it.message}")
                     playlistBusy = false
                     playlistError = it.message ?: "Could not add to ${playlist.title}"
                 }
@@ -3286,6 +3298,37 @@ fun BitChordDesktopApp() {
         }
     }
 
+    fun removeEntriesFromQueue(identities: List<QueueEntryIdentity>) {
+        if (DesktopListenTogether.state.value.controlsLocked || identities.isEmpty()) return
+        val currentSongs = liveQueue.songs
+        val currentIndex = liveQueue.index
+        val toRemoveIndices = mutableSetOf<Int>()
+        for (identity in identities) {
+            var ordinalCount = 0
+            for (i in currentSongs.indices) {
+                if (i == currentIndex) continue
+                val s = currentSongs[i]
+                if (s.videoId == identity.mediaId && (identity.queueEntryId == null || s.queueEntryId == identity.queueEntryId)) {
+                    if (ordinalCount == identity.occurrence) {
+                        toRemoveIndices.add(i)
+                        break
+                    }
+                    ordinalCount++
+                }
+            }
+        }
+        if (toRemoveIndices.isNotEmpty()) {
+            val newSongs = currentSongs.filterIndexed { index, _ -> index !in toRemoveIndices }
+            val newIndex = if (currentIndex in currentSongs.indices) {
+                val removedBefore = toRemoveIndices.count { it < currentIndex }
+                (currentIndex - removedBefore).coerceIn(0, (newSongs.size - 1).coerceAtLeast(0))
+            } else 0
+            liveQueue = liveQueue.copy(songs = newSongs, index = newIndex)
+            saveQueue()
+            partySyncHolder[0]?.onLocalIntent()
+        }
+    }
+
     fun moveInQueue(from: Int, to: Int) {
         if (DesktopListenTogether.state.value.controlsLocked) return
         val edited = liveQueue.move(from, to)
@@ -3345,6 +3388,18 @@ fun BitChordDesktopApp() {
                     .onPreviewKeyEvent { event ->
                     if (event.type != KeyEventType.KeyUp) return@onPreviewKeyEvent false
                     val isModifierPressed = event.isCtrlPressed || event.isMetaPressed
+                    val isTypingContext = overlays.settingsPage != null ||
+                        destination == DesktopDestination.SEARCH ||
+                        overlays.playlistDialog ||
+                        playlistTarget != null ||
+                        playlistTargets.isNotEmpty() ||
+                        overlays.rename ||
+                        overlays.delete ||
+                        overlays.reorder ||
+                        overlays.lastfmLogin ||
+                        overlays.listenBrainzToken ||
+                        overlays.discordToken ||
+                        overlays.signIn
                     when {
                         // Media keys from keyboard / OS
                         event.key == Key.MediaPlayPause -> {
@@ -3367,8 +3422,8 @@ fun BitChordDesktopApp() {
                             playPrevious()
                             true
                         }
-                        // Spacebar: Play / Pause (when not actively typing search query)
-                        event.key == Key.Spacebar && (overlays.nowPlaying || destination != DesktopDestination.SEARCH) -> {
+                        // Spacebar: Play / Pause (disabled when in typing context such as settings search or search tab)
+                        event.key == Key.Spacebar && !isTypingContext -> {
                             if (selectedSong != null) togglePlayPauseFromUser()
                             true
                         }
@@ -3407,14 +3462,14 @@ fun BitChordDesktopApp() {
                             true
                         }
                         // Mute toggle with M
-                        (event.key == Key.M && (overlays.nowPlaying || destination != DesktopDestination.SEARCH)) -> {
+                        (event.key == Key.M && !isModifierPressed && !isTypingContext) -> {
                             val newVol = if (volume > 0f) 0f else 1f
                             volume = newVol
                             persistence.saveString("volume", newVol.toString())
                             true
                         }
                         // Fullscreen toggle via F11 or F
-                        event.key == Key.F11 || (event.key == Key.F && overlays.nowPlaying) -> {
+                        event.key == Key.F11 || (event.key == Key.F && !isModifierPressed && overlays.nowPlaying && !isTypingContext) -> {
                             DesktopWindowMode.toggle()
                             true
                         }
@@ -3447,7 +3502,7 @@ fun BitChordDesktopApp() {
                         // One layer at a time, innermost first: the player's own side panel, then
                         // the player.
                         event.key == Key.Escape -> when {
-                            playlistTarget != null || overlays.playlistDialog || overlays.rename || overlays.delete || overlays.reorder -> {
+                            playlistTarget != null || playlistTargets.isNotEmpty() || overlays.playlistDialog || overlays.rename || overlays.delete || overlays.reorder -> {
                                 closePlaylistDialogs()
                                 true
                             }
@@ -3709,6 +3764,26 @@ fun BitChordDesktopApp() {
                             onRemoveFromQueue = ::removeFromQueue,
                             onMoveInQueue = ::moveInQueue,
                             onClearQueue = ::clearQueue,
+                            onQueueBulkAction = { songs, action ->
+                                when (action) {
+                                    QueueBulkAction.PLAYLIST -> {
+                                        playlistTargets = songs
+                                        overlays.playlistDialog = true
+                                        true
+                                    }
+                                    QueueBulkAction.DOWNLOAD -> {
+                                        downloadAll(songs)
+                                        true
+                                    }
+                                }
+                            },
+                            onQueueRemoveEntries = { identities ->
+                                removeEntriesFromQueue(identities)
+                            },
+                            onQueueAddAllToPlaylist = { songs ->
+                                playlistTargets = songs
+                                overlays.playlistDialog = true
+                            },
                             onOpenMenu = {
                                 playerMenuAnchor.value = com.music.bitchord.ui.components.MenuAnchor.consume()
                                 playerMenuOpen = true
@@ -3958,14 +4033,15 @@ fun BitChordDesktopApp() {
                             },
                         )
                     }
-                    if (overlays.playlistDialog || playlistTarget != null) {
+                    if (overlays.playlistDialog || playlistTarget != null || playlistTargets.isNotEmpty()) {
+                        val targets = if (playlistTargets.isNotEmpty()) playlistTargets else listOfNotNull(playlistTarget)
                         DesktopPlaylistDialog(
                             song = playlistTarget,
+                            songs = targets,
                             accountPlaylists = accountPlaylists,
                             localPlaylists = playlists,
                             signedIn = youtubeSignedIn,
-                            canUseAccount = playlistTarget
-                                ?.let { DesktopSearchClient.isVideoId(it.videoId) } ?: true,
+                            canUseAccount = targets.all { DesktopSearchClient.isVideoId(it.videoId) },
                             busy = playlistBusy,
                             error = playlistError,
                             onPickAccount = ::addToAccountPlaylist,
@@ -4254,6 +4330,11 @@ fun BitChordDesktopApp() {
                                     onDownloadQualityChange = {
                                         downloadQuality = it
                                         persistence.saveString("download_quality", it)
+                                    },
+                                    autoDownloadLiked = autoDownloadLiked,
+                                    onAutoDownloadLikedChange = {
+                                        autoDownloadLiked = it
+                                        persistence.saveAutoDownloadLiked(it)
                                     },
                                     audioQuality = audioQuality,
                                     onAudioQualityChange = {
@@ -7388,6 +7469,8 @@ private fun DesktopSettingsScreen(
     outputSummary: String,
     downloadQuality: String,
     onDownloadQualityChange: (String) -> Unit,
+    autoDownloadLiked: Boolean,
+    onAutoDownloadLikedChange: (Boolean) -> Unit,
     audioQuality: DesktopAudioQuality,
     onAudioQualityChange: (DesktopAudioQuality) -> Unit,
     sleepTimerMinutes: Int?,
@@ -8089,6 +8172,12 @@ private fun DesktopSettingsScreen(
                         }
                     }
                     }
+                    SettingsToggle(
+                        title = DesktopStrings["d_auto_download_liked_title", "Auto-download liked songs"],
+                        subtitle = DesktopStrings["d_auto_download_liked_desc", "Automatically download songs when added to your liked songs"],
+                        checked = autoDownloadLiked,
+                        onCheckedChange = onAutoDownloadLikedChange,
+                    )
                 }
             }
             if (section == DesktopSettingsSection.SOURCES) item {

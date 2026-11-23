@@ -216,4 +216,6 @@
     <string name="d_tunnel_error_url_failed">השגת כתובת ה-URL של trycloudflare.com מ-cloudflared נכשלה.</string>
     <string name="d_tunnel_port_switched">יציאה %1$d הייתה בשימוש; הועבר ליציאה %2$d.</string>
     <string name="d_refresh">רענון</string>
+    <string name="d_auto_download_liked_title">הורדה אוטומטית של שירים שאהבת</string>
+    <string name="d_auto_download_liked_desc">הורד שירים באופן אוטומטי בעת הוספתם לשירים שאהבת</string>
 </resources>
