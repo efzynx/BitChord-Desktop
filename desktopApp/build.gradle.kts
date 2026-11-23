@@ -1,3 +1,4 @@
+import java.net.URI
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipFile
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
@@ -502,6 +503,58 @@ val windowsPortable by tasks.registering(Zip::class) {
     archiveFileName.set("BitChord-$appVersion-windows-portable.zip")
     destinationDirectory.set(layout.buildDirectory.dir("distributions"))
     doLast { logger.lifecycle("windowsPortable: ${archiveFile.get().asFile.absolutePath}") }
+}
+
+val packageAppImage by tasks.registering {
+    group = "distribution"
+    description = "Packages BitChord as a universal Linux AppImage."
+    dependsOn("createDistributable")
+    onlyIf { targetOs == "linux" }
+
+    doLast {
+        val appDir = layout.buildDirectory.dir("compose/binaries/main/app/BitChord").get().asFile
+        check(File(appDir, "bin/BitChord").canExecute()) { "Linux launcher not found in ${appDir.absolutePath}" }
+
+        val outDir = layout.buildDirectory.dir("distributions").get().asFile.apply { mkdirs() }
+        val outFile = File(outDir, "BitChord-$appVersion-x86_64.AppImage")
+
+        val systemTool = listOf("appimagetool", "/usr/bin/appimagetool", "/usr/local/bin/appimagetool")
+            .firstOrNull { File(it).canExecute() }
+            ?: runCatching {
+                val proc = ProcessBuilder("which", "appimagetool").start()
+                if (proc.waitFor() == 0) proc.inputStream.bufferedReader().readText().trim() else null
+            }.getOrNull()?.takeIf { it.isNotBlank() && File(it).canExecute() }
+
+        val toolFile: File = if (systemTool != null) {
+            File(systemTool)
+        } else {
+            val toolDir = layout.buildDirectory.dir("tools").get().asFile.apply { mkdirs() }
+            val downloadedTool = File(toolDir, "appimagetool")
+            if (!downloadedTool.canExecute()) {
+                logger.lifecycle("appimagetool not found in PATH. Downloading appimagetool to ${downloadedTool.absolutePath}...")
+                val url = URI.create("https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage").toURL()
+                val bytes = url.readBytes()
+                downloadedTool.writeBytes(bytes)
+                downloadedTool.setExecutable(true)
+            }
+            downloadedTool
+        }
+
+        val script = project.file("packaging/appimage.sh")
+        script.setExecutable(true)
+
+        logger.lifecycle("Packaging AppImage with ${toolFile.absolutePath}...")
+        val proc = ProcessBuilder(
+            script.absolutePath,
+            appDir.absolutePath,
+            outFile.absolutePath,
+            toolFile.absolutePath,
+        ).inheritIO().start()
+
+        val exitCode = proc.waitFor()
+        check(exitCode == 0) { "AppImage packaging failed with exit code $exitCode" }
+        logger.lifecycle("AppImage created: ${outFile.absolutePath}")
+    }
 }
 
 val composeMainClass = "com.music.bitchord.desktop.MainKt"

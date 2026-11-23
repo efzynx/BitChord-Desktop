@@ -125,6 +125,9 @@ If downloading the tarball or building from source, use the provided installatio
 
 # 3. Package universal AppImage:
 ./gradlew :desktopApp:packageAppImage
+# Output package: desktopApp/build/distributions/BitChord-*-x86_64.AppImage
+# Note: Automatically fetches appimagetool if not available in PATH, or you can run
+# desktopApp/packaging/appimage.sh directly against the createDistributable output.
 
 # 4. Package .deb and .rpm (requires fakeroot & dpkg-dev / rpm):
 ./gradlew :desktopApp:packageDeb :desktopApp:packageRpm
