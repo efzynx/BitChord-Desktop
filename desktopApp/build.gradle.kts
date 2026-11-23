@@ -100,9 +100,8 @@ dependencies {
     implementation("org.bytedeco:ffmpeg:$ffmpegVersion:$nativeClassifier")
 
     // The same backdrop blur the Android build uses for its floating bars.
-    // On Windows, 1.7.2 keeps this Compose Desktop 1.10.3 app on the matching UI/text/animation
-    // runtime. Preserve Linux's existing dependency graph exactly as it was.
-    val desktopHazeVersion = if (targetOs == "windows") "1.7.2" else "1.7.3"
+    // Use Haze 1.7.3 across all desktop platforms to match Compose Multiplatform's ShaderBrush API.
+    val desktopHazeVersion = "1.7.3"
     implementation("dev.chrisbanes.haze:haze:$desktopHazeVersion")
     implementation("dev.chrisbanes.haze:haze-materials:$desktopHazeVersion")
 
