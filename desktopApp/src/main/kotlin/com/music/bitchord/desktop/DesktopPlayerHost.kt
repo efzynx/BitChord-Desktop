@@ -211,8 +211,8 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     override val preferUsbDac = MutableStateFlow(false)
     override val disableSpotifyCanvas = MutableStateFlow(false)
     override val prioritizeSpotifyCanvas = MutableStateFlow(false)
-    override val reduceAnimation = MutableStateFlow(false)
-    override val reduceDynamicBlur = MutableStateFlow(false)
+    override val reduceAnimation = DesktopAppearanceSettings.reduceAnimation
+    override val reduceDynamicBlur = DesktopAppearanceSettings.reduceDynamicBlur
     override val disableBlendEffects = MutableStateFlow(false)
     override val showNerdStats = MutableStateFlow(false)
     override val showBestPart = MutableStateFlow(true)

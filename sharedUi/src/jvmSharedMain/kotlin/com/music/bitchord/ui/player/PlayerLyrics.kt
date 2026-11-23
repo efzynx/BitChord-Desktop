@@ -2051,7 +2051,9 @@ internal fun LyricsPanel(
     }
 
     if (lines.isEmpty()) {
-        val empty = modifier.revealLyricsControlsOnTap(!controlsOpen, onBottomHalfTap)
+        val empty = modifier
+            .revealLyricsControlsOnTap(!controlsOpen, onBottomHalfTap)
+            .revealLyricsControlsOnPointerMove(!controlsOpen, onBottomHalfTap)
         // "None" is a finding, and it is only worth reporting once the lookup
         // has actually come back with it.
         if (looking) {
@@ -2079,6 +2081,7 @@ internal fun LyricsPanel(
             // below takes taps at the initial pass, so while a pick is open it
             // would swallow every choice before the row ever saw it.
             .revealLyricsControlsOnTap(!controlsOpen && !picking, onBottomHalfTap)
+            .revealLyricsControlsOnPointerMove(!controlsOpen && !picking, onBottomHalfTap)
             .fadingEdges(),
         // Each row carries GLOW_ROOM of its own inset for the halo, so the
         // list hands that much back — otherwise the lines would sit a glow's

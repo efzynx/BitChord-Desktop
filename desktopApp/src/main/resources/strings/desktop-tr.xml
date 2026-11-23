@@ -215,4 +215,5 @@
     <string name="d_tunnel_error_server_crashed">Yerel party sunucusu beklenmedik şekilde durdu (çıkış kodu %1$d): %2$s</string>
     <string name="d_tunnel_error_url_failed">cloudflared üzerinden trycloudflare.com URL\'si alınamadı.</string>
     <string name="d_tunnel_port_switched">%1$d bağlantı noktası kullanımdaydı; %2$d bağlantı noktasına geçildi.</string>
+    <string name="d_refresh">Yenile</string>
 </resources>

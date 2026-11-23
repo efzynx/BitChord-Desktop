@@ -215,4 +215,5 @@
     <string name="d_tunnel_error_server_crashed">स्थानीय पार्टी सर्वर अनपेक्षित रूप से रुक गया (निकास कोड %1$d): %2$s</string>
     <string name="d_tunnel_error_url_failed">cloudflared से trycloudflare.com URL प्राप्त करने में विफल।</string>
     <string name="d_tunnel_port_switched">पोर्ट %1$d उपयोग में था; पोर्ट %2$d पर स्विच किया गया।</string>
+    <string name="d_refresh">रिफ्रेश करें</string>
 </resources>

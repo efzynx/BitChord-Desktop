@@ -436,7 +436,7 @@ val windowsPortableAssemble by tasks.registering {
                 appendLine("set \"HERE=%~dp0\"")
                 appendLine("set \"RUNNER=java\"")
                 appendLine("if defined JAVA_HOME set \"RUNNER=%JAVA_HOME%\\bin\\java\"")
-                append("\"%RUNNER%\" -Dbitchord.version=$version")
+                append("\"%RUNNER%\" -Xms64m -Xmx512m -XX:+UseG1GC -XX:G1PeriodicGCInterval=10000 -XX:G1PeriodicGCSystemLoadThreshold=0 -Dbitchord.version=$version")
                 if (moduleIndex.isNotBlank()) append(" -Dbitchord.module.index=$moduleIndex")
                 if (lastfmKey.isNotBlank() && lastfmSharedSecret.isNotBlank()) {
                     append(" -Dbitchord.lastfm.key=$lastfmKey -Dbitchord.lastfm.secret=$lastfmSharedSecret")
@@ -512,8 +512,8 @@ compose.desktop {
             it.metadata.installationPath.asFile.absolutePath
         }.get()
         mainClass = composeMainClass
-        jvmArgs("-Xmx512m")
-        jvmArgs("-XX:+UseG1GC", "-XX:G1PeriodicGCInterval=20000", "-XX:G1PeriodicGCSystemLoadThreshold=0")
+        jvmArgs("-Xms64m", "-Xmx512m")
+        jvmArgs("-XX:+UseG1GC", "-XX:G1PeriodicGCInterval=10000", "-XX:G1PeriodicGCSystemLoadThreshold=0")
         jvmArgs("-Dbitchord.version=$appVersion")
         if (desktopModuleIndexUrl.isNotBlank()) {
             jvmArgs("-Dbitchord.module.index=$desktopModuleIndexUrl")

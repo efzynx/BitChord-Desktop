@@ -7,6 +7,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.pointerInput
@@ -55,15 +56,16 @@ internal fun Modifier.revealLyricsControlsOnTap(
         val tapSlop = viewConfiguration.touchSlop * TAP_SLOP_FACTOR
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-            if (down.position.y < size.height / 2f) return@awaitEachGesture
             if (down.type == PointerType.Mouse) {
-                var claimed = down.isConsumed
+                var dragged = false
                 do {
                     val event = awaitPointerEvent(PointerEventPass.Final)
                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                    claimed = claimed || change.isConsumed
+                    if ((change.position - down.position).getDistance() > tapSlop) {
+                        dragged = true
+                    }
                     if (!change.pressed) {
-                        if (!claimed) currentOnReveal.value()
+                        if (!dragged) currentOnReveal.value()
                         break
                     }
                 } while (true)
@@ -91,6 +93,30 @@ internal fun Modifier.revealLyricsControlsOnTap(
                     break
                 }
             } while (true)
+        }
+    }
+}
+
+/**
+ * Reveals player controls when mouse moves across fullscreen lyrics.
+ */
+@Composable
+internal fun Modifier.revealLyricsControlsOnPointerMove(
+    enabled: Boolean,
+    onReveal: () -> Unit,
+): Modifier {
+    val currentOnReveal = rememberUpdatedState(onReveal)
+    return pointerInput(enabled) {
+        if (!enabled) return@pointerInput
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                if (event.type == PointerEventType.Move &&
+                    event.changes.any { it.type == PointerType.Mouse }
+                ) {
+                    currentOnReveal.value()
+                }
+            }
         }
     }
 }

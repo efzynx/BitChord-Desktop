@@ -215,4 +215,5 @@
     <string name="d_tunnel_error_server_crashed">Il server party locale si è arrestato inaspettatamente (codice di uscita %1$d): %2$s</string>
     <string name="d_tunnel_error_url_failed">Impossibile ottenere l\'URL trycloudflare.com da cloudflared.</string>
     <string name="d_tunnel_port_switched">La porta %1$d era in uso; commutata sulla porta %2$d.</string>
+    <string name="d_refresh">Aggiorna</string>
 </resources>

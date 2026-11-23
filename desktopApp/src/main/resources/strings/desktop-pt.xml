@@ -215,4 +215,5 @@
     <string name="d_tunnel_error_server_crashed">O servidor party local parou inesperadamente (código de saída %1$d): %2$s</string>
     <string name="d_tunnel_error_url_failed">Falha ao obter o URL trycloudflare.com do cloudflared.</string>
     <string name="d_tunnel_port_switched">A porta %1$d estava em uso; alternado para a porta %2$d.</string>
+    <string name="d_refresh">Atualizar</string>
 </resources>

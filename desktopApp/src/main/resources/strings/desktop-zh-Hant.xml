@@ -215,4 +215,5 @@
     <string name="d_tunnel_error_server_crashed">本地 party 伺服器意外停止 (結束代碼 %1$d): %2$s</string>
     <string name="d_tunnel_error_url_failed">無法從 cloudflared 取得 trycloudflare.com URL。</string>
     <string name="d_tunnel_port_switched">連接埠 %1$d 已被佔用；已切換至連接埠 %2$d。</string>
+    <string name="d_refresh">重新整理</string>
 </resources>

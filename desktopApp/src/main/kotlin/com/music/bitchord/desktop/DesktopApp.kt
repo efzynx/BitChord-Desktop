@@ -6,6 +6,7 @@ import com.music.bitchord.ui.components.ShelfRowChrome
 import com.music.bitchord.ui.components.ShelfRow
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.input.key.isAltPressed
@@ -3075,6 +3076,44 @@ fun BitChordDesktopApp() {
         }
     }
 
+    /** Refreshes the content of the currently active view or page. */
+    fun refreshCurrentPage() {
+        when {
+            openedArtist != null -> {
+                artistState = UiState.Loading
+                artistReloads++
+            }
+            openedCollection != null -> {
+                openedCollection = openedCollection?.copy(loading = true)
+                collectionError = null
+                collectionReloads++
+            }
+            destination == DesktopDestination.EXPLORE && selectedMoodGenre != null -> {
+                moodGenreShelves = UiState.Loading
+                moodGenreReloads++
+            }
+            destination == DesktopDestination.EXPLORE -> {
+                exploreState = UiState.Loading
+                exploreReloads++
+            }
+            destination == DesktopDestination.LISTEN_NOW -> {
+                loadHome()
+            }
+            destination == DesktopDestination.LIBRARY -> {
+                reloadLibrary()
+            }
+            destination == DesktopDestination.SEARCH -> {
+                if (query.isNotBlank()) search()
+            }
+            destination == DesktopDestination.HISTORY -> {
+                history = persistence.history()
+                if (youtubeSignedIn) {
+                    scope.launch { DesktopSearchClient.history().onSuccess { remoteHistory = it } }
+                }
+            }
+        }
+    }
+
     fun openMoodGenre(item: MoodGenre) {
         selectedMoodGenre = item
         moodGenreShelves = UiState.Loading
@@ -3379,6 +3418,11 @@ fun BitChordDesktopApp() {
                             DesktopWindowMode.toggle()
                             true
                         }
+                        // Refresh page with F5 or Ctrl+R / Cmd+R
+                        event.key == Key.F5 || (event.key == Key.R && isModifierPressed) -> {
+                            refreshCurrentPage()
+                            true
+                        }
                         event.key == Key.DirectionLeft && event.isAltPressed && !overlays.nowPlaying -> {
                             goBack()
                             true
@@ -3473,6 +3517,7 @@ fun BitChordDesktopApp() {
                                 overlays.settingsPage == null &&
                                 !overlays.replay),
                         onBack = ::goBack,
+                        onRefresh = ::refreshCurrentPage,
                         accountAvatar = activeAccount?.profiles?.firstOrNull { it.profileId == activeProfileId }?.avatar?.takeIf { it.isNotBlank() }
                             ?: activeAccount?.avatar?.takeIf { it.isNotBlank() }
                             ?: activeAccount?.profiles?.firstOrNull()?.avatar?.takeIf { it.isNotBlank() },
@@ -5004,6 +5049,7 @@ private fun DesktopSidebar(
     onSearchFocused: () -> Unit,
     canGoBack: Boolean = false,
     onBack: () -> Unit = {},
+    onRefresh: () -> Unit = {},
     accountAvatar: String? = null,
     accountName: String? = null,
     onOpenAccounts: () -> Unit = {},
@@ -5022,6 +5068,7 @@ private fun DesktopSidebar(
     LaunchedEffect(windowInfo.isWindowFocused) {
         if (!windowInfo.isWindowFocused) {
             restoreSearchFocus = searchFocused
+            DesktopArtworkCache.trimMemory()
         } else if (restoreSearchFocus) {
             // Let the desktop window finish its activation before asking Compose to put the native
             // text input target back in focus.
@@ -5064,6 +5111,13 @@ private fun DesktopSidebar(
                     )
                     Spacer(Modifier.height(6.dp))
                 }
+                DesktopSidebarRailItem(
+                    icon = Icons.Rounded.Refresh,
+                    label = DesktopStrings["d_refresh", "Refresh"],
+                    selected = false,
+                    onClick = onRefresh,
+                )
+                Spacer(Modifier.height(6.dp))
                 DesktopSidebarRailItem(
                     icon = BitChordIcons.Search,
                     label = DesktopStrings["search", "Search"],
@@ -5183,6 +5237,18 @@ private fun DesktopSidebar(
                                         )
                                     }
                                 }
+                                Spacer(Modifier.width(6.dp))
+                                DesktopToolbarButton(
+                                    onClick = onRefresh,
+                                    size = 26.dp,
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Refresh,
+                                        contentDescription = DesktopStrings["d_refresh", "Refresh"],
+                                        tint = DesktopSecondary,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
                             }
                             DesktopToolbarButton(
                                 onClick = onToggleMinimize,
@@ -5207,20 +5273,32 @@ private fun DesktopSidebar(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            if (canGoBack) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (canGoBack) {
+                                    DesktopToolbarButton(
+                                        onClick = onBack,
+                                        size = 24.dp,
+                                    ) {
+                                        Icon(
+                                            Icons.AutoMirrored.Rounded.ArrowBack,
+                                            contentDescription = DesktopStrings["back", "Back"],
+                                            tint = Color.White,
+                                            modifier = Modifier.size(15.dp),
+                                        )
+                                    }
+                                    Spacer(Modifier.width(6.dp))
+                                }
                                 DesktopToolbarButton(
-                                    onClick = onBack,
+                                    onClick = onRefresh,
                                     size = 24.dp,
                                 ) {
                                     Icon(
-                                        Icons.AutoMirrored.Rounded.ArrowBack,
-                                        contentDescription = DesktopStrings["back", "Back"],
-                                        tint = Color.White,
+                                        Icons.Rounded.Refresh,
+                                        contentDescription = DesktopStrings["d_refresh", "Refresh"],
+                                        tint = DesktopSecondary,
                                         modifier = Modifier.size(15.dp),
                                     )
                                 }
-                            } else {
-                                Spacer(Modifier.size(24.dp))
                             }
                             DesktopToolbarButton(
                                 onClick = onToggleMinimize,

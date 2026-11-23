@@ -45,6 +45,9 @@ internal object DesktopArtworkCache {
     /** Everything held, dropped — what the Storage settings' "Clear image cache" does. */
     fun clear() = images.clear()
 
+    /** Drops memory-heavy artwork entries when app goes idle or to background. */
+    fun trimMemory() = images.trimTo(budgetBytes / 2)
+
     suspend fun load(url: String?): ImageBitmap? {
         if (url.isNullOrBlank()) return null
         images.get(url)?.let { return it }

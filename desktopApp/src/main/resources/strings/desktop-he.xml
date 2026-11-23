@@ -215,4 +215,5 @@
     <string name="d_tunnel_error_server_crashed">שרת ה-party המקומי נעצר באופן בלתי צפוי (קוד יציאה %1$d): %2$s</string>
     <string name="d_tunnel_error_url_failed">השגת כתובת ה-URL של trycloudflare.com מ-cloudflared נכשלה.</string>
     <string name="d_tunnel_port_switched">יציאה %1$d הייתה בשימוש; הועבר ליציאה %2$d.</string>
+    <string name="d_refresh">רענון</string>
 </resources>

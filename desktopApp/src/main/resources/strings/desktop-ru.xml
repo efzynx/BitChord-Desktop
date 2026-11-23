@@ -215,4 +215,5 @@
     <string name="d_tunnel_error_server_crashed">Локальный party-сервер неожиданно завершил работу (код выхода %1$d): %2$s</string>
     <string name="d_tunnel_error_url_failed">Не удалось получить URL trycloudflare.com от cloudflared.</string>
     <string name="d_tunnel_port_switched">Порт %1$d был занят; переключено на порт %2$d.</string>
+    <string name="d_refresh">Обновить</string>
 </resources>
