@@ -186,7 +186,9 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     override val audioQualityWifi = MutableStateFlow(AudioQuality.LOSSLESS)
     override val canvasOverCellular = MutableStateFlow(true)
     override val fullBleedArtwork = MutableStateFlow(false)
+    override val showTotalDuration = MutableStateFlow(false)
     override val hideSongStatus = MutableStateFlow(false)
+    override val hideLyricsPreview = MutableStateFlow(false)
     override val showQueueHistory = MutableStateFlow(false)
     override val hideVolumeBar = DesktopAppearanceSettings.hideVolumeBar
     // A desktop window has no status bar to hide.
@@ -207,11 +209,13 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     override val meteredConnection = MutableStateFlow<Boolean?>(false)
     override val streamCeilingOverride = MutableStateFlow<AudioQuality?>(null)
     override val preferUsbDac = MutableStateFlow(false)
+    override val disableSpotifyCanvas = MutableStateFlow(false)
     override val prioritizeSpotifyCanvas = MutableStateFlow(false)
     override val reduceAnimation = MutableStateFlow(false)
     override val reduceDynamicBlur = MutableStateFlow(false)
     override val disableBlendEffects = MutableStateFlow(false)
     override val showNerdStats = MutableStateFlow(false)
+    override val showBestPart = MutableStateFlow(true)
     override val showListenTogetherButton = MutableStateFlow(true)
     override val smartAnalysis = MutableStateFlow(SmartAnalysis())
     override val automixDetail = MutableStateFlow<String?>(null)

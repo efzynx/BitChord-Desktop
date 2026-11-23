@@ -3635,6 +3635,10 @@ fun BitChordDesktopApp() {
                             onPlayPause = ::togglePlayPauseFromUser,
                             onNext = ::playNext,
                             onPrevious = ::playPrevious,
+                            previousRestarts = {
+                                playbackEngine.state.value.positionMs > BACK_RESTARTS_AFTER_MS || !liveQueue.hasPrevious
+                            },
+                            currentPlaybackSong = { playbackEngine.state.value.song ?: current },
                             onBlockedControl = {
                                 DesktopPlayerHost.showMessage("Only the party host can change playback")
                             },
