@@ -85,18 +85,18 @@ internal object DesktopTrayMenu {
             add(
                 Entry(
                     ID_PLAY_PAUSE,
-                    label = if (isPlaying) "Pause" else "Play",
-                    icon = if (isPlaying) "media-playback-pause" else "media-playback-start",
+                    label = if (isPlaying) DesktopStrings["pause", "Pause"] else DesktopStrings["play", "Play"],
+                    icon = null,
                     action = playPause,
                 ),
             )
-            add(Entry(ID_NEXT, label = DesktopStrings["widget_next", "Next"], icon = "media-skip-forward", action = next))
-            add(Entry(ID_PREVIOUS, label = DesktopStrings["widget_previous", "Previous"], icon = "media-skip-backward", action = previous))
+            add(Entry(ID_NEXT, label = DesktopStrings["widget_next", "Next"], icon = null, action = next))
+            add(Entry(ID_PREVIOUS, label = DesktopStrings["widget_previous", "Previous"], icon = null, action = previous))
             add(Entry(ID_SEPARATOR_MIDDLE, separator = true))
-            add(Entry(ID_OPEN_PLAYER, label = DesktopStrings["widget_open_bitchord", "Open BitChord"], icon = "media-playback-start", action = openPlayer))
-            add(Entry(ID_SETTINGS, label = DesktopStrings["settings", "Settings"], icon = "preferences-system", action = openSettings))
+            add(Entry(ID_OPEN_PLAYER, label = DesktopStrings["d_open_bitchord_desktop", "Open BitChord Desktop"], icon = null, action = openPlayer))
+            add(Entry(ID_SETTINGS, label = DesktopStrings["settings", "Settings"], icon = null, action = openSettings))
             add(Entry(ID_SEPARATOR_BOTTOM, separator = true))
-            add(Entry(ID_QUIT, label = DesktopStrings["d_quit_bitchord", "Quit BitChord"], icon = "application-exit", action = quit))
+            add(Entry(ID_QUIT, label = DesktopStrings["d_quit_bitchord", "Quit BitChord Desktop"], icon = null, action = quit))
         }
     }
 

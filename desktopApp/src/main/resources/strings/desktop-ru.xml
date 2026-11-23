@@ -45,13 +45,14 @@
     <string name="d_no_downloads">Нет загрузок</string>
     <string name="d_nobody_is_signed_in">Никто не вошёл. Вашей медиатеке, плейлистам и истории нужна учётная запись YouTube Music.</string>
     <string name="d_open_listenbrainz">Открыть ListenBrainz</string>
+    <string name="d_open_bitchord_desktop">Открыть BitChord Desktop</string>
     <string name="d_open_spotify">Открыть Spotify</string>
     <string name="d_output_precision">Точность вывода</string>
     <string name="d_paste_a_cookie_instead">Вставить cookie вместо этого</string>
     <string name="d_paste_the_cookie_header_for_music_youtube_com">Вставьте заголовок Cookie для music.youtube.com.</string>
     <string name="d_playback_speed">Скорость воспроизведения</string>
     <string name="d_playlists_on_this_computer">Плейлисты на этом компьютере</string>
-    <string name="d_quit_bitchord">Выйти из BitChord</string>
+    <string name="d_quit_bitchord">Выйти из BitChord Desktop</string>
     <string name="d_recently_played_on_this_computer">Недавно прослушано на этом компьютере</string>
     <string name="d_recents">Недавние</string>
     <string name="d_remove_from_playlist">Удалить из плейлиста</string>

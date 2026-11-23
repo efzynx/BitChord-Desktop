@@ -45,13 +45,14 @@
     <string name="d_no_downloads">沒有下載</string>
     <string name="d_nobody_is_signed_in">當前沒有登入賬戶。你的音樂庫、播放列表和歷史記錄需要一個 YouTube Music 賬戶。</string>
     <string name="d_open_listenbrainz">開啟 ListenBrainz</string>
+    <string name="d_open_bitchord_desktop">開啟 BitChord Desktop</string>
     <string name="d_open_spotify">開啟 Spotify</string>
     <string name="d_output_precision">輸出精度</string>
     <string name="d_paste_a_cookie_instead">改為貼上 Cookie</string>
     <string name="d_paste_the_cookie_header_for_music_youtube_com">貼上 music.youtube.com 的 Cookie 標頭。</string>
     <string name="d_playback_speed">播放速度</string>
     <string name="d_playlists_on_this_computer">本機上的播放列表</string>
-    <string name="d_quit_bitchord">退出 BitChord</string>
+    <string name="d_quit_bitchord">退出 BitChord Desktop</string>
     <string name="d_recently_played_on_this_computer">最近在本機播放</string>
     <string name="d_recents">最近</string>
     <string name="d_remove_from_playlist">從播放列表中移除</string>
