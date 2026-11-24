@@ -268,7 +268,7 @@ internal object DesktopCloudflareTunnel {
         for (dir in candidateDirs) {
             if (!dir.isDirectory) continue
             val target = File(dir, exeName)
-            if (target.isFile && (DesktopPlatform.isWindows || target.canExecute())) {
+            if (target.isFile && (DesktopPlatform.isWindows || target.canExecute() || target.setExecutable(true))) {
                 return target
             }
         }

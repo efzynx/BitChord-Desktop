@@ -58,6 +58,7 @@ class DesktopCloudflareTunnelTest {
         val hadFile = target.exists()
         if (!hadFile) {
             target.writeText("mock-binary")
+            target.setExecutable(true)
         }
         try {
             val found = DesktopCloudflareTunnel.findPartyServerBinary()
