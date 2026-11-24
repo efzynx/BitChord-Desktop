@@ -248,4 +248,8 @@
     <string name="d_party_enter_cloud_prompt">请先输入并保存有效的云端服务器地址。</string>
     <string name="d_animated_artist_banner">动态艺人横幅</string>
     <string name="d_animated_artist_banner_desc">在可用时于艺人页眉显示动态视频和动画封面</string>
+    <string name="d_party_guide_title">一起听指南</string>
+    <string name="d_party_guide_quick">使用BitChord自带的服务器即刻发起或加入，无需额外配置。</string>
+    <string name="d_party_guide_custom_cloud">连接到您自己的专属VPS服务器，可保存多个地址随时切换。</string>
+    <string name="d_party_guide_custom_local">直接在此电脑上本地运行，并通过Cloudflare Quick Tunnel生成免费公网链接。</string>
 </resources>

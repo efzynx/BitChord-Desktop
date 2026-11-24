@@ -248,4 +248,8 @@
     <string name="d_party_enter_cloud_prompt">Сначала введите и сохраните рабочий адрес облачного сервера.</string>
     <string name="d_animated_artist_banner">Анимированный баннер исполнителя</string>
     <string name="d_animated_artist_banner_desc">Показывать видео и анимированные обложки в шапке исполнителя, если они доступны</string>
+    <string name="d_party_guide_title">Руководство Слушать вместе</string>
+    <string name="d_party_guide_quick">Создавайте комнату или подключайтесь мгновенно через встроенный сервер BitChord без настройки.</string>
+    <string name="d_party_guide_custom_cloud">Подключайтесь к собственному VPS-серверу. Сохраняйте несколько серверов и переключайтесь в любое время.</string>
+    <string name="d_party_guide_custom_local">Запускайте сервер на этом компьютере и делитесь бесплатной ссылкой через Cloudflare Quick Tunnel.</string>
 </resources>

@@ -248,4 +248,8 @@
     <string name="d_party_enter_cloud_prompt">請先輸入並儲存有效的雲端伺服器位址。</string>
     <string name="d_animated_artist_banner">動態藝人橫幅</string>
     <string name="d_animated_artist_banner_desc">在可用時於藝人頁眉顯示動態影片和動畫封面</string>
+    <string name="d_party_guide_title">一起聽指南</string>
+    <string name="d_party_guide_quick">使用BitChord內建的伺服器即時發起或加入，無需額外設定。</string>
+    <string name="d_party_guide_custom_cloud">連線至您專屬的VPS伺服器，可儲存多個位址隨時切換。</string>
+    <string name="d_party_guide_custom_local">直接在此電腦上本機運行，並透過Cloudflare Quick Tunnel產生免費公用連結。</string>
 </resources>

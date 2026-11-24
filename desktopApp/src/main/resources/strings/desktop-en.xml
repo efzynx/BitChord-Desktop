@@ -260,4 +260,8 @@
     <string name="d_party_enter_cloud_prompt">Enter and save an active cloud server address first.</string>
     <string name="d_animated_artist_banner">Animated artist banner</string>
     <string name="d_animated_artist_banner_desc">Show motion video and animated artwork in artist headers when available</string>
+    <string name="d_party_guide_title">Listen Together Guide</string>
+    <string name="d_party_guide_quick">Host or join instantly using BitChord\'s included party server. No configuration needed.</string>
+    <string name="d_party_guide_custom_cloud">Connect to your personal VPS or private party server. Save multiple servers and switch anytime.</string>
+    <string name="d_party_guide_custom_local">Host directly on this computer and generate a free public link using Cloudflare Quick Tunnel.</string>
 </resources>

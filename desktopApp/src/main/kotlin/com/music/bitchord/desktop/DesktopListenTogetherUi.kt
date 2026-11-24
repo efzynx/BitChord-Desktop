@@ -28,6 +28,7 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
@@ -97,6 +98,7 @@ internal fun DesktopListenTogetherDialog(autoplayEnabled: Boolean, onDismiss: ()
     var preview by remember { mutableStateOf<PartyPreview?>(null) }
     var busy by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
+    var showGuide by remember { mutableStateOf(false) }
 
     LaunchedEffect(server) {
         if (serverDraft == server || serverDraft.isBlank()) serverDraft = server
@@ -119,6 +121,13 @@ internal fun DesktopListenTogetherDialog(autoplayEnabled: Boolean, onDismiss: ()
                         else "Start a room or join friends with a six-character code",
                         color = DesktopSecondary,
                         style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                IconButton(onClick = { showGuide = true }) {
+                    Icon(
+                        Icons.Rounded.Info,
+                        contentDescription = DesktopStrings["d_party_guide_title", "Listen Together Guide"],
+                        tint = DesktopSecondary,
                     )
                 }
                 // A page is left by the window's back, as every other page is.
@@ -230,6 +239,10 @@ internal fun DesktopListenTogetherDialog(autoplayEnabled: Boolean, onDismiss: ()
                     },
                 )
             }
+        }
+
+        if (showGuide) {
+            PartyGuideDialog(onDismiss = { showGuide = false })
         }
     }
 }
@@ -501,78 +514,15 @@ private fun PartyLanding(
             }
         }
 
-        // 2. Mode Configuration Panel
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .desktopCardInset(RoundedCornerShape(14.dp))
-                    .padding(18.dp),
-            ) {
-                if (partyMode == DesktopListenTogether.PartyMode.QUICK) {
-                    // Quick Party info view
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Rounded.Cloud,
-                            contentDescription = null,
-                            tint = DesktopAccent,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                DesktopStrings["d_party_mode_quick", "Quick Party"],
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.5.sp,
-                            )
-                            Text(
-                                builtinServerUrl,
-                                color = DesktopSecondary,
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace,
-                            )
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val dotColor = when (builtinStatus.health) {
-                                DesktopListenTogether.Health.ONLINE -> Color(0xFF28C840)
-                                DesktopListenTogether.Health.CHECKING -> Color(0xFFFFB300)
-                                DesktopListenTogether.Health.OFFLINE -> DesktopDestructive
-                            }
-                            Box(
-                                Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(dotColor),
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            val txt = when (builtinStatus.health) {
-                                DesktopListenTogether.Health.ONLINE -> "${DesktopStrings["d_tunnel_online", "Online"]} (${builtinStatus.latencyMs} ms)"
-                                DesktopListenTogether.Health.CHECKING -> DesktopStrings["d_tunnel_starting", "Checking…"]
-                                DesktopListenTogether.Health.OFFLINE -> DesktopStrings["d_party_offline", "Party server is offline"]
-                            }
-                            Text(
-                                txt,
-                                color = dotColor,
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Medium,
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            OutlinedButton(
-                                onClick = onRefreshServer,
-                                shape = RoundedCornerShape(50),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                modifier = Modifier.height(28.dp),
-                            ) {
-                                Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(13.dp), tint = Color.White)
-                                Spacer(Modifier.width(4.dp))
-                                Text(DesktopStrings["test", "Test"], fontSize = 11.sp, color = Color.White)
-                            }
-                        }
-                    }
-                } else {
+        // 2. Mode Configuration Panel (only shown when CUSTOM mode is selected)
+        if (partyMode == DesktopListenTogether.PartyMode.CUSTOM) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .desktopCardInset(RoundedCornerShape(14.dp))
+                        .padding(18.dp),
+                ) {
                     // Custom Party view with Sub-mode tabs (Cloud vs Local)
                     Row(
                         modifier = Modifier
@@ -1464,12 +1414,146 @@ private fun PrimaryButton(
 
 @Composable
 private fun Notice(text: String, destructive: Boolean) {
-    Text(
-        text,
-        color = if (destructive) DesktopDestructive else DesktopSecondary,
-        style = MaterialTheme.typography.bodyMedium,
-        modifier = Modifier.fillMaxWidth().desktopCardInset(RoundedCornerShape(12.dp)).padding(14.dp),
-    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            if (destructive) Icons.Rounded.ErrorOutline else Icons.Rounded.Info,
+            contentDescription = null,
+            tint = if (destructive) DesktopDestructive else DesktopSecondary,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text,
+            color = if (destructive) DesktopDestructive else DesktopSecondary,
+            style = MaterialTheme.typography.bodySmall,
+            lineHeight = 16.sp,
+        )
+    }
+}
+
+@Composable
+private fun PartyGuideDialog(onDismiss: () -> Unit) {
+    DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 520) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Rounded.Info,
+                        contentDescription = null,
+                        tint = DesktopAccent,
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        DesktopStrings["d_party_guide_title", "Listen Together Guide"],
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Rounded.Close, "Close", tint = DesktopSecondary, modifier = Modifier.size(18.dp))
+                }
+            }
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+
+            // 1. Quick Party
+            Row(verticalAlignment = Alignment.Top) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(DesktopAccent.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.Bolt, null, tint = DesktopAccent, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(DesktopStrings["d_party_mode_quick", "Quick Party"], fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        DesktopStrings["d_party_guide_quick", "Host or join instantly using BitChord's included party server. No configuration needed."],
+                        color = DesktopSecondary,
+                        fontSize = 11.5.sp,
+                        lineHeight = 15.sp,
+                    )
+                }
+            }
+
+            // 2. Custom Party - Cloud
+            Row(verticalAlignment = Alignment.Top) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.08f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.Cloud, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(DesktopStrings["d_party_submode_cloud", "Cloud Server"], fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        DesktopStrings["d_party_guide_custom_cloud", "Connect to your personal VPS or private party server. Save multiple servers and switch anytime."],
+                        color = DesktopSecondary,
+                        fontSize = 11.5.sp,
+                        lineHeight = 15.sp,
+                    )
+                }
+            }
+
+            // 3. Custom Party - Local
+            Row(verticalAlignment = Alignment.Top) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.08f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.Computer, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(DesktopStrings["d_party_submode_local", "Local Host (Tunnel)"], fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        DesktopStrings["d_party_guide_custom_local", "Host directly on this computer and generate a free public link using Cloudflare Quick Tunnel."],
+                        color = DesktopSecondary,
+                        fontSize = 11.5.sp,
+                        lineHeight = 15.sp,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth().height(38.dp),
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(containerColor = DesktopAccent, contentColor = Color.Black),
+            ) {
+                Text(DesktopStrings["close", "Close"], fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp)
+            }
+        }
+    }
 }
 
 @Composable

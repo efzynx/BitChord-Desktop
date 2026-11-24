@@ -248,4 +248,8 @@
     <string name="d_party_enter_cloud_prompt">まずアクティブなクラウドサーバーのアドレスを入力して保存してください。</string>
     <string name="d_animated_artist_banner">アニメーションアーティストバナー</string>
     <string name="d_animated_artist_banner_desc">利用可能な場合、アーティストヘッダーにモーションビデオとアニメーションアートワークを表示する</string>
+    <string name="d_party_guide_title">一緒に聴く ガイド</string>
+    <string name="d_party_guide_quick">内蔵のBitChordサーバーを使用してすぐにホストまたは参加できます。設定は不要です。</string>
+    <string name="d_party_guide_custom_cloud">個人のVPSサーバーに接続します。複数のサーバーを保存していつでも切り替えられます。</string>
+    <string name="d_party_guide_custom_local">このPCで直接ホストし、Cloudflare Quick Tunnelで無料の公開リンクを生成します。</string>
 </resources>

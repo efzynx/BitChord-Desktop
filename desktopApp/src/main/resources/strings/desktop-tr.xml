@@ -248,4 +248,8 @@
     <string name="d_party_enter_cloud_prompt">Önce etkin bir bulut sunucu adresi girin ve kaydedin.</string>
     <string name="d_animated_artist_banner">Hareketli sanatçı başlığı</string>
     <string name="d_animated_artist_banner_desc">Mevcut olduğunda sanatçı başlıklarında hareketli video ve animasyonlu görselleri göster</string>
+    <string name="d_party_guide_title">Birlikte Dinle Kılavuzu</string>
+    <string name="d_party_guide_quick">BitChord\'un yerleşik sunucusunu kullanarak anında oda kurun veya katılın. Yapılandırma gerekmez.</string>
+    <string name="d_party_guide_custom_cloud">Kendi VPS sunucunuza bağlanın. Birden fazla sunucu kaydedip dilediğiniz zaman geçiş yapın.</string>
+    <string name="d_party_guide_custom_local">Doğrudan bu bilgisayarda barındırın ve Cloudflare Quick Tunnel ile ücretsiz genel bağlantı oluşturun.</string>
 </resources>

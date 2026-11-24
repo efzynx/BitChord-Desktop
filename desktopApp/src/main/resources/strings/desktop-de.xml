@@ -248,4 +248,8 @@
     <string name="d_party_enter_cloud_prompt">Geben Sie zuerst eine aktive Cloud-Server-Adresse ein und speichern Sie diese.</string>
     <string name="d_animated_artist_banner">Animiertes Künstlerbanner</string>
     <string name="d_animated_artist_banner_desc">Bewegtbild- und animierte Grafiken in Künstler-Headern anzeigen, wenn verfügbar</string>
+    <string name="d_party_guide_title">Party-Modus Anleitung</string>
+    <string name="d_party_guide_quick">Sofort hosten oder beitreten über den integrierten BitChord-Server. Keine Einrichtung nötig.</string>
+    <string name="d_party_guide_custom_cloud">Verbinde dich mit deinem persönlichen VPS-Party-Server. Speichere mehrere Server und wechsle jederzeit.</string>
+    <string name="d_party_guide_custom_local">Direkt auf diesem Computer hosten und einen kostenlosen öffentlichen Link über Cloudflare Quick Tunnel teilen.</string>
 </resources>

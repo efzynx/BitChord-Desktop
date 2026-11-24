@@ -111,7 +111,8 @@ internal object DesktopArtistArtRepository {
         // Try wide video first (16:9 banner), then standard square (1:1) video, or any video in videoArtwork
         val wideVideo = header["wideVideoArtwork"]?.findVideoUrl()
         val squareVideo = header["videoArtwork"]?.findVideoUrl()
-        val videoUrl = wideVideo ?: squareVideo
+        val rawVideo = wideVideo ?: squareVideo
+        val videoUrl = rawVideo?.let { DesktopHlsResolver.resolve(it) }
 
         val hero = (header["wideArtwork"] as? JsonObject)?.get("dictionary") as? JsonObject
             ?: (header["artwork"] as? JsonObject)?.get("dictionary") as? JsonObject

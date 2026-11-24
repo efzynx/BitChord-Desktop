@@ -258,4 +258,8 @@
     <string name="d_party_enter_cloud_prompt">Masukkan dan simpan alamat server cloud yang aktif terlebih dahulu.</string>
     <string name="d_animated_artist_banner">Banner artis bergerak</string>
     <string name="d_animated_artist_banner_desc">Tampilkan video gerakan dan animasi pada header artis jika tersedia</string>
+    <string name="d_party_guide_title">Panduan Listen Together</string>
+    <string name="d_party_guide_quick">Host atau gabung instan menggunakan server party bawaan BitChord. Tidak perlu pengaturan.</string>
+    <string name="d_party_guide_custom_cloud">Sambungkan ke server party VPS pribadi Anda. Simpan beberapa server dan beralih kapan saja.</string>
+    <string name="d_party_guide_custom_local">Host langsung di komputer ini dan buat link publik gratis menggunakan Cloudflare Quick Tunnel.</string>
 </resources>

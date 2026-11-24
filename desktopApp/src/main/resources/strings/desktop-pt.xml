@@ -248,4 +248,8 @@
     <string name="d_party_enter_cloud_prompt">Insira e salve um endereço de servidor em nuvem ativo primeiro.</string>
     <string name="d_animated_artist_banner">Banner de artista animado</string>
     <string name="d_animated_artist_banner_desc">Mostrar vídeo em movimento e arte animada nos cabeçalhos de artistas quando disponível</string>
+    <string name="d_party_guide_title">Guia Ouvir Juntos</string>
+    <string name="d_party_guide_quick">Hospede ou participe instantaneamente com o servidor integrado do BitChord. Sem configuração.</string>
+    <string name="d_party_guide_custom_cloud">Conecte-se ao seu próprio servidor VPS. Salve vários servidores e alterne a qualquer momento.</string>
+    <string name="d_party_guide_custom_local">Hospede diretamente neste computador e crie um link público gratuito com o Cloudflare Quick Tunnel.</string>
 </resources>

@@ -248,4 +248,8 @@
     <string name="d_party_enter_cloud_prompt">הזן ושמור תחילה כתובת שרת ענן פעילה.</string>
     <string name="d_animated_artist_banner">באנר אמן מונפש</string>
     <string name="d_animated_artist_banner_desc">הצג וידאו בתנועה ויצירות אמנות מונפשות בכותרות האמן כשהן זמינות</string>
+    <string name="d_party_guide_title">מדריך האזנה משותפת</string>
+    <string name="d_party_guide_quick">ארח או הצטרף מיד באמצעות שרת BitChord המובנה. אין צורך בהגדרה.</string>
+    <string name="d_party_guide_custom_cloud">התחבר לשרת VPS אישי משלך. שמור שרתים מרובים והחלף בכל עת.</string>
+    <string name="d_party_guide_custom_local">ארח ישירות במחשב זה וצור קישור ציבורי בחינם באמצעות Cloudflare Quick Tunnel.</string>
 </resources>

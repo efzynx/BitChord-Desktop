@@ -248,4 +248,8 @@
     <string name="d_party_enter_cloud_prompt">पहले एक सक्रिय क्लाउड सर्वर पता दर्ज करें और सहेजें।</string>
     <string name="d_animated_artist_banner">एनिमेटेड कलाकार बैनर</string>
     <string name="d_animated_artist_banner_desc">उपलब्ध होने पर कलाकार हेडर में मोशन वीडियो और एनिमेटेड कलाकृति दिखाएं</string>
+    <string name="d_party_guide_title">साथ मिलकर सुनें गाइड</string>
+    <string name="d_party_guide_quick">BitChord के अंतर्निहित पार्टी सर्वर का उपयोग करके तुरंत होस्ट करें या जुड़ें। सेटअप की आवश्यकता नहीं।</string>
+    <string name="d_party_guide_custom_cloud">अपने व्यक्तिगत VPS पार्टी सर्ver से जुड़ें। एकाधिक सर्ver सहेजें और कभी भी बदलें।</string>
+    <string name="d_party_guide_custom_local">सीधे इस कंप्यूटर पर होस्ट करें और Cloudflare Quick Tunnel का उपयोग करके निःशुल्क सार्वजनिक लिंक बनाएं।</string>
 </resources>
