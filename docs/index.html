@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>BitChord Desktop — Pemutar YouTube Music untuk Linux & Windows</title>
-  <meta name="description" content="BitChord Desktop adalah pemutar musik desktop berkinerja tinggi untuk Linux dan Windows bertenaga Compose Multiplatform dan FFmpeg 7.1." />
+  <title id="docTitle">BitChord Desktop — Aesthetic YouTube Music Player for Linux & Windows</title>
+  <meta name="description" id="docDesc" content="BitChord Desktop is a high-performance desktop music player for Linux and Windows powered by Compose Multiplatform and native FFmpeg 7.1." />
   <meta name="theme-color" content="#000000" />
   <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/Logo.png" />
   <style>
@@ -29,7 +29,7 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html { scroll-behavior: smooth; scroll-padding-top: 96px; }
+    html { scroll-behavior: smooth; scroll-padding-top: 96px; background-color: var(--base); }
 
     body {
       font-family: var(--font);
@@ -116,7 +116,7 @@
       100% { transform: translate3d(14vw, 6vh, 0) scale(0.9); }
     }
 
-    /* ---------- Lapisan dasar, paling bawah ---------- */
+    /* ---------- Lapisan dasar ---------- */
     .bg-base {
       position: fixed;
       inset: 0;
@@ -126,7 +126,7 @@
     }
     main, footer { position: relative; z-index: 1; }
 
-    /* ---------- Aurora: helai-helai tipis, tepi bawah bergelombang, cahaya berkedip pelan ---------- */
+    /* ---------- Aurora ---------- */
     .aurora {
       position: fixed;
       top: 0;
@@ -203,9 +203,7 @@
       text-decoration: none;
       transition: opacity 0.2s ease;
     }
-    .brand:hover {
-      opacity: 0.9;
-    }
+    .brand:hover { opacity: 0.9; }
     .brand-mark {
       width: 28px;
       height: 28px;
@@ -230,6 +228,37 @@
       transition: color .2s, background .2s;
     }
     .nav-links a:hover { color: var(--ink); background: rgba(255,255,255,.08); }
+
+    /* Language Switcher */
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px;
+      border-radius: var(--radius-pill);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-edge);
+      gap: 2px;
+      margin-right: 4px;
+    }
+    .lang-btn {
+      background: transparent;
+      border: none;
+      color: var(--ink-soft);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .lang-btn:hover { color: var(--ink); }
+    .lang-btn.active {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+
     .nav-cta {
       background: var(--ink) !important;
       color: #000 !important;
@@ -310,7 +339,7 @@
     .btn-ghost { background: var(--glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
     .btn-ghost:hover { background: var(--glass-strong); border-color: var(--glass-edge-hover); }
 
-    /* Showcase card meniru tampilan player BitChord Desktop asli */
+    /* Showcase card */
     .artwork-wrap {
       position: relative;
       justify-self: center;
@@ -364,7 +393,7 @@
     }
     .platform.is-current { border-color: rgba(255,255,255,.35); }
     .platform.is-current::after {
-      content: "Perangkatmu";
+      content: attr(data-badge-text);
       position: absolute;
       top: 18px;
       right: 18px;
@@ -519,6 +548,44 @@
     footer a:hover { color: var(--ink); }
     footer .links { display: flex; gap: 24px; flex-wrap: wrap; }
 
+    /* ---------- Back to Top Floating Button ---------- */
+    .back-to-top {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      z-index: 90;
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-pill);
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--glass-edge);
+      box-shadow: var(--glass-highlight), 0 8px 24px rgba(0, 0, 0, 0.5);
+      color: var(--ink);
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(16px) scale(0.9);
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease;
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+    }
+    .back-to-top.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+    .back-to-top:hover {
+      background: var(--glass-strong);
+      border-color: var(--glass-edge-hover);
+      color: #ffffff;
+      transform: translateY(-2px) scale(1.05);
+    }
+    .back-to-top:active {
+      transform: translateY(0) scale(0.96);
+    }
+
     /* ---------- Entrance ---------- */
     .reveal { animation: rise .9s cubic-bezier(.2,.7,.2,1) both; }
     .reveal.d1 { animation-delay: .08s; }
@@ -542,6 +609,7 @@
       section { padding-top: 72px; }
       .platform.is-current::after { position: static; align-self: flex-start; }
       footer { flex-direction: column; align-items: flex-start; }
+      .back-to-top { bottom: 20px; right: 20px; width: 40px; height: 40px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -564,7 +632,7 @@
 
   <div class="aurora" aria-hidden="true"><span class="strand" style="--x:3%;--w:clamp(40px, 3.2vw, 90px);--c:rgba(235, 235, 240, 0.32);--drift:3vw;--d:22s;--delay:-4s;--lo:0.1;--hi:0.32;--blur:20px"></span><span class="strand" style="--x:9%;--w:clamp(30px, 2.2vw, 60px);--c:rgba(235, 235, 240, 0.32);--drift:4vw;--d:26s;--delay:-11s;--lo:0.05;--hi:0.22;--blur:16px"></span><span class="strand" style="--x:16%;--w:clamp(50px, 4vw, 110px);--c:rgba(255, 45, 85, 0.30);--drift:2vw;--d:19s;--delay:-7s;--lo:0.08;--hi:0.26;--blur:22px"></span><span class="strand" style="--x:24%;--w:clamp(24px, 1.6vw, 44px);--c:rgba(235, 235, 240, 0.32);--drift:5vw;--d:31s;--delay:-2s;--lo:0.04;--hi:0.2;--blur:14px"></span><span class="strand" style="--x:31%;--w:clamp(60px, 4.8vw, 120px);--c:rgba(235, 235, 240, 0.32);--drift:3vw;--d:24s;--delay:-15s;--lo:0.07;--hi:0.24;--blur:26px"></span><span class="strand" style="--x:39%;--w:clamp(28px, 2vw, 56px);--c:rgba(255, 45, 85, 0.30);--drift:4vw;--d:28s;--delay:-9s;--lo:0.05;--hi:0.22;--blur:16px"></span><span class="strand" style="--x:46%;--w:clamp(44px, 3.4vw, 96px);--c:rgba(235, 235, 240, 0.32);--drift:2vw;--d:21s;--delay:-5s;--lo:0.09;--hi:0.28;--blur:20px"></span><span class="strand" style="--x:54%;--w:clamp(26px, 1.8vw, 50px);--c:rgba(235, 235, 240, 0.32);--drift:5vw;--d:33s;--delay:-18s;--lo:0.04;--hi:0.18;--blur:14px"></span><span class="strand" style="--x:61%;--w:clamp(56px, 4.2vw, 110px);--c:rgba(255, 45, 85, 0.30);--drift:3vw;--d:25s;--delay:-12s;--lo:0.07;--hi:0.24;--blur:24px"></span><span class="strand" style="--x:69%;--w:clamp(30px, 2.4vw, 64px);--c:rgba(235, 235, 240, 0.32);--drift:4vw;--d:27s;--delay:-6s;--lo:0.05;--hi:0.22;--blur:16px"></span><span class="strand" style="--x:76%;--w:clamp(48px, 3.6vw, 100px);--c:rgba(235, 235, 240, 0.32);--drift:2vw;--d:23s;--delay:-14s;--lo:0.08;--hi:0.26;--blur:20px"></span><span class="strand" style="--x:84%;--w:clamp(34px, 2.6vw, 72px);--c:rgba(255, 45, 85, 0.30);--drift:5vw;--d:30s;--delay:-3s;--lo:0.05;--hi:0.2;--blur:16px"></span><span class="strand" style="--x:91%;--w:clamp(42px, 3vw, 86px);--c:rgba(235, 235, 240, 0.32);--drift:3vw;--d:20s;--delay:-10s;--lo:0.07;--hi:0.24;--blur:18px"></span></div>
 
-  <nav class="nav glass reveal" aria-label="Navigasi utama">
+  <nav class="nav glass reveal" aria-label="Main Navigation">
     <a href="#top" class="brand" id="top">
       <span class="brand-mark" aria-hidden="true">
         <svg width="18" height="12" viewBox="0 0 730 484" fill="none">
@@ -574,12 +642,19 @@
       BitChord Desktop
     </a>
     <div class="nav-links">
-      <a href="#fitur">Fitur</a>
-      <a href="#unduh">Unduh</a>
-      <a href="#instal">Instal</a>
-      <a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" target="_blank" rel="noopener">Panduan</a>
+      <a href="#fitur" data-i18n="nav_features">Features</a>
+      <a href="#unduh" data-i18n="nav_download">Download</a>
+      <a href="#instal" data-i18n="nav_install">Install</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" target="_blank" rel="noopener" data-i18n="nav_guide">Guide</a>
       <a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener">GitHub</a>
-      <a href="#unduh" class="nav-cta">Unduh</a>
+
+      <!-- Language Selector (Acuan: ID, Default: EN) -->
+      <div class="lang-switch glass" role="group" aria-label="Select language">
+        <button type="button" class="lang-btn active" data-lang-btn="en" aria-label="English">EN</button>
+        <button type="button" class="lang-btn" data-lang-btn="id" aria-label="Bahasa Indonesia">ID</button>
+      </div>
+
+      <a href="#unduh" class="nav-cta" data-i18n="nav_cta">Download</a>
     </div>
   </nav>
 
@@ -589,19 +664,19 @@
       <div class="reveal">
         <h1>
           BitChord Desktop
-          <small>Pemutar musik modern untuk Linux & Windows.</small>
+          <small data-i18n="hero_sub">A modern music player for Linux & Windows.</small>
         </h1>
-        <p class="lede">
-          Aplikasi pemutar YouTube Music mandiri dan berkinerja tinggi dengan antarmuka Apple Music frosted glass, decoding native FFmpeg 7.1, lirik tersinkronisasi per kata, dan mode pesta Listen Together.
+        <p class="lede" data-i18n="hero_lede">
+          An aesthetic, Apple Music-inspired YouTube Music desktop client with native FFmpeg 7.1 decoding, real-time synchronized lyrics, and Listen Together party rooms.
         </p>
         <div class="hero-actions">
           <a href="#unduh" class="btn btn-primary" id="hero-download">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
-            <span id="hero-download-label">Unduh BitChord</span>
+            <span id="hero-download-label" data-i18n="hero_download">Download BitChord</span>
           </a>
-          <a href="#fitur" class="btn btn-ghost">Pelajari fiturnya</a>
+          <a href="#fitur" class="btn btn-ghost" data-i18n="hero_features">Explore features</a>
         </div>
-        <p class="meta-line" id="hero-meta">Gratis dan sumber terbuka di bawah lisensi GPLv3.</p>
+        <p class="meta-line" id="hero-meta" data-i18n="hero_meta">Free and open source under the GPLv3 license.</p>
       </div>
 
       <div class="artwork-wrap reveal d2">
@@ -614,35 +689,35 @@
     <section id="unduh">
       <div class="section-head">
         <div>
-          <h2>Unduh BitChord Desktop</h2>
-          <p class="lede">Pilih sistem operasimu. Tautan paket otomatis merujuk ke rilis stabil terkini.</p>
+          <h2 data-i18n="download_title">Download BitChord Desktop</h2>
+          <p class="lede" data-i18n="download_lede">Choose the installer for your operating system.</p>
         </div>
-        <div class="version-badge glass" id="version-badge">Memuat versi…</div>
+        <div class="version-badge glass" id="version-badge">Loading version…</div>
       </div>
 
       <div class="platforms">
 
-        <article class="platform glass" data-os="linux">
+        <article class="platform glass" data-os="linux" data-badge-text="Your Device">
           <div class="platform-head">
             <div class="platform-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="#f5f5f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-2 0-3 2-3 4.5 0 1.5-.5 2.5-1.5 4S6 15 6 17.5C6 19.5 7.5 21 9.5 21h5c2 0 3.5-1.5 3.5-3.5 0-2.5-1.5-3.5-2.5-5S15 8 15 7.5C15 5 14 3 12 3z"/><circle cx="10" cy="8" r=".6" fill="#f5f5f7"/><circle cx="14" cy="8" r=".6" fill="#f5f5f7"/></svg>
             </div>
             <div>
               <h3>Linux</h3>
-              <p class="small">AppImage, DEB, RPM, atau Tar.gz</p>
+              <p class="small" data-i18n="platform_linux_sub">AppImage, DEB, RPM, or Tar.gz</p>
             </div>
           </div>
           <div class="file-list" data-list="linux"><div class="loading-row"></div></div>
         </article>
 
-        <article class="platform glass" data-os="win">
+        <article class="platform glass" data-os="win" data-badge-text="Your Device">
           <div class="platform-head">
             <div class="platform-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="#f5f5f7"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.25 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg>
             </div>
             <div>
               <h3>Windows</h3>
-              <p class="small">Setup EXE, MSI, atau Portable ZIP</p>
+              <p class="small" data-i18n="platform_win_sub">Setup EXE, MSI, or Portable ZIP</p>
             </div>
           </div>
           <div class="file-list" data-list="win"><div class="loading-row"></div></div>
@@ -651,13 +726,13 @@
       </div>
 
       <p class="all-releases" id="all-releases">
-        Mencari catatan rilis lengkap atau berkas checksum? <a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener">Lihat semua rilis di GitHub</a>.
+        <span data-i18n="all_releases_text">Looking for complete release notes or checksum files?</span> <a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener" data-i18n="all_releases_link">View all releases on GitHub</a>.
       </p>
     </section>
 
     <section id="fitur">
-      <h2>Didesain untuk dengar.</h2>
-      <p class="lede">Harmonisasi estetika modern bergaya Apple Music dengan performa audio kelas desktop.</p>
+      <h2 data-i18n="features_title">Engineered for listening.</h2>
+      <p class="lede" data-i18n="features_lede">Harmonizing modern Apple Music aesthetics with desktop-grade audio performance.</p>
 
       <div class="features" style="margin-top: 48px;">
         <div class="feature glass">
@@ -665,8 +740,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 21h8M12 17v4"/></svg>
           </div>
           <div>
-            <h3>Antarmuka Apple Music & Frosted Glass</h3>
-            <p>Lapisan liquid glass tembus pandang, ekstraksi palet warna dinamis dari sampul album, scrubber interaktif dengan time preview, dan teks marquee berjalan otomatis.</p>
+            <h3 data-i18n="feat_ui_title">Apple Music & Frosted Glass Interface</h3>
+            <p data-i18n="feat_ui_desc">Translucent liquid glass acrylics, dynamic color extraction from album artwork, interactive timeline scrubber with time preview, and auto-scrolling marquee text.</p>
           </div>
         </div>
 
@@ -675,8 +750,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
           </div>
           <div>
-            <h3>Mesin Audio Native FFmpeg 7.1</h3>
-            <p>Pipeline decoding JavaCPP terakselerasi perangkat keras dengan presisi internal 32-bit float. Mendukung format Hi-Res Lossless (FLAC, ALAC, WAV) dan Opus/AAC.</p>
+            <h3 data-i18n="feat_audio_title">Native FFmpeg 7.1 Audio Engine</h3>
+            <p data-i18n="feat_audio_desc">Hardware-accelerated JavaCPP decoding pipeline with 32-bit float internal precision. Supports lossless Hi-Res (FLAC, ALAC, WAV) and web Opus/AAC streaming.</p>
           </div>
         </div>
 
@@ -685,8 +760,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
           </div>
           <div>
-            <h3>Listen Together (Mode Pesta)</h3>
-            <p>Dengarkan musik bersama teman secara sinkron. Dukungan instan server cloud bawaan, VPS kustom, atau Quick Tunnel Cloudflare lokal satu klik tanpa port forwarding.</p>
+            <h3 data-i18n="feat_party_title">Listen Together (Party Mode)</h3>
+            <p data-i18n="feat_party_desc">Synchronize playback with friends worldwide in real-time. Instant connection via built-in cloud server, self-hosted VPS, or local one-click Cloudflare Quick Tunnel.</p>
           </div>
         </div>
 
@@ -695,8 +770,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16m-7 6h7"/></svg>
           </div>
           <div>
-            <h3>Lirik Tersinkronisasi & Artwork Bergerak</h3>
-            <p>Tampilan lirik kata per kata yang akurat (LRCLIB, Musixmatch, YouTube) disertai animasi Apple Music motion canvas banner yang dirender hemat CPU.</p>
+            <h3 data-i18n="feat_lyrics_title">Synchronized Lyrics & Motion Canvas</h3>
+            <p data-i18n="feat_lyrics_desc">Frame-rate accurate syllable-by-syllable synchronized lyrics (LRCLIB, Musixmatch, YouTube) paired with smooth, low-CPU Apple Music motion canvas artwork.</p>
           </div>
         </div>
 
@@ -705,8 +780,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
           </div>
           <div>
-            <h3>Integrasi Media OS & Discord RPC</h3>
-            <p>Dukungan penuh Linux MPRIS D-Bus dan Windows SMTC (volume overlay & lock screen), serta Discord Rich Presence lokal melalui IPC tanpa bot token.</p>
+            <h3 data-i18n="feat_os_title">Native OS Integration & Discord RPC</h3>
+            <p data-i18n="feat_os_desc">Full Linux MPRIS D-Bus and Windows SMTC support across volume overlays and lock screens, plus zero-config local Discord Rich Presence via IPC.</p>
           </div>
         </div>
 
@@ -715,32 +790,32 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
           </div>
           <div>
-            <h3>DJ Automix & Pustaka Lokal</h3>
-            <p>Transisi antarlagu yang mulus dengan analisis tempo dan ketukan bertenaga Aubio & ONNX, serta monitoring direktori lagu lokal real-time.</p>
+            <h3 data-i18n="feat_automix_title">DJ Automix & Local Library</h3>
+            <p data-i18n="feat_automix_desc">Seamless track transitions with beat and tempo matching powered by Aubio and ONNX neural analysis models, alongside real-time local audio directory watching.</p>
           </div>
         </div>
       </div>
     </section>
 
     <section id="instal">
-      <h2>Cara instal</h2>
-      <p class="lede">Ikuti langkah sesuai sistem operasimu. Siap digunakan dalam hitungan detik.</p>
+      <h2 data-i18n="install_title">Installation guide</h2>
+      <p class="lede" data-i18n="install_lede">Follow the steps for your operating system. Up and running in seconds.</p>
 
       <div class="guide" style="margin-top: 40px;">
         <details class="guide-item glass" open>
           <summary>Linux</summary>
           <div class="guide-body">
-            <p><strong>Universal AppImage (Direkomendasikan):</strong> Beri izin eksekusi lalu jalankan langsung:
+            <p><strong data-i18n="install_linux_appimage_title">Universal AppImage (Recommended):</strong> <span data-i18n="install_linux_appimage_desc">Make executable with chmod +x and run directly:</span>
               <br/><code>chmod +x BitChord-*-x86_64.AppImage && ./BitChord-*-x86_64.AppImage</code>
             </p>
-            <p><strong>Debian / Ubuntu / Mint (.deb):</strong> Pasang paket native melalui terminal:
-              <br/><code>sudo apt install ./bitchord_*_amd64.deb</code> atau <code>sudo dpkg -i bitchord_*_amd64.deb</code>
+            <p><strong data-i18n="install_linux_deb_title">Debian / Ubuntu / Mint (.deb):</strong> <span data-i18n="install_linux_deb_desc">Install native package via terminal:</span>
+              <br/><code>sudo apt install ./bitchord_*_amd64.deb</code>
             </p>
-            <p><strong>Fedora / RHEL / openSUSE (.rpm):</strong> Pasang paket RPM:
+            <p><strong data-i18n="install_linux_rpm_title">Fedora / RHEL / openSUSE (.rpm):</strong> <span data-i18n="install_linux_rpm_desc">Install RPM package:</span>
               <br/><code>sudo dnf install ./bitchord-*.x86_64.rpm</code>
             </p>
-            <p><strong>Portable Tar.gz:</strong> Ekstrak arsip lalu jalankan skrip integrasi:
-              <br/><code>./BitChord/bin/BitChord</code> atau daftarkan launcher desktop via <code>./scripts/install-desktop.sh</code>
+            <p><strong data-i18n="install_linux_tar_title">Portable Tar.gz:</strong> <span data-i18n="install_linux_tar_desc">Extract archive and launch directly:</span>
+              <br/><code>./BitChord/bin/BitChord</code> <span data-i18n="install_linux_tar_or">or register desktop launcher via</span> <code>./scripts/install-desktop.sh</code>
             </p>
           </div>
         </details>
@@ -748,9 +823,9 @@
         <details class="guide-item glass">
           <summary>Windows</summary>
           <div class="guide-body">
-            <p><strong>Setup Installer EXE (Direkomendasikan):</strong> Jalankan <code>BitChord-*.exe</code> untuk memasang aplikasi dengan pintasan Start Menu dan Desktop otomatis. Runtime Java sudah terintegrasi penuh.</p>
-            <p><strong>Windows MSI Installer:</strong> Jalankan <code>BitChord-*.msi</code> untuk pemasangan sistem berbasis Windows Installer standar.</p>
-            <p><strong>Portable ZIP:</strong> Ekstrak arsip ZIP di lokasi mana pun, lalu klik dua kali <code>BitChord.vbs</code> untuk menjalankan pemutar secara instan di latar belakang tanpa jendela terminal.</p>
+            <p><strong data-i18n="install_win_exe_title">Setup Installer EXE (Recommended):</strong> <span data-i18n="install_win_exe_desc">Run BitChord-*.exe to install with automatic Start Menu and Desktop shortcuts. Java runtime is fully embedded.</span></p>
+            <p><strong data-i18n="install_win_msi_title">Windows MSI Installer:</strong> <span data-i18n="install_win_msi_desc">Run BitChord-*.msi for standard Windows Installer system deployment.</span></p>
+            <p><strong data-i18n="install_win_zip_title">Portable ZIP:</strong> <span data-i18n="install_win_zip_desc">Extract the ZIP archive anywhere, then double-click BitChord.vbs to launch the player silently in the background without terminal windows.</span></p>
           </div>
         </details>
       </div>
@@ -764,18 +839,210 @@
       <div>&copy; 2026 BitChord Desktop Community. Licensed under GNU General Public License v3.0.</div>
     </div>
     <div class="links">
-      <a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener">Kode Sumber</a>
-      <a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" target="_blank" rel="noopener">Panduan Pengguna</a>
-      <a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener">Semua Rilis</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener" data-i18n="footer_source">Source Code</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" target="_blank" rel="noopener" data-i18n="footer_guide">User Guide</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener" data-i18n="footer_releases">All Releases</a>
       <a href="https://ko-fi.com/efzynx" target="_blank" rel="noopener">Ko-fi</a>
       <a href="https://trakteer.id/efzyn/gift" target="_blank" rel="noopener">Trakteer</a>
     </div>
   </footer>
 
+  <!-- Floating Back to Top Button -->
+  <button class="back-to-top glass" id="backToTop" aria-label="Back to top" title="Back to top">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 15l-6-6-6 6"/>
+    </svg>
+  </button>
+
   <script>
     (function () {
       const REPO = "efzynx/BitChord-Desktop";
       const RELEASES_PAGE = `https://github.com/${REPO}/releases`;
+
+      /* ==========================================================================
+         i18n Translation Dictionary
+         Acuan: Bahasa Indonesia (id)
+         Default: English (en)
+         ========================================================================== */
+      const translations = {
+        id: {
+          doc_title: "BitChord Desktop — Pemutar YouTube Music untuk Linux & Windows",
+          doc_desc: "BitChord Desktop adalah pemutar musik desktop berkinerja tinggi untuk Linux dan Windows bertenaga Compose Multiplatform dan FFmpeg 7.1.",
+          nav_features: "Fitur",
+          nav_download: "Unduh",
+          nav_install: "Instal",
+          nav_guide: "Panduan",
+          nav_cta: "Unduh",
+          hero_sub: "Pemutar musik modern untuk Linux & Windows.",
+          hero_lede: "Aplikasi pemutar YouTube Music Aesthetic yang terinspirasi dari Apple Music, bertenaga decoding native FFmpeg 7.1, lirik tersinkronisasi per kata, dan mode pesta Listen Together.",
+          hero_download: "Unduh BitChord",
+          hero_features: "Pelajari fiturnya",
+          hero_meta: "Gratis dan sumber terbuka di bawah lisensi GPLv3.",
+          download_title: "Unduh BitChord Desktop",
+          download_lede: "Pilih installer berdasarkan sistem operasi.",
+          current_device: "Perangkatmu",
+          platform_linux_sub: "AppImage, DEB, RPM, atau Tar.gz",
+          platform_win_sub: "Setup EXE, MSI, atau Portable ZIP",
+          all_releases_text: "Mencari catatan rilis lengkap atau berkas checksum?",
+          all_releases_link: "Lihat semua rilis di GitHub",
+          features_title: "Didesain untuk dengar.",
+          features_lede: "Harmonisasi estetika modern bergaya Apple Music dengan performa audio kelas desktop.",
+          feat_ui_title: "Antarmuka Apple Music & Frosted Glass",
+          feat_ui_desc: "Lapisan liquid glass tembus pandang, ekstraksi palet warna dinamis dari sampul album, scrubber interaktif dengan time preview, dan teks marquee berjalan otomatis.",
+          feat_audio_title: "Mesin Audio Native FFmpeg 7.1",
+          feat_audio_desc: "Pipeline decoding JavaCPP terakselerasi perangkat keras dengan presisi internal 32-bit float. Mendukung format Hi-Res Lossless (FLAC, ALAC, WAV) dan Opus/AAC.",
+          feat_party_title: "Listen Together (Mode Pesta)",
+          feat_party_desc: "Dengarkan musik bersama teman secara sinkron. Dukungan instan server cloud bawaan, VPS kustom, atau Quick Tunnel Cloudflare lokal satu klik tanpa port forwarding.",
+          feat_lyrics_title: "Lirik Tersinkronisasi & Artwork Bergerak",
+          feat_lyrics_desc: "Tampilan lirik kata per kata yang akurat (LRCLIB, Musixmatch, YouTube) disertai animasi Apple Music motion canvas banner yang dirender hemat CPU.",
+          feat_os_title: "Integrasi Media OS & Discord RPC",
+          feat_os_desc: "Dukungan penuh Linux MPRIS D-Bus dan Windows SMTC (volume overlay & lock screen), serta Discord Rich Presence lokal melalui IPC tanpa bot token.",
+          feat_automix_title: "DJ Automix & Pustaka Lokal",
+          feat_automix_desc: "Transisi antarlagu yang mulus dengan analisis tempo dan ketukan bertenaga Aubio & ONNX, serta monitoring direktori lagu lokal real-time.",
+          install_title: "Cara instal",
+          install_lede: "Ikuti langkah sesuai sistem operasimu. Siap digunakan dalam hitungan detik.",
+          install_linux_appimage_title: "Universal AppImage (Direkomendasikan):",
+          install_linux_appimage_desc: "Beri izin eksekusi lalu jalankan langsung:",
+          install_linux_deb_title: "Debian / Ubuntu / Mint (.deb):",
+          install_linux_deb_desc: "Pasang paket native melalui terminal:",
+          install_linux_rpm_title: "Fedora / RHEL / openSUSE (.rpm):",
+          install_linux_rpm_desc: "Pasang paket RPM:",
+          install_linux_tar_title: "Portable Tar.gz:",
+          install_linux_tar_desc: "Ekstrak arsip lalu jalankan skrip integrasi:",
+          install_linux_tar_or: "atau daftarkan launcher desktop via",
+          install_win_exe_title: "Setup Installer EXE (Direkomendasikan):",
+          install_win_exe_desc: "Jalankan BitChord-*.exe untuk memasang aplikasi dengan pintasan Start Menu dan Desktop otomatis. Runtime Java sudah terintegrasi penuh.",
+          install_win_msi_title: "Windows MSI Installer:",
+          install_win_msi_desc: "Jalankan BitChord-*.msi untuk pemasangan sistem berbasis Windows Installer standar.",
+          install_win_zip_title: "Portable ZIP:",
+          install_win_zip_desc: "Ekstrak arsip ZIP di lokasi mana pun, lalu klik dua kali BitChord.vbs untuk menjalankan pemutar secara instan di latar belakang tanpa jendela terminal.",
+          footer_source: "Kode Sumber",
+          footer_guide: "Panduan Pengguna",
+          footer_releases: "Semua Rilis",
+          dynamic_version_prefix: "Versi ",
+          dynamic_prerelease: " (pra-rilis)",
+          dynamic_stable: " (stabil)",
+          dynamic_downloads: " unduhan · ",
+          dynamic_license: "Gratis & GPLv3",
+          dynamic_download_for: "Unduh untuk ",
+          dynamic_download_fallback: "Unduh BitChord (",
+          dynamic_empty_note: "Belum ada paket resmi untuk platform ini di rilis stabil terbaru. ",
+          dynamic_empty_link: "Cek riwayat rilis di GitHub",
+          back_to_top_title: "Kembali ke atas"
+        },
+        en: {
+          doc_title: "BitChord Desktop — Aesthetic YouTube Music Player for Linux & Windows",
+          doc_desc: "BitChord Desktop is a high-performance desktop music player for Linux and Windows powered by Compose Multiplatform and native FFmpeg 7.1.",
+          nav_features: "Features",
+          nav_download: "Download",
+          nav_install: "Install",
+          nav_guide: "Guide",
+          nav_cta: "Download",
+          hero_sub: "A modern music player for Linux & Windows.",
+          hero_lede: "An aesthetic, Apple Music-inspired YouTube Music desktop client with native FFmpeg 7.1 decoding, real-time synchronized lyrics, and Listen Together party rooms.",
+          hero_download: "Download BitChord",
+          hero_features: "Explore features",
+          hero_meta: "Free and open source under the GPLv3 license.",
+          download_title: "Download BitChord Desktop",
+          download_lede: "Choose the installer for your operating system.",
+          current_device: "Your Device",
+          platform_linux_sub: "AppImage, DEB, RPM, or Tar.gz",
+          platform_win_sub: "Setup EXE, MSI, or Portable ZIP",
+          all_releases_text: "Looking for complete release notes or checksum files?",
+          all_releases_link: "View all releases on GitHub",
+          features_title: "Engineered for listening.",
+          features_lede: "Harmonizing modern Apple Music aesthetics with desktop-grade audio performance.",
+          feat_ui_title: "Apple Music & Frosted Glass Interface",
+          feat_ui_desc: "Translucent liquid glass acrylics, dynamic color extraction from album artwork, interactive timeline scrubber with time preview, and auto-scrolling marquee text.",
+          feat_audio_title: "Native FFmpeg 7.1 Audio Engine",
+          feat_audio_desc: "Hardware-accelerated JavaCPP decoding pipeline with 32-bit float internal precision. Supports lossless Hi-Res (FLAC, ALAC, WAV) and web Opus/AAC streaming.",
+          feat_party_title: "Listen Together (Party Mode)",
+          feat_party_desc: "Synchronize playback with friends worldwide in real-time. Instant connection via built-in cloud server, self-hosted VPS, or local one-click Cloudflare Quick Tunnel.",
+          feat_lyrics_title: "Synchronized Lyrics & Motion Canvas",
+          feat_lyrics_desc: "Frame-rate accurate syllable-by-syllable synchronized lyrics (LRCLIB, Musixmatch, YouTube) paired with smooth, low-CPU Apple Music motion canvas artwork.",
+          feat_os_title: "Native OS Integration & Discord RPC",
+          feat_os_desc: "Full Linux MPRIS D-Bus and Windows SMTC support across volume overlays and lock screens, plus zero-config local Discord Rich Presence via IPC.",
+          feat_automix_title: "DJ Automix & Local Library",
+          feat_automix_desc: "Seamless track transitions with beat and tempo matching powered by Aubio and ONNX neural analysis models, alongside real-time local audio directory watching.",
+          install_title: "Installation guide",
+          install_lede: "Follow the steps for your operating system. Up and running in seconds.",
+          install_linux_appimage_title: "Universal AppImage (Recommended):",
+          install_linux_appimage_desc: "Make executable with chmod +x and run directly:",
+          install_linux_deb_title: "Debian / Ubuntu / Mint (.deb):",
+          install_linux_deb_desc: "Install native package via terminal:",
+          install_linux_rpm_title: "Fedora / RHEL / openSUSE (.rpm):",
+          install_linux_rpm_desc: "Install RPM package:",
+          install_linux_tar_title: "Portable Tar.gz:",
+          install_linux_tar_desc: "Extract archive and launch directly:",
+          install_linux_tar_or: "or register desktop launcher via",
+          install_win_exe_title: "Setup Installer EXE (Recommended):",
+          install_win_exe_desc: "Run BitChord-*.exe to install with automatic Start Menu and Desktop shortcuts. Java runtime is fully embedded.",
+          install_win_msi_title: "Windows MSI Installer:",
+          install_win_msi_desc: "Run BitChord-*.msi for standard Windows Installer system deployment.",
+          install_win_zip_title: "Portable ZIP:",
+          install_win_zip_desc: "Extract the ZIP archive anywhere, then double-click BitChord.vbs to launch the player silently in the background without terminal windows.",
+          footer_source: "Source Code",
+          footer_guide: "User Guide",
+          footer_releases: "All Releases",
+          dynamic_version_prefix: "Version ",
+          dynamic_prerelease: " (pre-release)",
+          dynamic_stable: " (stable)",
+          dynamic_downloads: " downloads · ",
+          dynamic_license: "Free & GPLv3",
+          dynamic_download_for: "Download for ",
+          dynamic_download_fallback: "Download BitChord (",
+          dynamic_empty_note: "No official packages available for this platform in the latest stable release. ",
+          dynamic_empty_link: "Check release history on GitHub",
+          back_to_top_title: "Back to top"
+        }
+      };
+
+      // Default language: 'en'
+      let currentLang = localStorage.getItem("bitchord_lang") || "en";
+
+      function applyLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem("bitchord_lang", lang);
+        document.documentElement.lang = lang;
+
+        const dict = translations[lang] || translations.en;
+
+        // Update page title & description
+        document.getElementById("docTitle").textContent = dict.doc_title;
+        document.getElementById("docDesc").setAttribute("content", dict.doc_desc);
+
+        // Update all data-i18n elements
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const key = el.getAttribute("data-i18n");
+          if (dict[key]) el.textContent = dict[key];
+        });
+
+        // Update device badge text attribute
+        document.querySelectorAll("[data-badge-text]").forEach(el => {
+          el.setAttribute("data-badge-text", dict.current_device);
+        });
+
+        // Update back to top title
+        const backToTopBtn = document.getElementById("backToTop");
+        if (backToTopBtn) {
+          backToTopBtn.setAttribute("aria-label", dict.back_to_top_title);
+          backToTopBtn.setAttribute("title", dict.back_to_top_title);
+        }
+
+        // Update language buttons active state
+        document.querySelectorAll("[data-lang-btn]").forEach(btn => {
+          if (btn.getAttribute("data-lang-btn") === lang) {
+            btn.classList.add("active");
+          } else {
+            btn.classList.remove("active");
+          }
+        });
+
+        // Re-render release meta & labels if releases data is cached
+        if (window._latestReleaseCache) {
+          renderReleaseUI(window._latestReleaseCache.release, window._latestReleaseCache.totalDownloads);
+        }
+      }
 
       /* ---------- Deteksi sistem operasi pengunjung (Linux & Windows) ---------- */
       function detectOS() {
@@ -826,24 +1093,77 @@
       }
 
       function renderEmpty(list, os) {
+        const dict = translations[currentLang] || translations.en;
         list.innerHTML = "";
         const p = document.createElement("p");
         p.className = "empty-note";
-        p.textContent = "Belum ada paket resmi untuk platform ini di rilis stabil terbaru. ";
+        p.textContent = dict.dynamic_empty_note;
         const link = document.createElement("a");
         link.href = RELEASES_PAGE;
         link.target = "_blank";
         link.rel = "noopener";
-        link.textContent = "Cek riwayat rilis di GitHub";
+        link.textContent = dict.dynamic_empty_link;
         p.appendChild(link);
         list.appendChild(p);
       }
 
-      function setFallback() {
-        document.getElementById("version-badge").textContent = "Versi v1.9.2";
+      function renderReleaseUI(release, totalDownloads) {
+        const dict = translations[currentLang] || translations.en;
+        const version = release ? (release.tag_name || release.name || "v1.9.2") : "v1.9.2";
+        const isPrerelease = release ? !!release.prerelease : false;
+
+        document.getElementById("version-badge").textContent =
+          dict.dynamic_version_prefix + version + (isPrerelease ? dict.dynamic_prerelease : dict.dynamic_stable);
+
+        // Group assets
+        const groups = { win: [], linux: [] };
+        if (release && release.assets) {
+          release.assets.forEach(asset => {
+            const info = classify(asset.name);
+            if (info) groups[info.os].push({ asset, info });
+          });
+        }
+
+        const current = detectOS();
+
         ["linux", "win"].forEach(os => {
-          renderEmpty(document.querySelector(`[data-list="${os}"]`), os);
+          const list = document.querySelector(`[data-list="${os}"]`);
+          const card = document.querySelector(`[data-os="${os}"]`);
+          const items = groups[os].sort((x, y) => x.info.order - y.info.order);
+
+          if (!items.length) {
+            renderEmpty(list, os);
+            return;
+          }
+
+          list.innerHTML = "";
+          items.forEach((item, i) => {
+            list.appendChild(buildButton(item.asset, item.info, i === 0 && os === current));
+          });
+
+          if (os === current && card) card.classList.add("is-current");
         });
+
+        // Primary Hero CTA button
+        const hero = document.getElementById("hero-download");
+        const heroLabel = document.getElementById("hero-download-label");
+        const heroMeta = document.getElementById("hero-meta");
+        const currentItems = current ? groups[current].sort((x, y) => x.info.order - y.info.order) : [];
+
+        const metaText = dict.dynamic_version_prefix + version + " · " + (totalDownloads > 0 ? totalDownloads.toLocaleString() + dict.dynamic_downloads : "") + dict.dynamic_license;
+        heroMeta.textContent = metaText;
+
+        if (currentItems.length) {
+          hero.href = currentItems[0].asset.browser_download_url;
+          heroLabel.textContent = dict.dynamic_download_for + ({ win: "Windows", linux: "Linux" })[current];
+        } else {
+          hero.href = "#unduh";
+          heroLabel.textContent = dict.dynamic_download_fallback + version + ")";
+        }
+      }
+
+      function setFallback() {
+        renderReleaseUI(null, 0);
         document.getElementById("hero-download").href = RELEASES_PAGE;
       }
 
@@ -855,16 +1175,10 @@
           if (!res.ok) throw new Error("HTTP " + res.status);
           const releases = await res.json();
 
-          // Ambil rilis stabil terbaru (bukan prerelease dan punya assets)
           const release = releases.find(r => !r.draft && !r.prerelease && r.assets && r.assets.length) ||
                           releases.find(r => !r.draft && r.assets && r.assets.length);
           if (!release) return setFallback();
 
-          const version = release.tag_name || release.name || "v1.9.2";
-          document.getElementById("version-badge").textContent =
-            "Versi " + version + (release.prerelease ? " (pra-rilis)" : " (stabil)");
-
-          // Hitung total unduhan seluruh aset
           let totalDownloads = 0;
           for (const r of releases) {
             for (const a of r.assets || []) {
@@ -872,55 +1186,42 @@
             }
           }
 
-          // Kelompokkan aset per platform (Linux dan Windows)
-          const groups = { win: [], linux: [] };
-          release.assets.forEach(asset => {
-            const info = classify(asset.name);
-            if (info) groups[info.os].push({ asset, info });
-          });
-
-          const current = detectOS();
-
-          ["linux", "win"].forEach(os => {
-            const list = document.querySelector(`[data-list="${os}"]`);
-            const card = document.querySelector(`[data-os="${os}"]`);
-            const items = groups[os].sort((x, y) => x.info.order - y.info.order);
-
-            if (!items.length) {
-              renderEmpty(list, os);
-              return;
-            }
-
-            list.innerHTML = "";
-            items.forEach((item, i) => {
-              list.appendChild(buildButton(item.asset, item.info, i === 0 && os === current));
-            });
-
-            if (os === current && card) card.classList.add("is-current");
-          });
-
-          // Tombol utama di hero mengarah ke platform pengunjung
-          const hero = document.getElementById("hero-download");
-          const heroLabel = document.getElementById("hero-download-label");
-          const heroMeta = document.getElementById("hero-meta");
-          const currentItems = current ? groups[current].sort((x, y) => x.info.order - y.info.order) : [];
-
-          const metaText = "Versi " + version + " · " + (totalDownloads > 0 ? totalDownloads.toLocaleString() + " unduhan · " : "") + "Gratis & GPLv3";
-          heroMeta.textContent = metaText;
-
-          if (currentItems.length) {
-            hero.href = currentItems[0].asset.browser_download_url;
-            heroLabel.textContent = "Unduh untuk " + ({ win: "Windows", linux: "Linux" })[current];
-          } else {
-            hero.href = "#unduh";
-            heroLabel.textContent = "Unduh BitChord (" + version + ")";
-          }
+          window._latestReleaseCache = { release, totalDownloads };
+          renderReleaseUI(release, totalDownloads);
         } catch (err) {
-          console.warn("Gagal memuat rilis dari GitHub API:", err);
+          console.warn("Could not fetch releases from GitHub API:", err);
           setFallback();
         }
       }
 
+      /* ---------- Inisialisasi Language Switcher Listener ---------- */
+      document.querySelectorAll("[data-lang-btn]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const lang = btn.getAttribute("data-lang-btn");
+          if (lang && lang !== currentLang) {
+            applyLanguage(lang);
+          }
+        });
+      });
+
+      /* ---------- Inisialisasi Back to Top Button ---------- */
+      const backToTopBtn = document.getElementById("backToTop");
+      window.addEventListener("scroll", () => {
+        if (window.scrollY > 300) {
+          backToTopBtn.classList.add("is-visible");
+        } else {
+          backToTopBtn.classList.remove("is-visible");
+        }
+      }, { passive: true });
+
+      backToTopBtn.addEventListener("click", () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+
+      // Apply initial language (Default: 'en', unless saved in localStorage)
+      applyLanguage(currentLang);
+
+      // Load releases
       loadReleases();
     })();
   </script>
