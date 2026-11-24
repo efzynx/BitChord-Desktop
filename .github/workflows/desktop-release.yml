@@ -299,3 +299,30 @@ jobs:
           files: |
             release-assets/*
           generate_release_notes: true
+
+      - name: Update README.md Download Links (Stable Release)
+        if: needs.prepare-release.outputs.is_prerelease == 'false' && !(github.event.inputs.draft == true)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git pull origin main || true
+
+          # Update direct download links in README.md table and release badge
+          sed -i -E "s|releases/download/v[0-9]+\.[0-9]+\.[0-9]+/BitChord-[0-9]+\.[0-9]+\.[0-9]+-x86_64\.AppImage|releases/download/${{ env.TAG_NAME }}/BitChord-${{ env.VERSION }}-x86_64.AppImage|g" README.md
+          sed -i -E "s|releases/download/v[0-9]+\.[0-9]+\.[0-9]+/bitchord_[0-9]+\.[0-9]+\.[0-9]+_amd64\.deb|releases/download/${{ env.TAG_NAME }}/bitchord_${{ env.VERSION }}_amd64.deb|g" README.md
+          sed -i -E "s|releases/download/v[0-9]+\.[0-9]+\.[0-9]+/bitchord-[0-9]+\.[0-9]+\.[0-9]+\.x86_64\.rpm|releases/download/${{ env.TAG_NAME }}/bitchord-${{ env.VERSION }}.x86_64.rpm|g" README.md
+          sed -i -E "s|releases/download/v[0-9]+\.[0-9]+\.[0-9]+/BitChord-[0-9]+\.[0-9]+\.[0-9]+-linux-x64\.tar\.gz|releases/download/${{ env.TAG_NAME }}/BitChord-${{ env.VERSION }}-linux-x64.tar.gz|g" README.md
+          sed -i -E "s|releases/download/v[0-9]+\.[0-9]+\.[0-9]+/BitChord-[0-9]+\.[0-9]+\.[0-9]+\.exe|releases/download/${{ env.TAG_NAME }}/BitChord-${{ env.VERSION }}.exe|g" README.md
+          sed -i -E "s|releases/download/v[0-9]+\.[0-9]+\.[0-9]+/BitChord-[0-9]+\.[0-9]+\.[0-9]+\.msi|releases/download/${{ env.TAG_NAME }}/BitChord-${{ env.VERSION }}.msi|g" README.md
+          sed -i -E "s|releases/download/v[0-9]+\.[0-9]+\.[0-9]+/BitChord-[0-9]+\.[0-9]+\.[0-9]+-windows-portable\.zip|releases/download/${{ env.TAG_NAME }}/BitChord-${{ env.VERSION }}-windows-portable.zip|g" README.md
+          sed -i -E "s|alt=\"Release v[0-9]+\.[0-9]+\.[0-9]+\"|alt=\"Release ${{ env.TAG_NAME }}\"|g" README.md
+
+          if git diff --quiet README.md; then
+            echo "README.md download links are already up to date."
+          else
+            git add README.md
+            git commit -m "chore(release): update direct download links in README to ${{ env.TAG_NAME }} [skip ci]"
+            git push origin main
+          fi
