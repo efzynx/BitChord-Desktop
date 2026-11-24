@@ -4,6 +4,42 @@ All notable changes to **BitChord Desktop** will be documented in this file.
 
 ---
 
+## [1.10.0] - 2026-11-24
+
+BitChord Desktop v1.10.0 is a major milestone release that synchronizes with upstream BitChord 1.10, introduces a redesigned Listen Together party system with zero-setup Quick Party mode, animated artist banners, Best Part scrubber highlights, and enhanced playlist management alongside significant stability and performance optimizations.
+
+### What's New & Highlights
+
+#### Upstream BitChord 1.10 Synchronization
+- **AutoMix & Canvas Transitions**: Seamless track blending with organic artwork transitions, Spotify Canvas handling, mixing badges, and nested settings controls.
+- **Enhanced Queue & Playlists**: Queue multi-select mode with bulk playlist actions, swipe gestures, undo snackbars, and automatic upcoming songs view.
+- **Timed Lyrics Synchronization**: Real-time line and syllable synchronization from YouTube Music, LRCLIB, and Musixmatch with extended glow feathering.
+- **Library & Download Improvements**: Isolated artwork per local audio track, auto-download for liked tracks, and audio fade-out for sleep timers.
+
+#### Listen Together & Party Mode Overhaul
+- **Zero-Setup Quick Party**: Instant one-click party room creation and joining powered by a dedicated high-performance VPS (`party.bitchord.my.id`), eliminating manual server configuration.
+- **Custom Party & Cloudflare Quick Tunnel**: Flexible support for self-hosted VPS and local one-click `cloudflared` tunnel hosting without port forwarding.
+- **Integrated Server Distribution**: Bundled `party-server` binaries into Linux AppImage and Windows distributions with automated local loopback resolution.
+
+#### Interface, Visuals & Desktop Polish
+- **Animated Artist Banners**: High-definition HLS video banners for artist profile headers with user opt-in toggle in settings.
+- **Best Part Scrubber Highlights**: Visual markers for popular song segments directly integrated into the liquid glass scrubber timeline.
+- **AutoMix Artwork Controls**: Fine-grained settings for mini-player art transitions and background canvas blending.
+- **Desktop Branding**: Unified all application surfaces with clean BitChord Desktop identifiers.
+- **System Tray Polish**: Refined tray menu typography and clean system labels without legacy icon glyphs.
+
+#### Playlist Management & Desktop Controls
+- **Full Playlist Actions**: Direct renaming, deletion, and editing for both local and account playlists from the sidebar context menu.
+- **Shortcut Protection**: Keyboard shortcuts now gracefully yield during active search field text input to prevent accidental playback triggering.
+
+#### Performance, Packaging & Infrastructure
+- **Universal Linux AppImage Task**: Added native `:desktopApp:packageAppImage` Gradle build task.
+- **Windows Blur Stability**: Pinned Windows Haze dependency to 1.7.3 to prevent runtime `NoSuchMethodError` crashes.
+- **Memory & CPU Optimizations**: Reduced fullscreen lyrics rendering overhead and background resource footprint.
+- **Static Landing Portal**: Launched official GitHub Pages portal with liquid glass styling, ambient running glow, language selector (EN/ID), and live release download tracking.
+
+---
+
 ## [1.9.2] - 2026-11-20
 
 BitChord Desktop v1.9.2 is a major stable release bringing a refined Apple Music-inspired player experience, native Listen Together party hosting via Cloudflare Quick Tunnel, comprehensive liquid-glass visual enhancements, and full multi-language localization.

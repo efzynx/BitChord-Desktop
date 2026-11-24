@@ -40,8 +40,9 @@ keystore.properties
 .tmp_verify/
 .debug/
 
-# AI agent configuration
-AGENTS.md
+# Promotional / marketing assets (stored on assets branch)
+promo*.jpg
+promo_assets/
 /output/
 
 # Built packages — release APKs/bundles are handed out, never committed

@@ -13,7 +13,7 @@
 ### Aesthetic, High-Performance YouTube Music Client for Linux & Windows
 
 <p align="center">
-  <a href="https://github.com/efzynx/BitChord-Desktop/releases"><img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/badges/badge-release.svg" alt="Release v1.9.2" height="30" /></a>
+  <a href="https://github.com/efzynx/BitChord-Desktop/releases"><img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/badges/badge-release.svg" alt="Release v1.10.0" height="30" /></a>
   &nbsp;
   <a href="#download"><img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/badges/badge-platform.svg" alt="Linux &amp; Windows" height="30" /></a>
   &nbsp;
@@ -46,6 +46,8 @@ Originally initiated by [Kushagra Singh](https://github.com/kushagrasinghx) as a
 **This project ([efzynx/BitChord-Desktop](https://github.com/efzynx/BitChord-Desktop)) is an active, dedicated continuation that reconstructs, modernizes, and maintains high-performance native desktop clients for Linux and Windows.**
 
 Built on **Compose Multiplatform (Jetpack Compose on Desktop JVM)** and an integrated **C++ / JavaCPP FFmpeg 7.1 audio pipeline**, BitChord Desktop delivers a refined frosted-glass interface, ultra low-latency playback, native OS media integrations, word-by-word synced lyrics, and real-time Listen Together room synchronization.
+
+The architectural reconstruction, desktop porting, C++/FFmpeg optimizations, bug fixes, and feature expansions in this repository are actively developed and maintained by [@efzynx](https://github.com/efzynx) with full engineering assistance from **Google DeepMind Gemini** (via the Antigravity agent system).
 
 ---
 
@@ -140,20 +142,20 @@ Built on **Compose Multiplatform (Jetpack Compose on Desktop JVM)** and an integ
 
 ## Download
 
-Prebuilt binary releases are available on the [**GitHub Releases**](https://github.com/efzynx/BitChord-Desktop/releases) page.
+Prebuilt binary releases are available for direct download below, on the [**Official Web Portal**](https://efzynx.github.io/BitChord-Desktop/), and through the [**GitHub Releases**](https://github.com/efzynx/BitChord-Desktop/releases) page.
 
-| Platform | Package Format | Description |
-| :--- | :--- | :--- |
-| **Linux** | [**AppImage**](https://github.com/efzynx/BitChord-Desktop/releases) | **Recommended**. Universal standalone executable for all modern Linux distributions. |
-| **Linux** | [**DEB**](https://github.com/efzynx/BitChord-Desktop/releases) | Native package for Debian, Ubuntu, Linux Mint, and derivatives. |
-| **Linux** | [**RPM**](https://github.com/efzynx/BitChord-Desktop/releases) | Native package for Fedora, RHEL, openSUSE, and derivatives. |
-| **Linux** | [**Tar.gz**](https://github.com/efzynx/BitChord-Desktop/releases) | Portable tarball with automated `install-desktop.sh` launcher script. |
-| **Windows** | [**EXE**](https://github.com/efzynx/BitChord-Desktop/releases) | **Recommended**. Windows Setup installer with Start Menu and Desktop shortcuts. |
-| **Windows** | [**MSI**](https://github.com/efzynx/BitChord-Desktop/releases) | Standard Windows Installer package for system-wide deployment. |
-| **Windows** | [**ZIP (Portable)**](https://github.com/efzynx/BitChord-Desktop/releases) | Standalone portable archive with silent background runner (`BitChord.vbs`). |
+| Platform | Package Format | Direct Download (Latest Stable) | Description |
+| :--- | :--- | :--- | :--- |
+| **Linux** | **AppImage** | [**Download .AppImage**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/BitChord-1.10.0-x86_64.AppImage) | **Recommended**. Universal standalone executable for all modern Linux distributions. |
+| **Linux** | **DEB** | [**Download .deb**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/bitchord_1.10.0_amd64.deb) | Native package for Debian, Ubuntu, Linux Mint, and derivatives. |
+| **Linux** | **RPM** | [**Download .rpm**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/bitchord-1.10.0.x86_64.rpm) | Native package for Fedora, RHEL, openSUSE, and derivatives. |
+| **Linux** | **Tar.gz** | [**Download .tar.gz**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/BitChord-1.10.0-linux-x64.tar.gz) | Portable tarball with automated `install-desktop.sh` launcher script. |
+| **Windows** | **Setup EXE** | [**Download .exe**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/BitChord-1.10.0.exe) | **Recommended**. Windows Setup installer with Start Menu and Desktop shortcuts. |
+| **Windows** | **MSI** | [**Download .msi**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/BitChord-1.10.0.msi) | Standard Windows Installer package for system-wide deployment. |
+| **Windows** | **ZIP (Portable)** | [**Download .zip**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/BitChord-1.10.0-windows-portable.zip) | Standalone portable archive with silent background runner (`BitChord.vbs`). |
 
 > [!TIP]
-> For detailed installation instructions, distro-specific guides, and uninstallation steps, refer to the [**DESKTOP.md**](DESKTOP.md) guide.
+> Visit the [**BitChord Web Portal**](https://efzynx.github.io/BitChord-Desktop/) for automatic OS detection and one-click downloads. For detailed installation instructions, distro-specific guides, and uninstallation steps, refer to the [**DESKTOP.md**](DESKTOP.md) guide.
 
 ---
 
@@ -209,6 +211,7 @@ Contributions are warmly welcomed! Please read our [Contributing Guide](CONTRIBU
 ### Credits & Acknowledgements
 - **Original BitChord Author**: [Kushagra Singh](https://github.com/kushagrasinghx) ([kushagrasinghx/BitChord](https://github.com/kushagrasinghx/BitChord))
 - **Desktop Port & Maintenance**: [efzynx](https://github.com/efzynx) ([efzynx/BitChord-Desktop](https://github.com/efzynx/BitChord-Desktop))
+- **AI Engineering Partner**: [Google DeepMind Gemini](https://deepmind.google/technologies/gemini/) (via Google Antigravity Agent System)
 - **Apple Music Lyrics Engine**: [binimum](https://github.com/binimum/am-lyrics)
 - **Bit-Perfect DAC Passthrough**: [Mornye](https://github.com/mornyeapp/Mornye)
 - Community contributors across upstream and desktop repositories.

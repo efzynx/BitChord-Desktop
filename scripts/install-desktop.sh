@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "=== BitChord Linux Desktop Integration Installer ==="
+echo "=== BitChord Desktop Linux Integration Installer ==="
 
 APP_SOURCE="$ROOT_DIR/desktopApp/build/compose/binaries/main/app/BitChord"
 ICON_PNG="$ROOT_DIR/desktopApp/packaging/icons/AppIcon.png"
@@ -31,6 +31,11 @@ echo "1. Memasang file aplikasi ke $APP_DIR..."
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR"
 cp -a "$APP_SOURCE/." "$APP_DIR/"
+if [ -f "$ROOT_DIR/backend/party-server" ]; then
+    echo "   Menyertakan party-server untuk Listen Together..."
+    cp "$ROOT_DIR/backend/party-server" "$APP_DIR/bin/party-server"
+    chmod +x "$APP_DIR/bin/party-server"
+fi
 
 echo "2. Memasang wrapper executable di $BIN_DIR/bitchord..."
 cat > "$BIN_DIR/bitchord" <<'EOF'

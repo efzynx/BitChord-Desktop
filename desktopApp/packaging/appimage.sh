@@ -19,6 +19,11 @@ APPDIR="$STAGE/BitChord.AppDir"
 
 mkdir -p "$APPDIR/usr"
 cp -a "$APP_DIR_SRC/." "$APPDIR/usr/"
+if [ -f "$ROOT/backend/party-server" ]; then
+    echo "Including party-server for Listen Together in AppImage..."
+    cp "$ROOT/backend/party-server" "$APPDIR/usr/bin/party-server"
+    chmod +x "$APPDIR/usr/bin/party-server"
+fi
 
 # The mount point differs every run, so nothing may be hard-coded.
 cat > "$APPDIR/AppRun" <<'APPRUN'
@@ -31,7 +36,7 @@ chmod +x "$APPDIR/AppRun"
 cat > "$APPDIR/bitchord.desktop" <<'DESKTOP'
 [Desktop Entry]
 Type=Application
-Name=BitChord
+Name=BitChord Desktop
 GenericName=Music Player
 Comment=Aesthetic YouTube Music client
 Exec=BitChord

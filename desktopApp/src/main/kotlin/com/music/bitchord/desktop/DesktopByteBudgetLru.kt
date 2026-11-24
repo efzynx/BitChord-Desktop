@@ -40,6 +40,15 @@ internal class DesktopByteBudgetLru<V : Any>(
         held = 0L
     }
 
+    /** Drops the coldest entries until memory is reduced to [targetBytes]. */
+    fun trimTo(targetBytes: Long) = synchronized(entries) {
+        val iterator = entries.entries.iterator()
+        while (held > targetBytes && iterator.hasNext()) {
+            held -= sizeOf(iterator.next().value)
+            iterator.remove()
+        }
+    }
+
     /** Drops the coldest entries until the budget is met, always leaving the newest. */
     private fun trim() {
         val iterator = entries.entries.iterator()

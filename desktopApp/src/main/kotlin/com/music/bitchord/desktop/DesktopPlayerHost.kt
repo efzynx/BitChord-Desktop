@@ -19,6 +19,8 @@ import com.music.bitchord.data.settings.SmartAnalysis
 import com.music.bitchord.data.settings.TransitionWindow
 import com.music.bitchord.ui.player.AudioOutputDevice
 import com.music.bitchord.ui.player.AudioOutputKind
+import com.music.bitchord.ui.player.AutoMixArtworkPreferences
+import com.music.bitchord.ui.player.BestPartStart
 import com.music.bitchord.ui.player.CanvasVideoSpec
 import com.music.bitchord.ui.player.LyricsRomanizationResult
 import com.music.bitchord.ui.player.LyricsTranslationResult
@@ -66,6 +68,9 @@ internal object DesktopPlayerHost : PlayerHost {
     // Local files carry their art on the row already; there is no remote store to ask.
     @Composable
     override fun rememberRemoteArtworkUrl(song: Song?): String? = song?.thumbnailUrl
+
+    override suspend fun bestPartMs(song: Song): Long? =
+        DesktopBestParts.startFor(song).takeIf { it.source != BestPartStart.Source.FALLBACK }?.startMs
 
     /** The player's volume, 0..1, as the window holds it. */
     val volumeLevel = MutableStateFlow(1f)
@@ -186,7 +191,9 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     override val audioQualityWifi = MutableStateFlow(AudioQuality.LOSSLESS)
     override val canvasOverCellular = MutableStateFlow(true)
     override val fullBleedArtwork = MutableStateFlow(false)
+    override val showTotalDuration = MutableStateFlow(persistence.boolean(KEY_SHOW_TOTAL_DURATION, false))
     override val hideSongStatus = MutableStateFlow(false)
+    override val hideLyricsPreview = MutableStateFlow(false)
     override val showQueueHistory = MutableStateFlow(false)
     override val hideVolumeBar = DesktopAppearanceSettings.hideVolumeBar
     // A desktop window has no status bar to hide.
@@ -207,15 +214,23 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     override val meteredConnection = MutableStateFlow<Boolean?>(false)
     override val streamCeilingOverride = MutableStateFlow<AudioQuality?>(null)
     override val preferUsbDac = MutableStateFlow(false)
+    override val disableSpotifyCanvas = MutableStateFlow(false)
     override val prioritizeSpotifyCanvas = MutableStateFlow(false)
-    override val reduceAnimation = MutableStateFlow(false)
-    override val reduceDynamicBlur = MutableStateFlow(false)
+    override val reduceAnimation = DesktopAppearanceSettings.reduceAnimation
+    override val reduceDynamicBlur = DesktopAppearanceSettings.reduceDynamicBlur
     override val disableBlendEffects = MutableStateFlow(false)
     override val showNerdStats = MutableStateFlow(false)
+    override val showBestPart = MutableStateFlow(persistence.boolean(KEY_SHOW_BEST_PART, true))
     override val showListenTogetherButton = MutableStateFlow(true)
     override val smartAnalysis = MutableStateFlow(SmartAnalysis())
     override val automixDetail = MutableStateFlow<String?>(null)
     override val smartFadeEnabled = MutableStateFlow(false)
+    override val autoMixArtwork = MutableStateFlow(
+        AutoMixArtworkPreferences(
+            artTransition = persistence.boolean(KEY_AUTOMIX_ART_TRANSITION, false),
+            miniPlayerTransition = persistence.boolean(KEY_AUTOMIX_MINI_ART_TRANSITION, false),
+        )
+    )
     override val smartMixInProgress = MutableStateFlow(false)
     override val smartMixBlend = MutableStateFlow<MixBlend?>(null)
     override val smartMixView = MutableStateFlow<MixTransitionView?>(null)
@@ -240,8 +255,32 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
 
     override fun setMixViewOpen(open: Boolean) {}
 
+    fun setShowTotalDuration(value: Boolean) {
+        showTotalDuration.value = value
+        persistence.saveBoolean(KEY_SHOW_TOTAL_DURATION, value)
+    }
+
+    fun setShowBestPart(value: Boolean) {
+        showBestPart.value = value
+        persistence.saveBoolean(KEY_SHOW_BEST_PART, value)
+    }
+
+    fun setAutoMixArtTransition(enabled: Boolean) {
+        autoMixArtwork.value = autoMixArtwork.value.copy(artTransition = enabled)
+        persistence.saveBoolean(KEY_AUTOMIX_ART_TRANSITION, enabled)
+    }
+
+    fun setAutoMixMiniPlayerTransition(enabled: Boolean) {
+        autoMixArtwork.value = autoMixArtwork.value.copy(miniPlayerTransition = enabled)
+        persistence.saveBoolean(KEY_AUTOMIX_MINI_ART_TRANSITION, enabled)
+    }
+
     private const val KEY_LAST_SCREEN = "last_player_screen"
     private const val KEY_LYRICS_OFFSET = "lyrics_offset_ms"
+    private const val KEY_SHOW_TOTAL_DURATION = "show_total_duration"
+    private const val KEY_SHOW_BEST_PART = "show_best_part"
+    private const val KEY_AUTOMIX_ART_TRANSITION = "automix_art_transition"
+    private const val KEY_AUTOMIX_MINI_ART_TRANSITION = "automix_mini_art_transition"
 }
 
 /** Which glyph a mixer gets, from the only thing Java Sound says about it: its name. */

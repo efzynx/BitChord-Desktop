@@ -47,13 +47,14 @@
     <string name="d_no_downloads">No downloads</string>
     <string name="d_nobody_is_signed_in">Nobody is signed in. Your library, playlists and history need a YouTube Music account.</string>
     <string name="d_open_listenbrainz">Open ListenBrainz</string>
+    <string name="d_open_bitchord_desktop">Open BitChord Desktop</string>
     <string name="d_open_spotify">Open Spotify</string>
     <string name="d_output_precision">Output precision</string>
     <string name="d_paste_a_cookie_instead">Paste a cookie instead</string>
     <string name="d_paste_the_cookie_header_for_music_youtube_com">Paste the Cookie header for music.youtube.com.</string>
     <string name="d_playback_speed">Playback speed</string>
     <string name="d_playlists_on_this_computer">Playlists on this computer</string>
-    <string name="d_quit_bitchord">Quit BitChord</string>
+    <string name="d_quit_bitchord">Quit BitChord Desktop</string>
     <string name="d_recently_played_on_this_computer">Recently played on this computer</string>
     <string name="d_recents">Recents</string>
     <string name="d_remove_from_playlist">Remove from playlist</string>
@@ -222,4 +223,45 @@
 
     <!-- Search -->
     <string name="d_clear_search">Clear search</string>
+    <string name="d_tunnel_error_server_not_found">Local party server binary (party-server) was not found. Please verify your installation.</string>
+    <string name="d_tunnel_error_server_start_failed">Local party server failed to start on port %1$d.</string>
+    <string name="d_tunnel_error_server_crashed">Local party server stopped unexpectedly (exit code %1$d): %2$s</string>
+    <string name="d_tunnel_error_url_failed">Failed to obtain trycloudflare.com URL from cloudflared.</string>
+    <string name="d_tunnel_port_switched">Port %1$d was in use; switched to port %2$d.</string>
+    <string name="d_refresh">Refresh</string>
+    <string name="d_auto_download_liked_title">Auto-download liked songs</string>
+    <string name="d_auto_download_liked_desc">Automatically download songs when added to your liked songs</string>
+
+    <string name="d_automix_art_transition">Art transition</string>
+    <string name="d_automix_art_transition_desc">Smoothly blends cover art between tracks during AutoMix</string>
+    <string name="d_automix_mini_art_transition">Mini-player art transition</string>
+    <string name="d_automix_mini_art_transition_desc">Shows artwork transitions in the mini-player during AutoMix</string>
+    <string name="d_show_best_part_title">Best Part button</string>
+    <string name="d_show_best_part_desc">A button on the artwork that skips to the part of the song people replay most</string>
+    <string name="d_show_total_duration_title">Show total duration</string>
+    <string name="d_show_total_duration_desc">Shows the song\'s full length instead of the time remaining</string>
+
+    <string name="d_delete_local_playlist_desc">“%1$s” will be permanently deleted from this computer. The songs in it are not deleted.</string>
+    <string name="d_delete_account_playlist_desc">“%1$s” will be removed from your YouTube Music account, on every device. The songs in it are not deleted.</string>
+    <string name="d_playlist_deleted">Playlist “%1$s” deleted</string>
+    <string name="d_party_mode_quick">Quick Party</string>
+    <string name="d_party_mode_quick_subtitle">Built-in Cloud Server</string>
+    <string name="d_party_mode_quick_desc">Host or join instantly using BitChord\'s included party server.</string>
+    <string name="d_party_mode_quick_unavailable">Not included in this build</string>
+    <string name="d_party_mode_custom">Custom Party</string>
+    <string name="d_party_mode_custom_subtitle">Cloud or Local Tunnel</string>
+    <string name="d_party_mode_custom_desc">Connect to your personal VPS or host locally via Cloudflare Quick Tunnel.</string>
+    <string name="d_party_submode_cloud">Cloud Server</string>
+    <string name="d_party_submode_local">Local Host (Tunnel)</string>
+    <string name="d_party_saved_servers">Saved Servers</string>
+    <string name="d_party_active">Active</string>
+    <string name="d_party_local_active_desc">Host is connected locally via 127.0.0.1:%1$d (0 ms latency)</string>
+    <string name="d_party_start_tunnel_prompt">Start the local tunnel first to host on this computer.</string>
+    <string name="d_party_enter_cloud_prompt">Enter and save an active cloud server address first.</string>
+    <string name="d_animated_artist_banner">Animated artist banner</string>
+    <string name="d_animated_artist_banner_desc">Show motion video and animated artwork in artist headers when available</string>
+    <string name="d_party_guide_title">Listen Together Guide</string>
+    <string name="d_party_guide_quick">Host or join instantly using BitChord\'s included party server. No configuration needed.</string>
+    <string name="d_party_guide_custom_cloud">Connect to your personal VPS or private party server. Save multiple servers and switch anytime.</string>
+    <string name="d_party_guide_custom_local">Host directly on this computer and generate a free public link using Cloudflare Quick Tunnel.</string>
 </resources>

@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=BitChord
+Name=BitChord Desktop
 GenericName=Music Player
 Comment=Aesthetic YouTube Music client with lossless audio and synchronized lyrics
 Exec=bitchord %U

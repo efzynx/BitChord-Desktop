@@ -1,3 +1,4 @@
+import java.net.URI
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipFile
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
@@ -7,7 +8,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 val appVersion: String = providers.gradleProperty("bitchord.version").orNull
     ?.removePrefix("v")
     ?.takeIf { it.isNotBlank() }
-    ?: (rootProject.extra["bitchordVersionName"] as? String ?: "1.9.1")
+    ?: (rootProject.extra["bitchordVersionName"] as? String ?: "1.10.0")
 
 /** Which platform this build is *for*, which is the host unless told otherwise. */
 val hostIsWindows = System.getProperty("os.name").contains("Windows", ignoreCase = true)
@@ -26,7 +27,7 @@ val isArm64 = hostArch == "aarch64" || hostArch == "arm64"
 // Windows installer metadata requires MAJOR.MINOR.BUILD even though the app's public version is
 // intentionally displayed without a patch number (1.7 rather than 1.7.0).
 // The build number is the desktop version code; it also keeps "-beta1" out of the numeric installer version.
-val desktopVersionCode = 29
+val desktopVersionCode = 42
 val versionParts = appVersion.substringBefore('-').split('.').filter { it.all(Char::isDigit) }
 val nativePackageVersion = when {
     versionParts.size >= 3 -> versionParts.take(3).joinToString(".")
@@ -57,7 +58,11 @@ val desktopModuleIndexUrl = localProperty("MODULE_INDEX_URL")
 
 // Last.fm signs every request with these, so signing in from inside the app
 // needs them at hand. Supplied locally and never committed, as on Android.
-val listenTogetherServer = localProperty("LISTEN_TOGETHER_SERVER")
+val listenTogetherServer = (
+    providers.gradleProperty("listenTogetherServer").orNull
+        ?: localProperty("LISTEN_TOGETHER_SERVER").takeIf { it.isNotBlank() }
+        ?: "https://bitchord-desktop-party.efzyn.my.id"
+).trim().trimEnd('/')
 val lastfmApiKey = localProperty("LASTFM_API_KEY")
 val lastfmSecret = localProperty("LASTFM_SECRET")
 
@@ -100,9 +105,8 @@ dependencies {
     implementation("org.bytedeco:ffmpeg:$ffmpegVersion:$nativeClassifier")
 
     // The same backdrop blur the Android build uses for its floating bars.
-    // On Windows, 1.7.2 keeps this Compose Desktop 1.10.3 app on the matching UI/text/animation
-    // runtime. Preserve Linux's existing dependency graph exactly as it was.
-    val desktopHazeVersion = if (targetOs == "windows") "1.7.2" else "1.7.3"
+    // Use Haze 1.7.3 across all desktop platforms to match Compose Multiplatform's ShaderBrush API.
+    val desktopHazeVersion = "1.7.3"
     implementation("dev.chrisbanes.haze:haze:$desktopHazeVersion")
     implementation("dev.chrisbanes.haze:haze-materials:$desktopHazeVersion")
 
@@ -403,6 +407,7 @@ val windowsPortableAssemble by tasks.registering {
     val moduleIndex = desktopModuleIndexUrl
     val lastfmKey = lastfmApiKey
     val lastfmSharedSecret = lastfmSecret
+    val listenTogether = listenTogetherServer
     val mainClass = composeMainClass
     // Declared, not implied.
     inputs.file(appJar)
@@ -410,6 +415,7 @@ val windowsPortableAssemble by tasks.registering {
     inputs.property("version", version)
     inputs.property("moduleIndex", moduleIndex)
     inputs.property("lastfm", lastfmKey.isNotBlank())
+    inputs.property("listenTogether", listenTogether.isNotBlank())
     inputs.property("mainClass", mainClass)
     outputs.dir(stage)
     doLast {
@@ -437,10 +443,13 @@ val windowsPortableAssemble by tasks.registering {
                 appendLine("set \"HERE=%~dp0\"")
                 appendLine("set \"RUNNER=java\"")
                 appendLine("if defined JAVA_HOME set \"RUNNER=%JAVA_HOME%\\bin\\java\"")
-                append("\"%RUNNER%\" -Dbitchord.version=$version")
+                append("\"%RUNNER%\" -Xms64m -Xmx512m -XX:+UseG1GC -XX:G1PeriodicGCInterval=10000 -XX:G1PeriodicGCSystemLoadThreshold=0 -Dbitchord.version=$version")
                 if (moduleIndex.isNotBlank()) append(" -Dbitchord.module.index=$moduleIndex")
                 if (lastfmKey.isNotBlank() && lastfmSharedSecret.isNotBlank()) {
                     append(" -Dbitchord.lastfm.key=$lastfmKey -Dbitchord.lastfm.secret=$lastfmSharedSecret")
+                }
+                if (listenTogether.isNotBlank()) {
+                    append(" -Dbitchord.listentogether.server=$listenTogether")
                 }
                 appendLine(" -cp \"%HERE%lib\\*\" $mainClass %*")
                 appendLine("endlocal")
@@ -452,6 +461,9 @@ val windowsPortableAssemble by tasks.registering {
             "CreateObject(\"Wscript.Shell\").Run \"\"\"\" & CreateObject(\"Scripting.FileSystemObject\").GetParentFolderName(WScript.ScriptFullName) & \"\\BitChord.bat\"\"\", 0, False\r\n"
         )
         project.file("packaging/icons/AppIcon.ico").takeIf { it.isFile }?.copyTo(File(target, "BitChord.ico"), overwrite = true)
+
+        // Bundle party-server executable for Windows Listen Together if compiled
+        rootProject.file("backend/party-server.exe").takeIf { it.isFile }?.copyTo(File(target, "party-server.exe"), overwrite = true)
 
         // What "it builds" is not the same as "it runs", and the difference is exactly what shipped
         // a broken archive.
@@ -502,6 +514,58 @@ val windowsPortable by tasks.registering(Zip::class) {
     doLast { logger.lifecycle("windowsPortable: ${archiveFile.get().asFile.absolutePath}") }
 }
 
+val packageAppImage by tasks.registering {
+    group = "distribution"
+    description = "Packages BitChord as a universal Linux AppImage."
+    dependsOn("createDistributable")
+    onlyIf { targetOs == "linux" }
+
+    doLast {
+        val appDir = layout.buildDirectory.dir("compose/binaries/main/app/BitChord").get().asFile
+        check(File(appDir, "bin/BitChord").canExecute()) { "Linux launcher not found in ${appDir.absolutePath}" }
+
+        val outDir = layout.buildDirectory.dir("distributions").get().asFile.apply { mkdirs() }
+        val outFile = File(outDir, "BitChord-$appVersion-x86_64.AppImage")
+
+        val systemTool = listOf("appimagetool", "/usr/bin/appimagetool", "/usr/local/bin/appimagetool")
+            .firstOrNull { File(it).canExecute() }
+            ?: runCatching {
+                val proc = ProcessBuilder("which", "appimagetool").start()
+                if (proc.waitFor() == 0) proc.inputStream.bufferedReader().readText().trim() else null
+            }.getOrNull()?.takeIf { it.isNotBlank() && File(it).canExecute() }
+
+        val toolFile: File = if (systemTool != null) {
+            File(systemTool)
+        } else {
+            val toolDir = layout.buildDirectory.dir("tools").get().asFile.apply { mkdirs() }
+            val downloadedTool = File(toolDir, "appimagetool")
+            if (!downloadedTool.canExecute()) {
+                logger.lifecycle("appimagetool not found in PATH. Downloading appimagetool to ${downloadedTool.absolutePath}...")
+                val url = URI.create("https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage").toURL()
+                val bytes = url.readBytes()
+                downloadedTool.writeBytes(bytes)
+                downloadedTool.setExecutable(true)
+            }
+            downloadedTool
+        }
+
+        val script = project.file("packaging/appimage.sh")
+        script.setExecutable(true)
+
+        logger.lifecycle("Packaging AppImage with ${toolFile.absolutePath}...")
+        val proc = ProcessBuilder(
+            script.absolutePath,
+            appDir.absolutePath,
+            outFile.absolutePath,
+            toolFile.absolutePath,
+        ).inheritIO().start()
+
+        val exitCode = proc.waitFor()
+        check(exitCode == 0) { "AppImage packaging failed with exit code $exitCode" }
+        logger.lifecycle("AppImage created: ${outFile.absolutePath}")
+    }
+}
+
 val composeMainClass = "com.music.bitchord.desktop.MainKt"
 
 compose.desktop {
@@ -510,8 +574,8 @@ compose.desktop {
             it.metadata.installationPath.asFile.absolutePath
         }.get()
         mainClass = composeMainClass
-        jvmArgs("-Xmx512m")
-        jvmArgs("-XX:+UseG1GC", "-XX:G1PeriodicGCInterval=20000", "-XX:G1PeriodicGCSystemLoadThreshold=0")
+        jvmArgs("-Xms64m", "-Xmx512m")
+        jvmArgs("-XX:+UseG1GC", "-XX:G1PeriodicGCInterval=10000", "-XX:G1PeriodicGCSystemLoadThreshold=0")
         jvmArgs("-Dbitchord.version=$appVersion")
         if (desktopModuleIndexUrl.isNotBlank()) {
             jvmArgs("-Dbitchord.module.index=$desktopModuleIndexUrl")

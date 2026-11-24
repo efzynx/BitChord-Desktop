@@ -70,6 +70,8 @@ internal class DesktopCanvasDecoder {
     fun open(url: String, headers: Map<String, String> = emptyMap()): Result<Unit> = runCatching {
         DesktopAudioDecoder.ensureNetworkReady()
         val options = AVDictionary(null)
+        val userAgent = headers["User-Agent"] ?: headers["user-agent"] ?: DESKTOP_CANVAS_UA
+        av_dict_set(options, "user_agent", userAgent, 0)
         if (headers.isNotEmpty()) {
             av_dict_set(
                 options,
@@ -203,8 +205,8 @@ internal class DesktopCanvasDecoder {
     }
 
     private companion object {
-        /** Plenty for a sleeve, and a quarter of the pixels of the source. */
-        const val MAX_EDGE = 540
+        /** Plenty for a sleeve and banner clarity, scaled down for fast decoding. */
+        const val MAX_EDGE = 720
 
         /** Thirty frames a second is motion; sixty is just more bitmaps. */
         const val MIN_INTERVAL_MS = 33L

@@ -267,11 +267,11 @@ fun DesktopCanvasView(
                     // playlist to disk and opening that leaves FFmpeg with nothing it can resolve.
                     // Apple's motion artwork is HLS, which is how "could not open the clip" happened.
                     val source = if (isManifest(candidate)) {
-                        candidate
+                        DesktopHlsResolver.resolve(candidate)
                     } else {
                         DesktopCanvasCache.fileFor(candidate)?.toAbsolutePath()?.toString() ?: continue
                     }
-                    last = decoder.open(source)
+                    last = decoder.open(source, mapOf("User-Agent" to DESKTOP_CANVAS_UA))
                     if (last.isSuccess) break
                 }
                 last
@@ -329,6 +329,6 @@ fun DesktopCanvasView(
     }
 }
 
-private const val DESKTOP_CANVAS_UA =
+internal const val DESKTOP_CANVAS_UA =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
         "(KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"

@@ -45,13 +45,14 @@
     <string name="d_no_downloads">Tidak ada unduhan</string>
     <string name="d_nobody_is_signed_in">Belum ada yang masuk. Pustaka, playlist, dan riwayatmu memerlukan akun YouTube Music.</string>
     <string name="d_open_listenbrainz">Buka ListenBrainz</string>
+    <string name="d_open_bitchord_desktop">Buka BitChord Desktop</string>
     <string name="d_open_spotify">Buka Spotify</string>
     <string name="d_output_precision">Presisi keluaran</string>
     <string name="d_paste_a_cookie_instead">Tempel cookie sebagai gantinya</string>
     <string name="d_paste_the_cookie_header_for_music_youtube_com">Tempel header Cookie untuk music.youtube.com.</string>
     <string name="d_playback_speed">Kecepatan pemutaran</string>
     <string name="d_playlists_on_this_computer">Playlist di komputer ini</string>
-    <string name="d_quit_bitchord">Keluar dari BitChord</string>
+    <string name="d_quit_bitchord">Keluar dari BitChord Desktop</string>
     <string name="d_recently_played_on_this_computer">Baru diputar di komputer ini</string>
     <string name="d_recents">Terbaru</string>
     <string name="d_remove_from_playlist">Hapus dari playlist</string>
@@ -220,4 +221,45 @@
 
     <!-- Search -->
     <string name="d_clear_search">Hapus pencarian</string>
+    <string name="d_tunnel_error_server_not_found">Biner server party lokal (party-server) tidak ditemukan. Harap periksa instalasi Anda.</string>
+    <string name="d_tunnel_error_server_start_failed">Server party lokal gagal dimulai pada port %1$d.</string>
+    <string name="d_tunnel_error_server_crashed">Server party lokal terhenti mendadak (kode keluar %1$d): %2$s</string>
+    <string name="d_tunnel_error_url_failed">Gagal mendapatkan URL trycloudflare.com dari cloudflared.</string>
+    <string name="d_tunnel_port_switched">Port %1$d sedang digunakan; dialihkan ke port %2$d.</string>
+    <string name="d_refresh">Segarkan</string>
+    <string name="d_auto_download_liked_title">Unduh otomatis lagu yang disukai</string>
+    <string name="d_auto_download_liked_desc">Mengunduh lagu secara otomatis saat ditambahkan ke lagu yang disukai</string>
+
+    <string name="d_automix_art_transition">Transisi sampul album</string>
+    <string name="d_automix_art_transition_desc">Memadukan sampul album dengan mulus antar trek selama AutoMix</string>
+    <string name="d_automix_mini_art_transition">Transisi sampul mini-player</string>
+    <string name="d_automix_mini_art_transition_desc">Menampilkan transisi sampul album di mini-player selama AutoMix</string>
+    <string name="d_show_best_part_title">Tombol Bagian Terbaik (Best Part)</string>
+    <string name="d_show_best_part_desc">Tombol pada sampul album untuk melompat langsung ke bagian lagu yang paling sering diputar ulang</string>
+    <string name="d_show_total_duration_title">Tampilkan total durasi</string>
+    <string name="d_show_total_duration_desc">Menampilkan durasi penuh lagu menggantikan sisa waktu mundur</string>
+
+    <string name="d_delete_local_playlist_desc">“%1$s” akan dihapus secara permanen dari komputer ini. Lagu di dalamnya tidak akan terhapus.</string>
+    <string name="d_delete_account_playlist_desc">“%1$s” akan dihapus dari akun YouTube Music Anda di semua perangkat. Lagu di dalamnya tidak akan terhapus.</string>
+    <string name="d_playlist_deleted">Playlist “%1$s” berhasil dihapus</string>
+    <string name="d_party_mode_quick">Quick Party</string>
+    <string name="d_party_mode_quick_subtitle">Server Cloud Bawaan</string>
+    <string name="d_party_mode_quick_desc">Buat atau gabung party secara instan dengan server bawaan BitChord.</string>
+    <string name="d_party_mode_quick_unavailable">Tidak tersedia pada build ini</string>
+    <string name="d_party_mode_custom">Custom Party</string>
+    <string name="d_party_mode_custom_subtitle">Cloud atau Tunnel Lokal</string>
+    <string name="d_party_mode_custom_desc">Gunakan VPS pribadi Anda atau host lokal dengan Cloudflare Quick Tunnel.</string>
+    <string name="d_party_submode_cloud">Server Cloud</string>
+    <string name="d_party_submode_local">Host Lokal (Tunnel)</string>
+    <string name="d_party_saved_servers">Server Tersimpan</string>
+    <string name="d_party_active">Aktif</string>
+    <string name="d_party_local_active_desc">Host terhubung langsung via 127.0.0.1:%1$d (latensi 0 ms)</string>
+    <string name="d_party_start_tunnel_prompt">Nyalakan tunnel lokal terlebih dahulu untuk membuat party di komputer ini.</string>
+    <string name="d_party_enter_cloud_prompt">Masukkan dan simpan alamat server cloud yang aktif terlebih dahulu.</string>
+    <string name="d_animated_artist_banner">Banner artis bergerak</string>
+    <string name="d_animated_artist_banner_desc">Tampilkan video gerakan dan animasi pada header artis jika tersedia</string>
+    <string name="d_party_guide_title">Panduan Listen Together</string>
+    <string name="d_party_guide_quick">Host atau gabung instan menggunakan server party bawaan BitChord. Tidak perlu pengaturan.</string>
+    <string name="d_party_guide_custom_cloud">Sambungkan ke server party VPS pribadi Anda. Simpan beberapa server dan beralih kapan saja.</string>
+    <string name="d_party_guide_custom_local">Host langsung di komputer ini dan buat link publik gratis menggunakan Cloudflare Quick Tunnel.</string>
 </resources>

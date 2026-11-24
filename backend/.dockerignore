@@ -1,0 +1,7 @@
+*.exe
+.git
+deploy
+*.md
+render.yaml
+tools
+*.bak

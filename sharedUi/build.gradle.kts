@@ -87,6 +87,7 @@ kotlin {
         // against 0.9 NoSuchMethodError'd the desktop's 0.15 at draw time.
         jvmMain.dependencies {
             api("org.jetbrains.compose.ui:ui-desktop:$CMP_DESKTOP")
+            api(compose.material3)
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))
