@@ -1,0 +1,14 @@
+services:
+  party-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bitchord-party
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - PORT=8000
+      - JAM_TRUST_PROXY=true
+      - JAM_MAX_MEMBERS=10
+      - JAM_MAX_PARTIES=200

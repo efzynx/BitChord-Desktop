@@ -124,7 +124,8 @@ internal object DesktopListenTogether {
 
     /** Where the party server lives, injected at build time like the other endpoints. */
     private val DEFAULT_SERVER: String by lazy {
-        normalizeServerUrl(System.getProperty("bitchord.listentogether.server").orEmpty())
+        val configured = System.getProperty("bitchord.listentogether.server").orEmpty()
+        normalizeServerUrl(configured.ifBlank { "https://bitchord-desktop-party.efzyn.my.id" })
             .getOrNull()
             .orEmpty()
     }

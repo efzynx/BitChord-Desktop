@@ -58,7 +58,11 @@ val desktopModuleIndexUrl = localProperty("MODULE_INDEX_URL")
 
 // Last.fm signs every request with these, so signing in from inside the app
 // needs them at hand. Supplied locally and never committed, as on Android.
-val listenTogetherServer = localProperty("LISTEN_TOGETHER_SERVER")
+val listenTogetherServer = (
+    providers.gradleProperty("listenTogetherServer").orNull
+        ?: localProperty("LISTEN_TOGETHER_SERVER").takeIf { it.isNotBlank() }
+        ?: "https://bitchord-desktop-party.efzyn.my.id"
+).trim().trimEnd('/')
 val lastfmApiKey = localProperty("LASTFM_API_KEY")
 val lastfmSecret = localProperty("LASTFM_SECRET")
 
@@ -403,6 +407,7 @@ val windowsPortableAssemble by tasks.registering {
     val moduleIndex = desktopModuleIndexUrl
     val lastfmKey = lastfmApiKey
     val lastfmSharedSecret = lastfmSecret
+    val listenTogether = listenTogetherServer
     val mainClass = composeMainClass
     // Declared, not implied.
     inputs.file(appJar)
@@ -410,6 +415,7 @@ val windowsPortableAssemble by tasks.registering {
     inputs.property("version", version)
     inputs.property("moduleIndex", moduleIndex)
     inputs.property("lastfm", lastfmKey.isNotBlank())
+    inputs.property("listenTogether", listenTogether.isNotBlank())
     inputs.property("mainClass", mainClass)
     outputs.dir(stage)
     doLast {
@@ -441,6 +447,9 @@ val windowsPortableAssemble by tasks.registering {
                 if (moduleIndex.isNotBlank()) append(" -Dbitchord.module.index=$moduleIndex")
                 if (lastfmKey.isNotBlank() && lastfmSharedSecret.isNotBlank()) {
                     append(" -Dbitchord.lastfm.key=$lastfmKey -Dbitchord.lastfm.secret=$lastfmSharedSecret")
+                }
+                if (listenTogether.isNotBlank()) {
+                    append(" -Dbitchord.listentogether.server=$listenTogether")
                 }
                 appendLine(" -cp \"%HERE%lib\\*\" $mainClass %*")
                 appendLine("endlocal")
