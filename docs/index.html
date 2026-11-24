@@ -1149,7 +1149,7 @@
 
       function renderReleaseUI(release, totalDownloads) {
         const dict = translations[currentLang] || translations.en;
-        const version = release ? (release.tag_name || release.name || "v1.9.2") : "v1.9.2";
+        const version = release ? (release.tag_name || release.name || "v1.10.0") : "v1.10.0";
         const isPrerelease = release ? !!release.prerelease : false;
 
         document.getElementById("version-badge").textContent =

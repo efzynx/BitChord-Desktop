@@ -246,9 +246,34 @@ jobs:
       - name: Generate Release Notes Body
         run: |
           cat << 'EOF' > release-notes.md
+          <p align="center">
+            <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/banners/banner-v1.10.0-bd.webp" alt="BitChord Desktop Release Banner" width="100%" />
+          </p>
+
           # ${{ env.RELEASE_TITLE }}
 
-          Modern, high-performance desktop music player powered by Compose Multiplatform for Linux and Windows.
+          BitChord Desktop is an aesthetic, high-performance desktop music player for Linux and Windows powered by Compose Multiplatform and native FFmpeg 7.1.
+
+          ---
+
+          ### Highlights & Changelog
+
+          #### Upstream BitChord 1.10 Synchronization
+          - **AutoMix & Canvas Transitions**: Seamless track blending with organic artwork transitions, Spotify Canvas handling, mixing badges, and nested settings controls.
+          - **Enhanced Queue & Playlists**: Queue multi-select mode with bulk playlist actions, swipe gestures, undo snackbars, and automatic upcoming songs focus.
+          - **Timed Lyrics Synchronization**: Real-time line and syllable synchronization from YouTube Music, LRCLIB, and Musixmatch with extended glow feathering.
+          - **Library & Download Improvements**: Isolated artwork per local audio track, auto-download for liked tracks, and audio fade-out for sleep timers.
+
+          #### Desktop Enhancements & Fixes
+          - **Listen Together Overhaul**: Quick Party mode powered by dedicated VPS (`party.bitchord.my.id`) alongside local Cloudflare Quick Tunnel (`cloudflared`).
+          - **Animated Artist Banners**: High-definition HLS video banners for artist profile headers with user opt-in toggle.
+          - **Best Part Scrubber Highlights**: Visual markers for popular song segments directly on the scrubber timeline.
+          - **AutoMix Artwork Controls**: Fine-grained settings for mini-player art transitions and background canvas blending.
+          - **Playlist & Library Management**: Full support for renaming, deleting, and editing both local and account playlists from the sidebar.
+          - **Performance & Packaging**: Native Linux AppImage packaging task, Windows Haze blur stability fix, and reduced memory usage.
+          - **Static Web Portal**: Official GitHub Pages landing page with Apple Liquid Glass aesthetic, ambient glow, and dual-language switch.
+
+          ---
 
           ### Downloads & Packages
 

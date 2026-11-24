@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 val appVersion: String = providers.gradleProperty("bitchord.version").orNull
     ?.removePrefix("v")
     ?.takeIf { it.isNotBlank() }
-    ?: (rootProject.extra["bitchordVersionName"] as? String ?: "1.9.1")
+    ?: (rootProject.extra["bitchordVersionName"] as? String ?: "1.10.0")
 
 /** Which platform this build is *for*, which is the host unless told otherwise. */
 val hostIsWindows = System.getProperty("os.name").contains("Windows", ignoreCase = true)
@@ -27,7 +27,7 @@ val isArm64 = hostArch == "aarch64" || hostArch == "arm64"
 // Windows installer metadata requires MAJOR.MINOR.BUILD even though the app's public version is
 // intentionally displayed without a patch number (1.7 rather than 1.7.0).
 // The build number is the desktop version code; it also keeps "-beta1" out of the numeric installer version.
-val desktopVersionCode = 29
+val desktopVersionCode = 42
 val versionParts = appVersion.substringBefore('-').split('.').filter { it.all(Char::isDigit) }
 val nativePackageVersion = when {
     versionParts.size >= 3 -> versionParts.take(3).joinToString(".")

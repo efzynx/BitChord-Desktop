@@ -13,7 +13,7 @@
 ### Aesthetic, High-Performance YouTube Music Client for Linux & Windows
 
 <p align="center">
-  <a href="https://github.com/efzynx/BitChord-Desktop/releases"><img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/badges/badge-release.svg" alt="Release v1.9.2" height="30" /></a>
+  <a href="https://github.com/efzynx/BitChord-Desktop/releases"><img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/badges/badge-release.svg" alt="Release v1.10.0" height="30" /></a>
   &nbsp;
   <a href="#download"><img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/badges/badge-platform.svg" alt="Linux &amp; Windows" height="30" /></a>
   &nbsp;
@@ -146,13 +146,13 @@ Prebuilt binary releases are available for direct download below, on the [**Offi
 
 | Platform | Package Format | Direct Download (Latest Stable) | Description |
 | :--- | :--- | :--- | :--- |
-| **Linux** | **AppImage** | [**Download .AppImage**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.9.2/BitChord-1.9.2-x86_64.AppImage) | **Recommended**. Universal standalone executable for all modern Linux distributions. |
-| **Linux** | **DEB** | [**Download .deb**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.9.2/bitchord_1.9.2_amd64.deb) | Native package for Debian, Ubuntu, Linux Mint, and derivatives. |
-| **Linux** | **RPM** | [**Download .rpm**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.9.2/bitchord-1.9.2.x86_64.rpm) | Native package for Fedora, RHEL, openSUSE, and derivatives. |
-| **Linux** | **Tar.gz** | [**Download .tar.gz**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.9.2/BitChord-1.9.2-linux-x64.tar.gz) | Portable tarball with automated `install-desktop.sh` launcher script. |
-| **Windows** | **Setup EXE** | [**Download .exe**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.9.2/BitChord-1.9.2.exe) | **Recommended**. Windows Setup installer with Start Menu and Desktop shortcuts. |
-| **Windows** | **MSI** | [**Download .msi**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.9.2/BitChord-1.9.2.msi) | Standard Windows Installer package for system-wide deployment. |
-| **Windows** | **ZIP (Portable)** | [**Download .zip**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.9.2/BitChord-1.9.2-windows-portable.zip) | Standalone portable archive with silent background runner (`BitChord.vbs`). |
+| **Linux** | **AppImage** | [**Download .AppImage**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/BitChord-1.10.0-x86_64.AppImage) | **Recommended**. Universal standalone executable for all modern Linux distributions. |
+| **Linux** | **DEB** | [**Download .deb**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/bitchord_1.10.0_amd64.deb) | Native package for Debian, Ubuntu, Linux Mint, and derivatives. |
+| **Linux** | **RPM** | [**Download .rpm**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/bitchord-1.10.0.x86_64.rpm) | Native package for Fedora, RHEL, openSUSE, and derivatives. |
+| **Linux** | **Tar.gz** | [**Download .tar.gz**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/BitChord-1.10.0-linux-x64.tar.gz) | Portable tarball with automated `install-desktop.sh` launcher script. |
+| **Windows** | **Setup EXE** | [**Download .exe**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/BitChord-1.10.0.exe) | **Recommended**. Windows Setup installer with Start Menu and Desktop shortcuts. |
+| **Windows** | **MSI** | [**Download .msi**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/BitChord-1.10.0.msi) | Standard Windows Installer package for system-wide deployment. |
+| **Windows** | **ZIP (Portable)** | [**Download .zip**](https://github.com/efzynx/BitChord-Desktop/releases/download/v1.10.0/BitChord-1.10.0-windows-portable.zip) | Standalone portable archive with silent background runner (`BitChord.vbs`). |
 
 > [!TIP]
 > Visit the [**BitChord Web Portal**](https://efzynx.github.io/BitChord-Desktop/) for automatic OS detection and one-click downloads. For detailed installation instructions, distro-specific guides, and uninstallation steps, refer to the [**DESKTOP.md**](DESKTOP.md) guide.
