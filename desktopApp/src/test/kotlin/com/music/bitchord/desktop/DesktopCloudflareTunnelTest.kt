@@ -53,12 +53,10 @@ class DesktopCloudflareTunnelTest {
     fun `findPartyServerBinary locates local binary when present`() {
         val exeName = if (DesktopPlatform.isWindows) "party-server.exe" else "party-server"
         val userDir = File(System.getProperty("user.dir") ?: ".")
-        val backendDir = File(userDir, "backend")
-        val target = File(backendDir, exeName)
+        val target = File(userDir, exeName)
 
         val hadFile = target.exists()
         if (!hadFile) {
-            backendDir.mkdirs()
             target.writeText("mock-binary")
         }
         try {

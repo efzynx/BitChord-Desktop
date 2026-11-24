@@ -204,6 +204,10 @@ internal object DesktopCloudflareTunnel {
         val userDir = File(System.getProperty("user.dir") ?: ".")
         candidateDirs.add(userDir)
         candidateDirs.add(File(userDir, "backend"))
+        userDir.parentFile?.let { parent ->
+            candidateDirs.add(parent)
+            candidateDirs.add(File(parent, "backend"))
+        }
         candidateDirs.add(File(userDir, "bin"))
         candidateDirs.add(File(userDir, "app"))
         candidateDirs.add(File(userDir, "lib"))
