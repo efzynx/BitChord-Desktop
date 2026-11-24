@@ -250,10 +250,15 @@ internal object DesktopListenTogether {
     /** Public invite for the server that actually owns the current membership. */
     fun inviteUrl(code: String): String {
         val server = activePartyServerBase
-        return if (server.isNullOrBlank() || server == DEFAULT_SERVER) {
+        val publicServer = if (server != null && (server.contains("127.0.0.1") || server.contains("localhost"))) {
+            DesktopCloudflareTunnel.state.value.url ?: server
+        } else {
+            server
+        }
+        return if (publicServer.isNullOrBlank() || publicServer == DEFAULT_SERVER) {
             JamInvite.url(code)
         } else {
-            "$server/invite/${code.uppercase()}"
+            "$publicServer/invite/${code.uppercase()}"
         }
     }
 
@@ -736,11 +741,17 @@ internal object DesktopListenTogether {
         if (!forceProbe && _serverStatus.value.health == Health.ONLINE) return effectiveIdleServerBase
         val custom = normalizeServerUrl(_customServer.value).getOrNull().orEmpty()
         if (custom.isNotBlank() && custom != DEFAULT_SERVER) {
-            val customProbe = probeHealth(custom, CUSTOM_SERVER_TIMEOUT_MS)
+            val isLocalTunnel = DesktopCloudflareTunnel.isLocalTunnelUrl(custom)
+            val effectiveTarget = if (isLocalTunnel) {
+                "http://127.0.0.1:${DesktopCloudflareTunnel.state.value.port}"
+            } else {
+                custom
+            }
+            val customProbe = probeHealth(effectiveTarget, CUSTOM_SERVER_TIMEOUT_MS)
             if (customProbe.first) {
-                effectiveIdleServerBase = custom
+                effectiveIdleServerBase = effectiveTarget
                 _serverStatus.value = ServerStatus(Health.ONLINE, customProbe.second)
-                return custom
+                return effectiveTarget
             }
             if (DEFAULT_SERVER.isNotBlank()) {
                 val fallback = probeHealth(DEFAULT_SERVER, DEFAULT_SERVER_TIMEOUT_MS)
@@ -752,9 +763,9 @@ internal object DesktopListenTogether {
                 }
                 return DEFAULT_SERVER
             }
-            effectiveIdleServerBase = custom
+            effectiveIdleServerBase = effectiveTarget
             _serverStatus.value = ServerStatus(Health.OFFLINE)
-            return custom
+            return effectiveTarget
         }
 
         effectiveIdleServerBase = DEFAULT_SERVER
@@ -772,9 +783,14 @@ internal object DesktopListenTogether {
     }
 
     private suspend fun probeHealth(server: String, timeoutMs: Long): Pair<Boolean, Long> {
+        val targetServer = if (DesktopCloudflareTunnel.isLocalTunnelUrl(server)) {
+            "http://127.0.0.1:${DesktopCloudflareTunnel.state.value.port}"
+        } else {
+            server
+        }
         val started = clock.nowMs()
         val online = runCatching {
-            val response = http.get("$server/healthz") {
+            val response = http.get("$targetServer/healthz") {
                 timeout { requestTimeoutMillis = timeoutMs }
             }
             response.status.isSuccess() && response.bodyAsText().contains(HEALTH_OK)

@@ -27,6 +27,9 @@ import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.painterResource
 
 fun main() {
+    // Prefer IPv4 stack to prevent hanging on unreachable IPv6 routes on desktop
+    System.setProperty("java.net.preferIPv4Stack", "true")
+    System.setProperty("java.net.preferIPv6Addresses", "false")
     // Before any WebView exists, so the sign-in window can start over with an empty jar.
     DesktopWebCookies.install()
     DesktopWindowVisibility.install()

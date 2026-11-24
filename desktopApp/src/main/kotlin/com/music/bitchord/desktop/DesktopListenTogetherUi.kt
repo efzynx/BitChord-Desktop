@@ -452,8 +452,10 @@ private fun CloudflareTunnelSection(
                 } else {
                     Button(
                         onClick = {
-                            DesktopCloudflareTunnel.start { tunnelUrl ->
-                                onServerChange(tunnelUrl)
+                            DesktopCloudflareTunnel.start { _ ->
+                                // On the local host, bind to loopback for 0-4 ms direct latency without hairpinning,
+                                // while the public trycloudflare.com URL is ready below to share with friends.
+                                onServerChange("http://127.0.0.1:${DesktopCloudflareTunnel.state.value.port}")
                                 onSaveServer()
                             }
                         },

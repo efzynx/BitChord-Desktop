@@ -104,6 +104,17 @@ internal object DesktopCloudflareTunnel {
     val installedPath: String?
         get() = findExecutable()
 
+    /**
+     * Checks if [candidateUrl] matches the active Cloudflare Tunnel URL currently hosted on this machine.
+     */
+    fun isLocalTunnelUrl(candidateUrl: String?): Boolean {
+        if (candidateUrl.isNullOrBlank()) return false
+        val activeUrl = _state.value.url ?: return false
+        val cleanCandidate = candidateUrl.trim().trimEnd('/')
+        val cleanActive = activeUrl.trim().trimEnd('/')
+        return cleanCandidate.equals(cleanActive, ignoreCase = true)
+    }
+
     init {
         Runtime.getRuntime().addShutdownHook(Thread {
             stop()
