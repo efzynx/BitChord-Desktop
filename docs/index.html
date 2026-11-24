@@ -29,7 +29,46 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html { scroll-behavior: smooth; scroll-padding-top: 96px; background-color: var(--base); }
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 96px;
+      background-color: var(--base);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+    }
+
+    /* ---------- Kustom Scrollbar Hollow (Webkit / Chromium / Safari) ---------- */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: transparent;
+      border: 1.5px solid rgba(255, 255, 255, 0.35);
+      border-radius: var(--radius-pill);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      border-color: rgba(255, 255, 255, 0.75);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+    }
+
+    ::-webkit-scrollbar-thumb:active {
+      border-color: var(--accent);
+      background: rgba(255, 45, 85, 0.16);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    ::-webkit-scrollbar-corner {
+      background: transparent;
+    }
 
     body {
       font-family: var(--font);
