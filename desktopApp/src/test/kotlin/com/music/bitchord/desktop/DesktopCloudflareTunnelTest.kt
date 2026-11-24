@@ -1,5 +1,6 @@
 package com.music.bitchord.desktop
 
+import java.io.File
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import kotlin.test.Test
@@ -50,9 +51,24 @@ class DesktopCloudflareTunnelTest {
 
     @Test
     fun `findPartyServerBinary locates local binary when present`() {
-        // In this project tree, backend/party-server.exe exists
-        val found = DesktopCloudflareTunnel.findPartyServerBinary()
-        assertNotNull(found, "party-server binary should be found in project backend dir")
-        assertTrue(found.isFile, "found binary must be a file")
+        val exeName = if (DesktopPlatform.isWindows) "party-server.exe" else "party-server"
+        val userDir = File(System.getProperty("user.dir") ?: ".")
+        val backendDir = File(userDir, "backend")
+        val target = File(backendDir, exeName)
+
+        val hadFile = target.exists()
+        if (!hadFile) {
+            backendDir.mkdirs()
+            target.writeText("mock-binary")
+        }
+        try {
+            val found = DesktopCloudflareTunnel.findPartyServerBinary()
+            assertNotNull(found, "party-server binary should be found in candidate dir")
+            assertTrue(found.isFile, "found binary must be a file")
+        } finally {
+            if (!hadFile && target.exists()) {
+                target.delete()
+            }
+        }
     }
 }
