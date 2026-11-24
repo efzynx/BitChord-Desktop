@@ -258,4 +258,6 @@
     <string name="d_party_local_active_desc">Host is connected locally via 127.0.0.1:%1$d (0 ms latency)</string>
     <string name="d_party_start_tunnel_prompt">Start the local tunnel first to host on this computer.</string>
     <string name="d_party_enter_cloud_prompt">Enter and save an active cloud server address first.</string>
+    <string name="d_animated_artist_banner">Animated artist banner</string>
+    <string name="d_animated_artist_banner_desc">Show motion video and animated artwork in artist headers when available</string>
 </resources>

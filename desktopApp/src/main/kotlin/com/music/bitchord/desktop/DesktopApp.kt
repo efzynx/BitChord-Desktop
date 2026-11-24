@@ -1,5 +1,6 @@
 package com.music.bitchord.desktop
 
+import com.music.bitchord.data.AppleCatalogue
 import androidx.compose.foundation.lazy.LazyListState
 import com.music.bitchord.ui.components.LocalShelfRowChrome
 import com.music.bitchord.ui.components.ShelfRowChrome
@@ -726,6 +727,7 @@ fun BitChordDesktopApp() {
     // The blob backdrop the mesh replaced, kept as an opt-out.
     var legacyMeshGradient by remember { mutableStateOf(persistence.boolean("legacy_mesh_gradient", false)) }
     var animatedCanvas by remember { mutableStateOf(persistence.boolean("animated_canvas", true)) }
+    var animatedArtistBanner by remember { mutableStateOf(persistence.boolean("animated_artist_banner", true)) }
     var spotifyCanvasCookie by remember { mutableStateOf(DesktopSpotifyToken.cookie()) }
     // Held here rather than by the Integrations page, so leaving the page does not close the
     // sign-in window.
@@ -4335,11 +4337,16 @@ fun BitChordDesktopApp() {
                                         persistence.saveString("crossfade_seconds", it.toString())
                                     },
                                     animatedCanvas = animatedCanvas,
+                                    animatedArtistBanner = animatedArtistBanner,
                                     showNerdStats = showNerdStats,
                                     fullBleedArtwork = fullBleedArtwork,
                                     onAnimatedCanvasChange = {
                                         animatedCanvas = it
                                         persistence.saveBoolean("animated_canvas", it)
+                                    },
+                                    onAnimatedArtistBannerChange = {
+                                        animatedArtistBanner = it
+                                        persistence.saveBoolean("animated_artist_banner", it)
                                     },
                                     spotifyCanvasReady = spotifyCanvasCookie.isNotBlank(),
                                     onOpenSpotifyCanvasSetup = { overlays.settingsPage = DesktopSettingsPage.SPOTIFY_CANVAS },
@@ -4579,6 +4586,8 @@ fun BitChordDesktopApp() {
                         openedArtist != null -> DesktopArtistPage(
                             state = artistState,
                             fallbackName = openedArtist!!.name,
+                            browseId = openedArtist!!.browseId,
+                            animatedArtistBanner = animatedArtistBanner,
                             isPlaying = playback.isPlaying,
                             onTogglePlayPause = { if (selectedSong != null) togglePlayPauseFromUser() },
                             onRetry = {
@@ -6998,6 +7007,8 @@ private const val LOCAL_PLAYLIST_PREFIX = "desktop-playlist:"
 private fun DesktopArtistPage(
     state: UiState<ArtistPage>,
     fallbackName: String,
+    browseId: String = "",
+    animatedArtistBanner: Boolean = true,
     onRetry: () -> Unit,
     isPlaying: Boolean = false,
     onTogglePlayPause: () -> Unit = {},
@@ -7021,7 +7032,23 @@ private fun DesktopArtistPage(
             is UiState.Success -> {
                 val artist = state.data
                 val name = artist.name?.takeIf(String::isNotBlank) ?: fallbackName
-                val palette = rememberDesktopArtworkPalette(artist.thumbnailUrl)
+                val catalogueTitles = remember<List<String>>(artist) {
+                    AppleCatalogue.titlesOf(artist.songs, artist.sections)
+                }
+                val artistArt by produceState<DesktopArtistArt?>(
+                    initialValue = if (browseId.isNotBlank()) DesktopArtistArtRepository.cached(browseId) else null,
+                    key1 = browseId,
+                    key2 = animatedArtistBanner,
+                ) {
+                    value = if (!animatedArtistBanner || browseId.isBlank()) null else {
+                        DesktopArtistArtRepository.artFor(browseId, name, catalogueTitles)
+                    }
+                }
+                val motionUrl = if (animatedArtistBanner) {
+                    artistArt?.videoUrl ?: artist.thumbnailUrl?.takeIf { it.contains(".gif", ignoreCase = true) }
+                } else null
+                val heroUrl = artistArt?.heroUrl ?: artist.thumbnailUrl
+                val palette = rememberDesktopArtworkPalette(heroUrl)
                 // Android caps the top-songs block and pages it sideways so the release shelves are
                 // not buried under a hundred rows.
                 val top = artist.songs.take(MAX_ARTIST_SONGS)
@@ -7031,7 +7058,7 @@ private fun DesktopArtistPage(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         item(key = "artist-header") {
-                            DesktopArtistBanner(artist.thumbnailUrl, name, palette)
+                            DesktopArtistBanner(heroUrl, name, palette, motionUrl)
                         }
                         if (artist.subscriberCountText != null || artist.monthlyListenerCount != null) {
                             item(key = "artist-stats") {
@@ -7161,9 +7188,21 @@ private fun DesktopArtistPage(
 
 /** The photograph, and the name across the foot of it. */
 @Composable
-private fun DesktopArtistBanner(url: String?, name: String, palette: DesktopArtworkPalette) {
+private fun DesktopArtistBanner(
+    url: String?,
+    name: String,
+    palette: DesktopArtworkPalette,
+    motionUrl: String? = null,
+) {
     Box(Modifier.fillMaxWidth().height(ARTIST_BANNER_HEIGHT)) {
         DesktopArtwork(url, Modifier.matchParentSize(), px = HEADER_ART_PX)
+        if (!motionUrl.isNullOrBlank()) {
+            DesktopCanvasView(
+                url = motionUrl,
+                modifier = Modifier.matchParentSize(),
+                isPlaying = true,
+            )
+        }
         // Two washes rather than one.
         Box(
             Modifier.matchParentSize().background(
@@ -7596,6 +7635,8 @@ private fun DesktopSettingsScreen(
     onCrossfadeSecondsChange: (Int) -> Unit,
     animatedCanvas: Boolean,
     onAnimatedCanvasChange: (Boolean) -> Unit,
+    animatedArtistBanner: Boolean = true,
+    onAnimatedArtistBannerChange: (Boolean) -> Unit = {},
     spotifyCanvasReady: Boolean,
     onOpenSpotifyCanvasSetup: () -> Unit,
     dontRepeatSuggestions: Boolean,
@@ -8230,6 +8271,12 @@ private fun DesktopSettingsScreen(
                         DesktopStrings["d_show_motion_artwork_when_it_is_available", "Show motion artwork when it is available"],
                         animatedCanvas,
                         onAnimatedCanvasChange,
+                    )
+                    SettingsToggle(
+                        DesktopStrings["d_animated_artist_banner", "Animated artist banner"],
+                        DesktopStrings["d_animated_artist_banner_desc", "Show motion video and animated artwork in artist headers when available"],
+                        animatedArtistBanner,
+                        onAnimatedArtistBannerChange,
                     )
                     if (animatedCanvas) {
                         SettingsNavigationRow(

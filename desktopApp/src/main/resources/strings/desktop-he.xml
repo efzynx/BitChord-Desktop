@@ -246,4 +246,6 @@
     <string name="d_party_local_active_desc">המארח מחובר מקומית דרך 127.0.0.1:%1$d (השהיה של 0 אלפיות השנייה)</string>
     <string name="d_party_start_tunnel_prompt">הפעל תחילה את המנהרה המקומית כדי לארח במחשב זה.</string>
     <string name="d_party_enter_cloud_prompt">הזן ושמור תחילה כתובת שרת ענן פעילה.</string>
+    <string name="d_animated_artist_banner">באנר אמן מונפש</string>
+    <string name="d_animated_artist_banner_desc">הצג וידאו בתנועה ויצירות אמנות מונפשות בכותרות האמן כשהן זמינות</string>
 </resources>

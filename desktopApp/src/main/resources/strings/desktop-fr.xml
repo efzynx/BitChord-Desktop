@@ -246,4 +246,6 @@
     <string name="d_party_local_active_desc">L\'hôte est connecté localement via 127.0.0.1:%1$d (latence 0 ms)</string>
     <string name="d_party_start_tunnel_prompt">Démarrez d\'abord le tunnel local pour héberger sur cet ordinateur.</string>
     <string name="d_party_enter_cloud_prompt">Entrez et enregistrez d\'abord une adresse de serveur cloud active.</string>
+    <string name="d_animated_artist_banner">Bannière d'artiste animée</string>
+    <string name="d_animated_artist_banner_desc">Afficher les vidéos animées dans les en-têtes d'artiste lorsqu'elles sont disponibles</string>
 </resources>

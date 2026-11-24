@@ -246,4 +246,6 @@
     <string name="d_party_local_active_desc">O host está conectado localmente via 127.0.0.1:%1$d (latência de 0 ms)</string>
     <string name="d_party_start_tunnel_prompt">Inicie o túnel local primeiro para hospedar neste computador.</string>
     <string name="d_party_enter_cloud_prompt">Insira e salve um endereço de servidor em nuvem ativo primeiro.</string>
+    <string name="d_animated_artist_banner">Banner de artista animado</string>
+    <string name="d_animated_artist_banner_desc">Mostrar vídeo em movimento e arte animada nos cabeçalhos de artistas quando disponível</string>
 </resources>

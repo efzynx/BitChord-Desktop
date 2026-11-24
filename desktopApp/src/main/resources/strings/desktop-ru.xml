@@ -246,4 +246,6 @@
     <string name="d_party_local_active_desc">Хост подключен локально через 127.0.0.1:%1$d (задержка 0 мс)</string>
     <string name="d_party_start_tunnel_prompt">Сначала запустите локальный туннель для хостинга на этом компьютере.</string>
     <string name="d_party_enter_cloud_prompt">Сначала введите и сохраните рабочий адрес облачного сервера.</string>
+    <string name="d_animated_artist_banner">Анимированный баннер исполнителя</string>
+    <string name="d_animated_artist_banner_desc">Показывать видео и анимированные обложки в шапке исполнителя, если они доступны</string>
 </resources>

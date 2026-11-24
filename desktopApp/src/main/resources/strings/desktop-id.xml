@@ -256,4 +256,6 @@
     <string name="d_party_local_active_desc">Host terhubung langsung via 127.0.0.1:%1$d (latensi 0 ms)</string>
     <string name="d_party_start_tunnel_prompt">Nyalakan tunnel lokal terlebih dahulu untuk membuat party di komputer ini.</string>
     <string name="d_party_enter_cloud_prompt">Masukkan dan simpan alamat server cloud yang aktif terlebih dahulu.</string>
+    <string name="d_animated_artist_banner">Banner artis bergerak</string>
+    <string name="d_animated_artist_banner_desc">Tampilkan video gerakan dan animasi pada header artis jika tersedia</string>
 </resources>

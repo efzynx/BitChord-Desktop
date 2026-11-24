@@ -246,4 +246,6 @@
     <string name="d_party_local_active_desc">होस्ट स्थानीय रूप से 127.0.0.1:%1$d के माध्यम से जुड़ा हुआ है (0 एमएस विलंबता)</string>
     <string name="d_party_start_tunnel_prompt">इस कंप्यूटर पर होस्ट करने के लिए पहले स्थानीय टनल शुरू करें।</string>
     <string name="d_party_enter_cloud_prompt">पहले एक सक्रिय क्लाउड सर्वर पता दर्ज करें और सहेजें।</string>
+    <string name="d_animated_artist_banner">एनिमेटेड कलाकार बैनर</string>
+    <string name="d_animated_artist_banner_desc">उपलब्ध होने पर कलाकार हेडर में मोशन वीडियो और एनिमेटेड कलाकृति दिखाएं</string>
 </resources>

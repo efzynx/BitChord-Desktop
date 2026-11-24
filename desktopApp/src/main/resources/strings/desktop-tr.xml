@@ -246,4 +246,6 @@
     <string name="d_party_local_active_desc">Ana bilgisayar 127.0.0.1:%1$d üzerinden yerel olarak bağlı (0 ms gecikme)</string>
     <string name="d_party_start_tunnel_prompt">Bu bilgisayarda barındırmak için önce yerel tüneli başlatın.</string>
     <string name="d_party_enter_cloud_prompt">Önce etkin bir bulut sunucu adresi girin ve kaydedin.</string>
+    <string name="d_animated_artist_banner">Hareketli sanatçı başlığı</string>
+    <string name="d_animated_artist_banner_desc">Mevcut olduğunda sanatçı başlıklarında hareketli video ve animasyonlu görselleri göster</string>
 </resources>

@@ -246,4 +246,6 @@
     <string name="d_party_local_active_desc">主機已透過 127.0.0.1:%1$d 本地連線 (0 毫秒延遲)</string>
     <string name="d_party_start_tunnel_prompt">請先啟動本地隧道以在此電腦上主持派對。</string>
     <string name="d_party_enter_cloud_prompt">請先輸入並儲存有效的雲端伺服器位址。</string>
+    <string name="d_animated_artist_banner">動態藝人橫幅</string>
+    <string name="d_animated_artist_banner_desc">在可用時於藝人頁眉顯示動態影片和動畫封面</string>
 </resources>

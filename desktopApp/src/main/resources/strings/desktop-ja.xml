@@ -246,4 +246,6 @@
     <string name="d_party_local_active_desc">ホストは 127.0.0.1:%1$d 経由でローカル接続されています (遅延 0 ms)</string>
     <string name="d_party_start_tunnel_prompt">このコンピューターでホストするには、まずローカルトンネルを開始してください。</string>
     <string name="d_party_enter_cloud_prompt">まずアクティブなクラウドサーバーのアドレスを入力して保存してください。</string>
+    <string name="d_animated_artist_banner">アニメーションアーティストバナー</string>
+    <string name="d_animated_artist_banner_desc">利用可能な場合、アーティストヘッダーにモーションビデオとアニメーションアートワークを表示する</string>
 </resources>

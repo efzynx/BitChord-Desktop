@@ -246,4 +246,6 @@
     <string name="d_party_local_active_desc">主机已通过 127.0.0.1:%1$d 本地连接 (0 毫秒延迟)</string>
     <string name="d_party_start_tunnel_prompt">请先启动本地隧道以在此电脑上主持派对。</string>
     <string name="d_party_enter_cloud_prompt">请先输入并保存有效的云端服务器地址。</string>
+    <string name="d_animated_artist_banner">动态艺人横幅</string>
+    <string name="d_animated_artist_banner_desc">在可用时于艺人页眉显示动态视频和动画封面</string>
 </resources>

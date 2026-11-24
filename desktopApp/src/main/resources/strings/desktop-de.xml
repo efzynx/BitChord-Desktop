@@ -246,4 +246,6 @@
     <string name="d_party_local_active_desc">Host ist lokal über 127.0.0.1:%1$d verbunden (0 ms Latenz)</string>
     <string name="d_party_start_tunnel_prompt">Starten Sie zuerst den lokalen Tunnel, um auf diesem Computer zu hosten.</string>
     <string name="d_party_enter_cloud_prompt">Geben Sie zuerst eine aktive Cloud-Server-Adresse ein und speichern Sie diese.</string>
+    <string name="d_animated_artist_banner">Animiertes Künstlerbanner</string>
+    <string name="d_animated_artist_banner_desc">Bewegtbild- und animierte Grafiken in Künstler-Headern anzeigen, wenn verfügbar</string>
 </resources>
