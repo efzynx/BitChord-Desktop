@@ -1,57 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BitChord Desktop - Aesthetic YouTube Music Client for Linux & Windows</title>
-  <meta name="description" content="Aesthetic, high-performance desktop music client for YouTube Music powered by Compose Multiplatform and native FFmpeg 7.1.">
-  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/Logo.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>BitChord Desktop — Pemutar YouTube Music untuk Linux & Windows</title>
+  <meta name="description" content="BitChord Desktop adalah pemutar musik desktop berkinerja tinggi untuk Linux dan Windows bertenaga Compose Multiplatform dan FFmpeg 7.1." />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/Logo.png" />
   <style>
     :root {
-      --bg: #000000;
-      --surface-glass: rgba(255, 255, 255, 0.04);
-      --surface-glass-hover: rgba(255, 255, 255, 0.07);
-      --surface-glass-active: rgba(255, 255, 255, 0.11);
-      --border-glass: rgba(255, 255, 255, 0.09);
-      --border-glass-hover: rgba(255, 255, 255, 0.2);
-      --border-glass-specular: rgba(255, 255, 255, 0.16);
+      --base: #000000;
+      --ink: #f5f5f7;
+      --ink-soft: rgba(245, 245, 247, 0.68);
+      --ink-faint: rgba(245, 245, 247, 0.44);
       --accent: #ff2d55;
       --accent-glow: rgba(255, 45, 85, 0.32);
       --accent-hover: #ff3b60;
-      --text: #f5f5f7;
-      --text-secondary: rgba(245, 245, 247, 0.68);
-      --text-tertiary: rgba(245, 245, 247, 0.44);
-      --radius-sm: 10px;
+      --glass: rgba(255, 255, 255, 0.045);
+      --glass-strong: rgba(255, 255, 255, 0.08);
+      --glass-edge: rgba(255, 255, 255, 0.09);
+      --glass-edge-hover: rgba(255, 255, 255, 0.2);
+      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      --radius-lg: 26px;
       --radius-md: 18px;
-      --radius-lg: 24px;
-      --radius-pill: 9999px;
-      --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
-      --font-mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, monospace;
+      --radius-pill: 999px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html {
-      scroll-behavior: smooth;
-      background-color: var(--bg);
-    }
+    html { scroll-behavior: smooth; scroll-padding-top: 96px; }
 
     body {
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: var(--font-stack);
+      font-family: var(--font);
+      background: transparent;
+      color: var(--ink);
       line-height: 1.5;
-      letter-spacing: -0.01em;
+      min-height: 100vh;
+      overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      overflow-x: hidden;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
     }
 
     ::selection {
@@ -59,946 +47,882 @@
       color: #ffffff;
     }
 
-    /* Ambient Liquid Mesh Glows */
-    .ambient-glow-1 {
+    /* ---------- Ambient background dengan efek running glow halus ---------- */
+    .ambient {
       position: fixed;
-      top: -120px;
-      left: 10%;
-      width: 650px;
-      height: 650px;
-      background: radial-gradient(circle, rgba(255, 45, 85, 0.12) 0%, rgba(88, 86, 214, 0.05) 50%, transparent 70%);
+      inset: -25%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .ambient span {
+      position: absolute;
+      border-radius: 50%;
       filter: blur(120px);
-      z-index: -1;
-      pointer-events: none;
+      opacity: 0.65;
+      will-change: transform;
+    }
+    .ambient span:nth-child(1) {
+      width: 58vmax;
+      height: 58vmax;
+      background: radial-gradient(circle, rgba(255, 45, 85, 0.10) 0%, rgba(255, 45, 85, 0.01) 70%, transparent 80%);
+      top: -15%;
+      left: 5%;
+      animation: running-glow-1 22s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+    }
+    .ambient span:nth-child(2) {
+      width: 54vmax;
+      height: 54vmax;
+      background: radial-gradient(circle, rgba(200, 200, 210, 0.07) 0%, rgba(200, 200, 210, 0.02) 65%, transparent 80%);
+      top: 30%;
+      right: -10%;
+      animation: running-glow-2 28s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+    }
+    .ambient span:nth-child(3) {
+      width: 50vmax;
+      height: 50vmax;
+      background: radial-gradient(circle, rgba(200, 200, 210, 0.06) 0%, rgba(255, 45, 85, 0.02) 70%, transparent 80%);
+      bottom: -15%;
+      left: 20%;
+      animation: running-glow-3 32s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+    }
+    .ambient span:nth-child(4) {
+      width: 44vmax;
+      height: 44vmax;
+      background: radial-gradient(circle, rgba(255, 45, 85, 0.07) 0%, rgba(255, 45, 85, 0.01) 65%, transparent 80%);
+      top: 55%;
+      left: -15%;
+      animation: running-glow-4 26s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
     }
 
-    .ambient-glow-2 {
+    @keyframes running-glow-1 {
+      0%   { transform: translate3d(0, 0, 0) scale(1); }
+      50%  { transform: translate3d(10vw, 8vh, 0) scale(1.15); }
+      100% { transform: translate3d(-6vw, 14vh, 0) scale(0.95); }
+    }
+    @keyframes running-glow-2 {
+      0%   { transform: translate3d(0, 0, 0) scale(1); }
+      50%  { transform: translate3d(-12vw, -10vh, 0) scale(1.18); }
+      100% { transform: translate3d(-8vw, 12vh, 0) scale(0.92); }
+    }
+    @keyframes running-glow-3 {
+      0%   { transform: translate3d(0, 0, 0) scale(1); }
+      50%  { transform: translate3d(14vw, -8vh, 0) scale(1.12); }
+      100% { transform: translate3d(-10vw, -14vh, 0) scale(1.05); }
+    }
+    @keyframes running-glow-4 {
+      0%   { transform: translate3d(0, 0, 0) scale(1); }
+      50%  { transform: translate3d(8vw, -12vh, 0) scale(1.2); }
+      100% { transform: translate3d(14vw, 6vh, 0) scale(0.9); }
+    }
+
+    /* ---------- Lapisan dasar, paling bawah ---------- */
+    .bg-base {
       position: fixed;
-      top: 35%;
-      right: 5%;
-      width: 700px;
-      height: 700px;
-      background: radial-gradient(circle, rgba(0, 122, 255, 0.08) 0%, rgba(255, 45, 85, 0.03) 60%, transparent 75%);
-      filter: blur(140px);
-      z-index: -1;
+      inset: 0;
+      z-index: 0;
+      background: var(--base);
       pointer-events: none;
     }
+    main, footer { position: relative; z-index: 1; }
 
-    /* Sticky Liquid Glass Header */
-    header {
-      position: sticky;
+    /* ---------- Aurora: helai-helai tipis, tepi bawah bergelombang, cahaya berkedip pelan ---------- */
+    .aurora {
+      position: fixed;
       top: 0;
-      z-index: 100;
-      padding: 0.85rem 2rem;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(28px) saturate(180%);
-      -webkit-backdrop-filter: blur(28px) saturate(180%);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .strand {
+      position: absolute;
+      top: -12vh;
+      left: var(--x);
+      width: var(--w);
+      height: 92vh;
+      filter: blur(var(--blur));
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 35%, transparent 92%);
+              mask-image: linear-gradient(to bottom, #000 0%, #000 35%, transparent 92%);
+      background: linear-gradient(180deg, var(--c) 0%, transparent 100%);
+      opacity: var(--lo);
+      will-change: transform, border-radius, opacity;
+      animation:
+        strand-sway var(--d) ease-in-out infinite alternate,
+        strand-wave calc(var(--d) * 0.55) ease-in-out infinite,
+        strand-glow calc(var(--d) * 0.7) ease-in-out infinite;
+      animation-delay: var(--delay), var(--delay), var(--delay);
     }
 
-    .header-inner {
-      max-width: 1200px;
-      margin: 0 auto;
+    @keyframes strand-sway {
+      0%   { transform: translate3d(calc(var(--drift) * -1), 0, 0) skewX(-5deg); }
+      100% { transform: translate3d(var(--drift), 2vh, 0) skewX(5deg); }
+    }
+    @keyframes strand-wave {
+      0%, 100% { border-radius: 45% 55% 50% 50% / 4% 8% 92% 96%; }
+      50%      { border-radius: 60% 40% 55% 45% / 10% 3% 97% 90%; }
+    }
+    @keyframes strand-glow {
+      0%, 100% { opacity: var(--lo); }
+      50%      { opacity: var(--hi); }
+    }
+
+    /* ---------- Liquid glass primitive ---------- */
+    .glass {
+      background: var(--glass);
+      border: 1px solid var(--glass-edge);
+      box-shadow: var(--glass-highlight), 0 20px 50px rgba(0, 0, 0, 0.45);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      backdrop-filter: blur(28px) saturate(180%);
+    }
+
+    /* ---------- Navigation ---------- */
+    .nav {
+      position: sticky;
+      top: 16px;
+      z-index: 20;
+      width: min(1060px, calc(100% - 32px));
+      margin: 16px auto 0;
+      padding: 10px 14px 10px 20px;
+      border-radius: var(--radius-pill);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 1.5rem;
+      gap: 16px;
     }
-
-    /* Brand Logo: Logo.png already contains squircle icon + "BitChord Desktop" */
     .brand {
-      display: inline-flex;
+      display: flex;
       align-items: center;
+      gap: 10px;
+      font-weight: 650;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
       text-decoration: none;
       transition: opacity 0.2s ease;
     }
-
     .brand:hover {
       opacity: 0.9;
     }
-
-    .brand-logo {
-      height: 34px;
-      width: auto;
-      display: block;
-      object-fit: contain;
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 4px 12px var(--accent-glow);
     }
-
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 6px;
     }
-
-    .nav-link {
-      color: var(--text-secondary);
+    .nav-links a {
+      color: var(--ink-soft);
       text-decoration: none;
-      font-size: 0.9rem;
+      font-size: 14px;
       font-weight: 500;
-      padding: 0.45rem 0.9rem;
+      padding: 8px 14px;
       border-radius: var(--radius-pill);
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: color .2s, background .2s;
     }
-
-    .nav-link:hover {
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    .btn-github {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.45rem 1rem;
-      border-radius: var(--radius-pill);
-      background: var(--surface-glass);
-      border: 1px solid var(--border-glass);
-      box-shadow: inset 0 1px 0 var(--border-glass-specular);
-      color: var(--text);
-      font-size: 0.875rem;
+    .nav-links a:hover { color: var(--ink); background: rgba(255,255,255,.08); }
+    .nav-cta {
+      background: var(--ink) !important;
+      color: #000 !important;
       font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
+    .nav-cta:hover { background: #fff !important; color: #000 !important; }
 
-    .btn-github:hover {
-      background: var(--surface-glass-hover);
-      border-color: var(--border-glass-hover);
-      transform: translateY(-1px);
-    }
+    /* ---------- Layout ---------- */
+    main, footer { width: min(1060px, calc(100% - 32px)); margin: 0 auto; }
 
-    /* Hero Section */
+    section { padding: 96px 0 0; }
+
+    h1, h2, h3 { font-weight: 700; letter-spacing: -0.03em; color: #ffffff; }
+    h2 { font-size: clamp(30px, 4.2vw, 44px); line-height: 1.1; }
+    .lede { color: var(--ink-soft); font-size: clamp(17px, 2vw, 20px); max-width: 52ch; margin-top: 14px; line-height: 1.6; }
+
+    /* ---------- Hero ---------- */
     .hero {
-      text-align: center;
-      padding: 5rem 1.5rem 3.5rem;
-      max-width: 960px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
+      padding-top: 72px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: 52px;
       align-items: center;
     }
-
-    .release-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.6rem;
-      padding: 0.4rem 1rem;
-      border-radius: var(--radius-pill);
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
-      color: var(--text-secondary);
-      font-size: 0.85rem;
-      font-weight: 500;
-      margin-bottom: 2rem;
-      text-decoration: none;
-      transition: all 0.2s ease;
+    .hero h1 {
+      font-size: clamp(44px, 6.5vw, 72px);
+      line-height: 1.04;
+      letter-spacing: -0.04em;
     }
-
-    .release-pill:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.24);
-      color: var(--text);
-    }
-
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #30d158;
-      box-shadow: 0 0 10px #30d158;
-    }
-
-    .hero-title {
-      font-size: clamp(2.5rem, 5.5vw, 4.25rem);
-      font-weight: 700;
-      line-height: 1.08;
-      letter-spacing: -0.035em;
-      color: #ffffff;
-      margin-bottom: 1.35rem;
-    }
-
-    .hero-subtitle {
-      font-size: clamp(1.05rem, 1.8vw, 1.25rem);
-      color: var(--text-secondary);
-      max-width: 680px;
-      line-height: 1.6;
-      margin-bottom: 2.75rem;
-      font-weight: 400;
-    }
-
-    .download-cta-group {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.85rem;
-      margin-bottom: 2.5rem;
-      width: 100%;
-      max-width: 440px;
-    }
-
-    .btn-apple-primary {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.75rem;
-      width: 100%;
-      padding: 1rem 2rem;
-      background: var(--accent);
-      color: #ffffff;
-      border-radius: var(--radius-pill);
-      font-size: 1.05rem;
+    .hero h1 small {
+      display: block;
+      font-size: 0.42em;
       font-weight: 600;
-      text-decoration: none;
-      box-shadow: 0 8px 24px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      letter-spacing: -0.02em;
+      color: var(--ink-soft);
+      margin-top: 10px;
     }
-
-    .btn-apple-primary:hover {
-      background: var(--accent-hover);
-      box-shadow: 0 12px 32px rgba(255, 45, 85, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-      transform: translateY(-1px);
-    }
-
-    .btn-apple-primary:active {
-      transform: scale(0.985);
-    }
-
-    .btn-apple-primary svg {
-      width: 20px;
-      height: 20px;
-      stroke-width: 2.2;
-    }
-
-    .download-subtext {
-      font-size: 0.85rem;
-      color: var(--text-tertiary);
-    }
-
-    .download-subtext a {
-      color: var(--text-secondary);
-      text-decoration: none;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-      transition: color 0.2s ease;
-    }
-
-    .download-subtext a:hover {
-      color: var(--text);
-      border-bottom-color: var(--text);
-    }
-
-    .hero-meta-badges {
+    .hero-actions {
+      margin-top: 36px;
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.65rem;
-      margin-top: 0.5rem;
+      gap: 12px;
+      align-items: center;
+    }
+    .meta-line {
+      margin-top: 18px;
+      font-size: 14px;
+      color: var(--ink-faint);
     }
 
-    .meta-badge {
+    .btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.45rem;
-      padding: 0.38rem 0.85rem;
-      background: var(--surface-glass);
-      border: 1px solid var(--border-glass);
-      box-shadow: inset 0 1px 0 var(--border-glass-specular);
+      gap: 10px;
+      padding: 14px 24px;
       border-radius: var(--radius-pill);
-      font-size: 0.825rem;
-      color: var(--text-secondary);
+      font: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid var(--glass-edge);
+      cursor: pointer;
+      transition: transform .2s ease, background .2s ease, box-shadow .2s ease;
     }
-
-    .meta-badge svg {
-      width: 14px;
-      height: 14px;
-      color: var(--accent);
+    .btn:active { transform: scale(.97); }
+    .btn-primary {
+      background: var(--accent);
+      border-color: rgba(255,255,255,.2);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 8px 24px var(--accent-glow);
+      color: #fff;
     }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 12px 32px rgba(255, 45, 85, .45);
+      transform: translateY(-1px);
+    }
+    .btn-ghost { background: var(--glass); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+    .btn-ghost:hover { background: var(--glass-strong); border-color: var(--glass-edge-hover); }
 
-    /* Apple-Style Glass Canvas Preview */
-    .hero-banner-container {
-      max-width: 1140px;
-      width: 92%;
-      margin: 1.5rem auto 5.5rem;
-      border-radius: var(--radius-lg);
+    /* Showcase card meniru tampilan player BitChord Desktop asli */
+    .artwork-wrap {
+      position: relative;
+      justify-self: center;
+      width: min(480px, 100%);
+    }
+    .player-showcase {
+      border-radius: 26px;
       padding: 7px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease;
     }
-
-    .hero-banner-container img {
+    .player-showcase:hover {
+      transform: translateY(-3px) scale(1.01);
+      box-shadow: 0 40px 90px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+    .player-showcase-img {
       width: 100%;
       height: auto;
-      border-radius: calc(var(--radius-lg) - 6px);
       display: block;
+      border-radius: 20px;
       background: #08090d;
     }
 
-    /* Sections */
-    section {
-      max-width: 1160px;
-      margin: 0 auto 6rem;
-      padding: 0 1.5rem;
-      width: 100%;
+    /* ---------- Download ---------- */
+    .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; margin-bottom: 32px; }
+    .version-badge {
+      font-size: 13px;
+      color: var(--ink-soft);
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
     }
 
-    .section-header {
-      text-align: center;
-      margin-bottom: 3.25rem;
-    }
-
-    .section-title {
-      font-size: 2.2rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      color: #ffffff;
-      margin-bottom: 0.65rem;
-    }
-
-    .section-subtitle {
-      color: var(--text-secondary);
-      font-size: 1.05rem;
-      max-width: 620px;
-      margin: 0 auto;
-    }
-
-    /* Download Cards Matrix */
-    .download-grid {
+    .platforms {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-      gap: 1.5rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
     }
-
-    .download-card {
-      background: var(--surface-glass);
-      backdrop-filter: blur(24px) saturate(180%);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      border: 1px solid var(--border-glass);
-      box-shadow: inset 0 1px 0 var(--border-glass-specular), 0 12px 30px rgba(0, 0, 0, 0.25);
-      border-radius: var(--radius-md);
-      padding: 1.85rem;
+    .platform {
+      border-radius: var(--radius-lg);
+      padding: 28px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      gap: 18px;
+      transition: transform .3s ease, border-color .3s ease, background .3s ease;
       position: relative;
     }
-
-    .download-card:hover {
-      background: var(--surface-glass-hover);
-      border-color: var(--border-glass-hover);
-      transform: translateY(-2px);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 18px 40px rgba(0, 0, 0, 0.35);
+    .platform:hover {
+      background: var(--glass-strong);
+      border-color: var(--glass-edge-hover);
     }
-
-    .card-badge {
+    .platform.is-current { border-color: rgba(255,255,255,.35); }
+    .platform.is-current::after {
+      content: "Perangkatmu";
       position: absolute;
-      top: 1.35rem;
-      right: 1.35rem;
-      padding: 0.25rem 0.65rem;
-      border-radius: var(--radius-pill);
-      background: rgba(255, 45, 85, 0.14);
-      border: 1px solid rgba(255, 45, 85, 0.28);
-      color: var(--accent);
-      font-size: 0.75rem;
+      top: 18px;
+      right: 18px;
+      font-size: 12px;
       font-weight: 600;
-      letter-spacing: 0.01em;
+      padding: 5px 11px;
+      border-radius: var(--radius-pill);
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 12px var(--accent-glow);
     }
+    .platform-head { display: flex; align-items: center; gap: 14px; }
+    .platform-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.08);
+      border: 1px solid var(--glass-edge);
+      flex-shrink: 0;
+    }
+    .platform-icon svg { width: 24px; height: 24px; }
+    .platform h3 { font-size: 21px; letter-spacing: -0.02em; }
+    .platform p.small { font-size: 13.5px; color: var(--ink-faint); margin-top: 2px; }
 
-    .card-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+    .file-list { display: flex; flex-direction: column; gap: 9px; }
+    .file-btn {
       display: flex;
       align-items: center;
-      justify-content: center;
-      margin-bottom: 1.35rem;
-    }
-
-    .card-icon svg {
-      width: 22px;
-      height: 22px;
-      color: var(--text);
-    }
-
-    .card-title {
-      font-size: 1.18rem;
-      font-weight: 700;
-      letter-spacing: -0.015em;
-      color: #ffffff;
-      margin-bottom: 0.4rem;
-    }
-
-    .card-desc {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-      line-height: 1.55;
-      margin-bottom: 1.6rem;
-      flex-grow: 1;
-    }
-
-    .card-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.25rem;
-      border-radius: var(--radius-pill);
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
-      color: var(--text);
-      font-size: 0.9rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .card-btn:hover {
-      background: #ffffff;
-      color: #000000;
-      border-color: #ffffff;
-      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.25);
-    }
-
-    .card-btn:active {
-      transform: scale(0.98);
-    }
-
-    /* Features Grid */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 1.65rem;
-    }
-
-    .feature-card {
-      background: var(--surface-glass);
-      backdrop-filter: blur(24px) saturate(180%);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      border: 1px solid var(--border-glass);
-      box-shadow: inset 0 1px 0 var(--border-glass-specular), 0 12px 28px rgba(0, 0, 0, 0.25);
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 18px;
       border-radius: var(--radius-md);
-      padding: 2.1rem;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.09);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 550;
+      transition: background .2s ease, transform .2s ease, border-color .2s ease;
     }
-
-    .feature-card:hover {
-      background: var(--surface-glass-hover);
-      border-color: var(--border-glass-hover);
-      transform: translateY(-2px);
+    .file-btn:hover { background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.18); }
+    .file-btn:active { transform: scale(.98); }
+    .file-btn span.size { font-size: 13px; color: var(--ink-faint); font-weight: 450; white-space: nowrap; }
+    .file-btn.primary {
+      background: var(--accent);
+      border-color: rgba(255,255,255,.2);
+      color: #fff;
+      box-shadow: 0 6px 18px var(--accent-glow);
     }
+    .file-btn.primary:hover { background: var(--accent-hover); box-shadow: 0 8px 22px rgba(255, 45, 85, .45); }
+    .file-btn.primary .size { color: rgba(255,255,255,.8); }
 
-    .feature-icon-box {
-      width: 46px;
-      height: 46px;
+    .empty-note { font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
+    .empty-note a { color: var(--ink); }
+    .loading-row {
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.12), rgba(255,255,255,.04));
+      background-size: 200% 100%;
+      animation: shimmer 1.4s linear infinite;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    .all-releases { margin-top: 22px; font-size: 14px; color: var(--ink-soft); }
+    .all-releases a { color: var(--ink); text-underline-offset: 3px; }
+
+    /* ---------- Features ---------- */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .feature {
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      min-height: 190px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 20px;
+      transition: background .25s ease, border-color .25s ease;
+    }
+    .feature:hover {
+      background: var(--glass-strong);
+      border-color: var(--glass-edge-hover);
+    }
+    .feature-icon {
+      width: 44px; height: 44px;
       border-radius: 12px;
+      display: grid; place-items: center;
       background: rgba(255, 45, 85, 0.12);
       border: 1px solid rgba(255, 45, 85, 0.25);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 1.35rem;
       color: var(--accent);
     }
+    .feature-icon svg { width: 22px; height: 22px; }
+    .feature h3 { font-size: 21px; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .feature p { color: var(--ink-soft); font-size: 15px; line-height: 1.6; }
 
-    .feature-icon-box svg {
-      width: 22px;
-      height: 22px;
-    }
-
-    .feature-title {
-      font-size: 1.22rem;
-      font-weight: 700;
-      letter-spacing: -0.015em;
-      color: #ffffff;
-      margin-bottom: 0.65rem;
-    }
-
-    .feature-desc {
-      font-size: 0.925rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-
-    /* Footer */
-    footer {
-      margin-top: auto;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 4rem 1.5rem 3rem;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-    }
-
-    .footer-content {
-      max-width: 1160px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 2.5rem;
-    }
-
-    .footer-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 2.5rem;
-    }
-
-    .footer-brand {
-      max-width: 440px;
-    }
-
-    .footer-brand p {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-      line-height: 1.6;
-      margin-top: 1rem;
-    }
-
-    .footer-links {
-      display: flex;
-      gap: 3.5rem;
-      flex-wrap: wrap;
-    }
-
-    .footer-col h4 {
-      font-size: 0.85rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 1.15rem;
-      color: var(--text-tertiary);
-    }
-
-    .footer-col ul {
+    /* ---------- Install guide ---------- */
+    .guide { display: flex; flex-direction: column; gap: 14px; }
+    details.guide-item { border-radius: var(--radius-md); overflow: hidden; }
+    details.guide-item summary {
       list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 0.7rem;
-    }
-
-    .footer-col a {
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 0.9rem;
-      transition: color 0.2s ease;
-    }
-
-    .footer-col a:hover {
-      color: #ffffff;
-    }
-
-    .footer-bottom {
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-      padding-top: 2rem;
+      cursor: pointer;
+      padding: 20px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 1.25rem;
-      font-size: 0.85rem;
-      color: var(--text-tertiary);
+      font-weight: 600;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+    }
+    details.guide-item summary::-webkit-details-marker { display: none; }
+    details.guide-item summary::after {
+      content: "";
+      width: 9px; height: 9px;
+      border-right: 2px solid var(--ink-soft);
+      border-bottom: 2px solid var(--ink-soft);
+      transform: rotate(45deg) translateY(-3px);
+      transition: transform .3s ease;
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+    details.guide-item[open] summary::after { transform: rotate(-135deg) translateY(-3px); }
+    .guide-body { padding: 0 24px 22px; color: var(--ink-soft); font-size: 15px; line-height: 1.6; }
+    .guide-body p + p { margin-top: 10px; }
+    .guide-body code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13.5px;
+      background: rgba(255,255,255,.09);
+      padding: 2px 8px;
+      border-radius: 6px;
+      color: var(--ink);
     }
 
-    .support-badges {
+    /* ---------- Footer ---------- */
+    footer {
+      margin-top: 110px;
+      padding: 40px 0 56px;
+      border-top: 1px solid rgba(255,255,255,.08);
       display: flex;
-      gap: 0.85rem;
+      flex-wrap: wrap;
+      justify-content: space-between;
       align-items: center;
+      gap: 20px;
+      font-size: 14px;
+      color: var(--ink-faint);
+    }
+    footer a { color: var(--ink-soft); text-decoration: none; transition: color .2s ease; }
+    footer a:hover { color: var(--ink); }
+    footer .links { display: flex; gap: 24px; flex-wrap: wrap; }
+
+    /* ---------- Entrance ---------- */
+    .reveal { animation: rise .9s cubic-bezier(.2,.7,.2,1) both; }
+    .reveal.d1 { animation-delay: .08s; }
+    .reveal.d2 { animation-delay: .18s; }
+    .reveal.d3 { animation-delay: .3s; }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: none; }
     }
 
-    .support-badges img {
-      height: 32px;
-      transition: opacity 0.2s ease, transform 0.2s ease;
+    /* ---------- Responsif ---------- */
+    @media (max-width: 880px) {
+      .hero { grid-template-columns: 1fr; gap: 60px; padding-top: 48px; text-align: center; }
+      .hero-actions { justify-content: center; }
+      .artwork-wrap { width: min(380px, 90%); }
+      .platforms { grid-template-columns: 1fr; }
+      .features { grid-template-columns: 1fr; }
+      .nav-links a:not(.nav-cta) { display: none; }
+    }
+    @media (max-width: 520px) {
+      section { padding-top: 72px; }
+      .platform.is-current::after { position: static; align-self: flex-start; }
+      footer { flex-direction: column; align-items: flex-start; }
     }
 
-    .support-badges img:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     }
 
-    @media (max-width: 768px) {
-      header {
-        padding: 0.85rem 1.25rem;
-      }
-      .nav-links {
-        display: none;
-      }
-      .hero {
-        padding: 3.5rem 1rem 2.5rem;
-      }
-      .hero-title {
-        font-size: 2.35rem;
-      }
-      .footer-top {
-        flex-direction: column;
-      }
-    }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
   </style>
 </head>
 <body>
-  <div class="ambient-glow-1"></div>
-  <div class="ambient-glow-2"></div>
 
-  <header>
-    <div class="header-inner">
-      <a href="#" class="brand">
-        <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/Logo.png" alt="BitChord Desktop" class="brand-logo">
-      </a>
-      <nav class="nav-links">
-        <a href="#features" class="nav-link">Features</a>
-        <a href="#download" class="nav-link">Download</a>
-        <a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" class="nav-link" target="_blank" rel="noopener noreferrer">Guide</a>
-        <a href="https://github.com/efzynx/BitChord-Desktop" class="btn-github" target="_blank" rel="noopener noreferrer">
-          <svg height="15" width="15" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/>
-          </svg>
-          GitHub
-        </a>
-      </nav>
+  <div class="bg-base" aria-hidden="true"></div>
+
+  <div class="ambient" aria-hidden="true">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+
+  <div class="aurora" aria-hidden="true"><span class="strand" style="--x:3%;--w:clamp(40px, 3.2vw, 90px);--c:rgba(235, 235, 240, 0.32);--drift:3vw;--d:22s;--delay:-4s;--lo:0.1;--hi:0.32;--blur:20px"></span><span class="strand" style="--x:9%;--w:clamp(30px, 2.2vw, 60px);--c:rgba(235, 235, 240, 0.32);--drift:4vw;--d:26s;--delay:-11s;--lo:0.05;--hi:0.22;--blur:16px"></span><span class="strand" style="--x:16%;--w:clamp(50px, 4vw, 110px);--c:rgba(255, 45, 85, 0.30);--drift:2vw;--d:19s;--delay:-7s;--lo:0.08;--hi:0.26;--blur:22px"></span><span class="strand" style="--x:24%;--w:clamp(24px, 1.6vw, 44px);--c:rgba(235, 235, 240, 0.32);--drift:5vw;--d:31s;--delay:-2s;--lo:0.04;--hi:0.2;--blur:14px"></span><span class="strand" style="--x:31%;--w:clamp(60px, 4.8vw, 120px);--c:rgba(235, 235, 240, 0.32);--drift:3vw;--d:24s;--delay:-15s;--lo:0.07;--hi:0.24;--blur:26px"></span><span class="strand" style="--x:39%;--w:clamp(28px, 2vw, 56px);--c:rgba(255, 45, 85, 0.30);--drift:4vw;--d:28s;--delay:-9s;--lo:0.05;--hi:0.22;--blur:16px"></span><span class="strand" style="--x:46%;--w:clamp(44px, 3.4vw, 96px);--c:rgba(235, 235, 240, 0.32);--drift:2vw;--d:21s;--delay:-5s;--lo:0.09;--hi:0.28;--blur:20px"></span><span class="strand" style="--x:54%;--w:clamp(26px, 1.8vw, 50px);--c:rgba(235, 235, 240, 0.32);--drift:5vw;--d:33s;--delay:-18s;--lo:0.04;--hi:0.18;--blur:14px"></span><span class="strand" style="--x:61%;--w:clamp(56px, 4.2vw, 110px);--c:rgba(255, 45, 85, 0.30);--drift:3vw;--d:25s;--delay:-12s;--lo:0.07;--hi:0.24;--blur:24px"></span><span class="strand" style="--x:69%;--w:clamp(30px, 2.4vw, 64px);--c:rgba(235, 235, 240, 0.32);--drift:4vw;--d:27s;--delay:-6s;--lo:0.05;--hi:0.22;--blur:16px"></span><span class="strand" style="--x:76%;--w:clamp(48px, 3.6vw, 100px);--c:rgba(235, 235, 240, 0.32);--drift:2vw;--d:23s;--delay:-14s;--lo:0.08;--hi:0.26;--blur:20px"></span><span class="strand" style="--x:84%;--w:clamp(34px, 2.6vw, 72px);--c:rgba(255, 45, 85, 0.30);--drift:5vw;--d:30s;--delay:-3s;--lo:0.05;--hi:0.2;--blur:16px"></span><span class="strand" style="--x:91%;--w:clamp(42px, 3vw, 86px);--c:rgba(235, 235, 240, 0.32);--drift:3vw;--d:20s;--delay:-10s;--lo:0.07;--hi:0.24;--blur:18px"></span></div>
+
+  <nav class="nav glass reveal" aria-label="Navigasi utama">
+    <a href="#top" class="brand" id="top">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="18" height="12" viewBox="0 0 730 484" fill="none">
+          <path fill="#ffffff" d="M6.73729 316.937C20.201 294.159 49.6986 286.649 72.4033 300.174H72.4277C237.603 398.282 510.121 407.302 667.823 359.439C693.147 351.759 719.927 366.055 727.602 391.378C735.276 416.715 720.992 443.477 695.649 451.176C514.618 506.132 213.674 495.514 23.5058 382.622C0.678772 369.103 -6.78757 339.685 6.73729 316.937ZM77.8135 154.865C89.38 136.046 113.982 130.11 132.77 141.676C270.528 226.369 480.519 250.891 643.46 201.43C664.592 195.047 686.911 206.957 693.324 228.052C699.689 249.184 687.774 271.46 666.679 277.886C480.555 334.36 249.169 307.004 90.9707 209.79C72.1827 198.224 66.247 173.628 77.8135 154.865ZM140.542 15.3012C149.722 0.246392 169.428 -4.52761 184.482 4.71335C304.811 78.2128 456.29 94.8593 634.684 54.101C651.874 50.1843 669.01 60.9551 672.927 78.1518C676.862 95.3486 666.134 112.484 648.9 116.401C453.677 161.021 286.219 141.799 151.129 59.2417C136.074 50.0006 131.301 30.3561 140.542 15.3012Z"/>
+        </svg>
+      </span>
+      BitChord Desktop
+    </a>
+    <div class="nav-links">
+      <a href="#fitur">Fitur</a>
+      <a href="#unduh">Unduh</a>
+      <a href="#instal">Instal</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" target="_blank" rel="noopener">Panduan</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener">GitHub</a>
+      <a href="#unduh" class="nav-cta">Unduh</a>
     </div>
-  </header>
+  </nav>
 
   <main>
-    <!-- Hero Section -->
-    <section class="hero">
-      <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="release-pill" id="releaseTag" target="_blank" rel="noopener noreferrer">
-        <span class="status-dot"></span>
-        <span id="releaseText">Loading latest release...</span>
-      </a>
 
-      <h1 class="hero-title">Aesthetic Music Client<br>for Linux & Windows</h1>
-      <p class="hero-subtitle">
-        An independent, high-performance desktop music player for YouTube Music built with Compose Multiplatform, native FFmpeg 7.1, real-time synchronized lyrics, and Listen Together party rooms.
-      </p>
-
-      <div class="download-cta-group">
-        <a href="#download" class="btn-apple-primary" id="primaryDownloadBtn">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          <span id="primaryDownloadText">Download BitChord</span>
-        </a>
-        <p class="download-subtext" id="primaryDownloadSubtext">
-          Free and open source under GPLv3. <a href="#download">View all platform packages</a>.
+    <header class="hero">
+      <div class="reveal">
+        <h1>
+          BitChord Desktop
+          <small>Pemutar musik modern untuk Linux & Windows.</small>
+        </h1>
+        <p class="lede">
+          Aplikasi pemutar YouTube Music mandiri dan berkinerja tinggi dengan antarmuka Apple Music frosted glass, decoding native FFmpeg 7.1, lirik tersinkronisasi per kata, dan mode pesta Listen Together.
         </p>
+        <div class="hero-actions">
+          <a href="#unduh" class="btn btn-primary" id="hero-download">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>
+            <span id="hero-download-label">Unduh BitChord</span>
+          </a>
+          <a href="#fitur" class="btn btn-ghost">Pelajari fiturnya</a>
+        </div>
+        <p class="meta-line" id="hero-meta">Gratis dan sumber terbuka di bawah lisensi GPLv3.</p>
       </div>
 
-      <div class="hero-meta-badges">
-        <span class="meta-badge" id="downloadsBadge">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-          <span id="downloadsCount">70+ downloads</span>
-        </span>
-        <span class="meta-badge">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
-          FFmpeg 7.1 Hi-Res Audio
-        </span>
-        <span class="meta-badge">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-          Linux & Windows Native
-        </span>
+      <div class="artwork-wrap reveal d2">
+        <div class="player-showcase glass">
+          <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/screenshots/bitchord-now-playing.webp" alt="BitChord Desktop Maximized Player Preview" class="player-showcase-img" />
+        </div>
+      </div>
+    </header>
+
+    <section id="unduh">
+      <div class="section-head">
+        <div>
+          <h2>Unduh BitChord Desktop</h2>
+          <p class="lede">Pilih sistem operasimu. Tautan paket otomatis merujuk ke rilis stabil terkini.</p>
+        </div>
+        <div class="version-badge glass" id="version-badge">Memuat versi…</div>
+      </div>
+
+      <div class="platforms">
+
+        <article class="platform glass" data-os="linux">
+          <div class="platform-head">
+            <div class="platform-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#f5f5f7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-2 0-3 2-3 4.5 0 1.5-.5 2.5-1.5 4S6 15 6 17.5C6 19.5 7.5 21 9.5 21h5c2 0 3.5-1.5 3.5-3.5 0-2.5-1.5-3.5-2.5-5S15 8 15 7.5C15 5 14 3 12 3z"/><circle cx="10" cy="8" r=".6" fill="#f5f5f7"/><circle cx="14" cy="8" r=".6" fill="#f5f5f7"/></svg>
+            </div>
+            <div>
+              <h3>Linux</h3>
+              <p class="small">AppImage, DEB, RPM, atau Tar.gz</p>
+            </div>
+          </div>
+          <div class="file-list" data-list="linux"><div class="loading-row"></div></div>
+        </article>
+
+        <article class="platform glass" data-os="win">
+          <div class="platform-head">
+            <div class="platform-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="#f5f5f7"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.25 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg>
+            </div>
+            <div>
+              <h3>Windows</h3>
+              <p class="small">Setup EXE, MSI, atau Portable ZIP</p>
+            </div>
+          </div>
+          <div class="file-list" data-list="win"><div class="loading-row"></div></div>
+        </article>
+
+      </div>
+
+      <p class="all-releases" id="all-releases">
+        Mencari catatan rilis lengkap atau berkas checksum? <a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener">Lihat semua rilis di GitHub</a>.
+      </p>
+    </section>
+
+    <section id="fitur">
+      <h2>Didesain untuk dengar.</h2>
+      <p class="lede">Harmonisasi estetika modern bergaya Apple Music dengan performa audio kelas desktop.</p>
+
+      <div class="features" style="margin-top: 48px;">
+        <div class="feature glass">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 21h8M12 17v4"/></svg>
+          </div>
+          <div>
+            <h3>Antarmuka Apple Music & Frosted Glass</h3>
+            <p>Lapisan liquid glass tembus pandang, ekstraksi palet warna dinamis dari sampul album, scrubber interaktif dengan time preview, dan teks marquee berjalan otomatis.</p>
+          </div>
+        </div>
+
+        <div class="feature glass">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+          </div>
+          <div>
+            <h3>Mesin Audio Native FFmpeg 7.1</h3>
+            <p>Pipeline decoding JavaCPP terakselerasi perangkat keras dengan presisi internal 32-bit float. Mendukung format Hi-Res Lossless (FLAC, ALAC, WAV) dan Opus/AAC.</p>
+          </div>
+        </div>
+
+        <div class="feature glass">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          </div>
+          <div>
+            <h3>Listen Together (Mode Pesta)</h3>
+            <p>Dengarkan musik bersama teman secara sinkron. Dukungan instan server cloud bawaan, VPS kustom, atau Quick Tunnel Cloudflare lokal satu klik tanpa port forwarding.</p>
+          </div>
+        </div>
+
+        <div class="feature glass">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16m-7 6h7"/></svg>
+          </div>
+          <div>
+            <h3>Lirik Tersinkronisasi & Artwork Bergerak</h3>
+            <p>Tampilan lirik kata per kata yang akurat (LRCLIB, Musixmatch, YouTube) disertai animasi Apple Music motion canvas banner yang dirender hemat CPU.</p>
+          </div>
+        </div>
+
+        <div class="feature glass">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </div>
+          <div>
+            <h3>Integrasi Media OS & Discord RPC</h3>
+            <p>Dukungan penuh Linux MPRIS D-Bus dan Windows SMTC (volume overlay & lock screen), serta Discord Rich Presence lokal melalui IPC tanpa bot token.</p>
+          </div>
+        </div>
+
+        <div class="feature glass">
+          <div class="feature-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </div>
+          <div>
+            <h3>DJ Automix & Pustaka Lokal</h3>
+            <p>Transisi antarlagu yang mulus dengan analisis tempo dan ketukan bertenaga Aubio & ONNX, serta monitoring direktori lagu lokal real-time.</p>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Glass Banner Preview -->
-    <div class="hero-banner-container">
-      <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/Banner.png" alt="BitChord Desktop Interface Preview">
-    </div>
+    <section id="instal">
+      <h2>Cara instal</h2>
+      <p class="lede">Ikuti langkah sesuai sistem operasimu. Siap digunakan dalam hitungan detik.</p>
 
-    <!-- Download Matrix -->
-    <section id="download">
-      <div class="section-header">
-        <h2 class="section-title">Download Packages</h2>
-        <p class="section-subtitle">Choose your platform and preferred packaging format</p>
-      </div>
-
-      <div class="download-grid">
-        <!-- Linux AppImage -->
-        <div class="download-card" id="card-appimage">
-          <span class="card-badge">Linux Recommended</span>
-          <div class="card-icon">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 2v6h6"/></svg>
+      <div class="guide" style="margin-top: 40px;">
+        <details class="guide-item glass" open>
+          <summary>Linux</summary>
+          <div class="guide-body">
+            <p><strong>Universal AppImage (Direkomendasikan):</strong> Beri izin eksekusi lalu jalankan langsung:
+              <br/><code>chmod +x BitChord-*-x86_64.AppImage && ./BitChord-*-x86_64.AppImage</code>
+            </p>
+            <p><strong>Debian / Ubuntu / Mint (.deb):</strong> Pasang paket native melalui terminal:
+              <br/><code>sudo apt install ./bitchord_*_amd64.deb</code> atau <code>sudo dpkg -i bitchord_*_amd64.deb</code>
+            </p>
+            <p><strong>Fedora / RHEL / openSUSE (.rpm):</strong> Pasang paket RPM:
+              <br/><code>sudo dnf install ./bitchord-*.x86_64.rpm</code>
+            </p>
+            <p><strong>Portable Tar.gz:</strong> Ekstrak arsip lalu jalankan skrip integrasi:
+              <br/><code>./BitChord/bin/BitChord</code> atau daftarkan launcher desktop via <code>./scripts/install-desktop.sh</code>
+            </p>
           </div>
-          <h3 class="card-title">Universal AppImage</h3>
-          <p class="card-desc">Standalone universal Linux binary. Make executable with chmod +x and run on Ubuntu, Fedora, Arch, and any modern Linux distribution.</p>
-          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-appimage">Download .AppImage</a>
-        </div>
+        </details>
 
-        <!-- Linux DEB -->
-        <div class="download-card" id="card-deb">
-          <div class="card-icon">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        <details class="guide-item glass">
+          <summary>Windows</summary>
+          <div class="guide-body">
+            <p><strong>Setup Installer EXE (Direkomendasikan):</strong> Jalankan <code>BitChord-*.exe</code> untuk memasang aplikasi dengan pintasan Start Menu dan Desktop otomatis. Runtime Java sudah terintegrasi penuh.</p>
+            <p><strong>Windows MSI Installer:</strong> Jalankan <code>BitChord-*.msi</code> untuk pemasangan sistem berbasis Windows Installer standar.</p>
+            <p><strong>Portable ZIP:</strong> Ekstrak arsip ZIP di lokasi mana pun, lalu klik dua kali <code>BitChord.vbs</code> untuk menjalankan pemutar secara instan di latar belakang tanpa jendela terminal.</p>
           </div>
-          <h3 class="card-title">Debian / Ubuntu Package</h3>
-          <p class="card-desc">Native .deb package for Debian, Ubuntu, Linux Mint, Pop!_OS, and other Debian-based distributions.</p>
-          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-deb">Download .deb</a>
-        </div>
-
-        <!-- Linux RPM -->
-        <div class="download-card" id="card-rpm">
-          <div class="card-icon">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-          </div>
-          <h3 class="card-title">Fedora / RPM Package</h3>
-          <p class="card-desc">Native .rpm package for Fedora, RHEL, CentOS Stream, openSUSE, and RPM-based Linux systems.</p>
-          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-rpm">Download .rpm</a>
-        </div>
-
-        <!-- Windows Setup EXE -->
-        <div class="download-card" id="card-exe">
-          <span class="card-badge">Windows Recommended</span>
-          <div class="card-icon">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h7v7H4V4zm9 0h7v7h-7V4zm-9 9h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
-          </div>
-          <h3 class="card-title">Windows Setup Installer</h3>
-          <p class="card-desc">Modern per-user installer executable (.exe) with automatic Start Menu and Desktop shortcuts.</p>
-          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-exe">Download .exe</a>
-        </div>
-
-        <!-- Windows MSI -->
-        <div class="download-card" id="card-msi">
-          <div class="card-icon">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4h7v7H4V4zm9 0h7v7h-7V4zm-9 9h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
-          </div>
-          <h3 class="card-title">Windows MSI Installer</h3>
-          <p class="card-desc">Standard Windows Installer (.msi) package for enterprise and system-wide installation.</p>
-          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-msi">Download .msi</a>
-        </div>
-
-        <!-- Windows Portable ZIP -->
-        <div class="download-card" id="card-zip">
-          <div class="card-icon">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
-          </div>
-          <h3 class="card-title">Windows Portable ZIP</h3>
-          <p class="card-desc">Standalone archive requiring no installation. Includes silent background runner (BitChord.vbs).</p>
-          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-zip">Download .zip</a>
-        </div>
+        </details>
       </div>
     </section>
 
-    <!-- Key Features -->
-    <section id="features">
-      <div class="section-header">
-        <h2 class="section-title">Engineered for Perfection</h2>
-        <p class="section-subtitle">Modern aesthetics harmonized with desktop-grade performance</p>
-      </div>
-
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon-box">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
-          </div>
-          <h3 class="feature-title">Native FFmpeg 7.1 Pipeline</h3>
-          <p class="feature-desc">Integrated JavaCPP hardware-accelerated audio pipeline supporting lossless Hi-Res streaming (FLAC, ALAC, WAV) and standard Opus/AAC playback with 32-bit float internal precision.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon-box">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-          </div>
-          <h3 class="feature-title">Listen Together (Party Mode)</h3>
-          <p class="feature-desc">Listen synchronously with friends worldwide. Instant connection via built-in cloud server, self-hosted VPS, or local one-click Cloudflare Quick Tunnel.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon-box">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-          </div>
-          <h3 class="feature-title">Synchronized Lyrics & Motion Art</h3>
-          <p class="feature-desc">Real-time word-by-word synced lyrics accompanied by Apple Music motion canvas banners decoded smoothly at low CPU consumption.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon-box">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-          </div>
-          <h3 class="feature-title">Native OS Media Integration</h3>
-          <p class="feature-desc">Full MPRIS D-Bus support on Linux (GNOME, KDE Plasma, playerctl) and Windows System Media Transport Controls (SMTC) in volume overlay and lock screen.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon-box">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          </div>
-          <h3 class="feature-title">Zero-Configuration Discord RPC</h3>
-          <p class="feature-desc">Direct local Inter-Process Communication (IPC) via Unix Domain Sockets on Linux and Named Pipes on Windows without third-party bots or bot tokens.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon-box">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-          </div>
-          <h3 class="feature-title">DJ Automix & Seamless Transitions</h3>
-          <p class="feature-desc">Tempo and beat-matched song transitions powered by Aubio and ONNX neural analysis models for uninterrupted musical flow.</p>
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer>
-    <div class="footer-content">
-      <div class="footer-top">
-        <div class="footer-brand">
-          <a href="#" class="brand">
-            <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/Logo.png" alt="BitChord Desktop" class="brand-logo">
-          </a>
-          <p>
-            An independent, community-driven desktop port of BitChord by Kushagra Singh. Reconstructed, modernized, and maintained by <strong>efzynx</strong> with AI engineering assistance from <strong>Google DeepMind Gemini</strong>.
-          </p>
-        </div>
-        <div class="footer-links">
-          <div class="footer-col">
-            <h4>Download</h4>
-            <ul>
-              <li><a href="#card-appimage">Linux AppImage</a></li>
-              <li><a href="#card-deb">Debian / Ubuntu (.deb)</a></li>
-              <li><a href="#card-rpm">Fedora (.rpm)</a></li>
-              <li><a href="#card-exe">Windows Setup (.exe)</a></li>
-              <li><a href="#card-zip">Windows Portable (.zip)</a></li>
-            </ul>
-          </div>
-          <div class="footer-col">
-            <h4>Resources</h4>
-            <ul>
-              <li><a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
-              <li><a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener noreferrer">All Releases</a></li>
-              <li><a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" target="_blank" rel="noopener noreferrer">Desktop User Guide</a></li>
-              <li><a href="https://github.com/efzynx/BitChord-Desktop/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">GPL-3.0 License</a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div class="footer-bottom">
-        <div>
-          &copy; 2026 BitChord Desktop Community. Licensed under GNU General Public License v3.0.
-        </div>
-        <div class="support-badges">
-          <a href="https://ko-fi.com/efzynx" target="_blank" rel="noopener noreferrer">
-            <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/badges/support-kofi.svg" alt="Support on Ko-fi">
-          </a>
-          <a href="https://trakteer.id/efzyn/gift" target="_blank" rel="noopener noreferrer">
-            <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/badges/support-trakteer.svg" alt="Support on Trakteer">
-          </a>
-        </div>
-      </div>
+    <div>
+      <div style="color: var(--ink-soft); font-weight: 600; margin-bottom: 4px;">BitChord Desktop</div>
+      <div>&copy; 2026 BitChord Desktop Community. Licensed under GNU General Public License v3.0.</div>
+    </div>
+    <div class="links">
+      <a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener">Kode Sumber</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" target="_blank" rel="noopener">Panduan Pengguna</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener">Semua Rilis</a>
+      <a href="https://ko-fi.com/efzynx" target="_blank" rel="noopener">Ko-fi</a>
+      <a href="https://trakteer.id/efzyn/gift" target="_blank" rel="noopener">Trakteer</a>
     </div>
   </footer>
 
   <script>
-    // Detect OS
-    function detectOS() {
-      const ua = navigator.userAgent.toLowerCase();
-      const platform = (navigator.userAgentData?.platform || navigator.platform || '').toLowerCase();
-      if (platform.includes('win') || ua.includes('windows')) return 'windows';
-      if (platform.includes('linux') || ua.includes('linux') || ua.includes('x11')) return 'linux';
-      if (platform.includes('mac') || ua.includes('macintosh')) return 'macos';
-      return 'other';
-    }
+    (function () {
+      const REPO = "efzynx/BitChord-Desktop";
+      const RELEASES_PAGE = `https://github.com/${REPO}/releases`;
 
-    // Dynamic release & download loader
-    async function loadReleaseData() {
-      const os = detectOS();
-      const primaryBtn = document.getElementById('primaryDownloadBtn');
-      const primaryText = document.getElementById('primaryDownloadText');
-      const releaseTag = document.getElementById('releaseTag');
-      const releaseText = document.getElementById('releaseText');
-      const downloadsCount = document.getElementById('downloadsCount');
+      /* ---------- Deteksi sistem operasi pengunjung (Linux & Windows) ---------- */
+      function detectOS() {
+        const ua = (navigator.userAgent || "").toLowerCase();
+        const plat = ((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "").toLowerCase();
+        if (/win/.test(plat) || /windows/.test(ua)) return "win";
+        if (/linux|x11|cros/.test(plat) || /linux|x11/.test(ua)) return "linux";
+        return null;
+      }
 
-      let latestRelease = null;
-      let allReleases = [];
+      /* ---------- Klasifikasi aset rilis berdasarkan nama file ---------- */
+      function classify(name) {
+        const n = name.toLowerCase();
+        if (n.endsWith(".appimage")) return { os: "linux", label: "Universal AppImage", ext: ".AppImage", order: 0 };
+        if (n.endsWith(".deb")) return { os: "linux", label: "Debian / Ubuntu", ext: ".deb", order: 1 };
+        if (n.endsWith(".rpm")) return { os: "linux", label: "Fedora / RPM", ext: ".rpm", order: 2 };
+        if (n.endsWith(".tar.gz") && /linux/.test(n)) return { os: "linux", label: "Portable Tarball", ext: ".tar.gz", order: 3 };
 
-      try {
-        const resp = await fetch('https://api.github.com/repos/efzynx/BitChord-Desktop/releases');
-        if (resp.ok) {
-          allReleases = await resp.json();
-          // Filter first non-prerelease (stable)
-          latestRelease = allReleases.find(r => !r.prerelease) || allReleases[0];
-          
-          // Calculate total downloads
+        if (n.endsWith("setup.exe")) return { os: "win", label: "Setup Installer", ext: ".exe", order: 0 };
+        if (n.endsWith(".exe")) return { os: "win", label: "Setup Installer", ext: ".exe", order: 0 };
+        if (n.endsWith(".msi")) return { os: "win", label: "Paket MSI", ext: ".msi", order: 1 };
+        if (n.endsWith(".zip") && /windows|win|portable/.test(n)) return { os: "win", label: "Portable ZIP", ext: ".zip", order: 2 };
+
+        return null;
+      }
+
+      function formatSize(bytes) {
+        if (!bytes) return "";
+        const mb = bytes / (1024 * 1024);
+        return mb >= 1024 ? (mb / 1024).toFixed(2) + " GB" : Math.round(mb) + " MB";
+      }
+
+      function buildButton(asset, info, primary) {
+        const a = document.createElement("a");
+        a.className = "file-btn" + (primary ? " primary" : "");
+        a.href = asset.browser_download_url;
+        a.rel = "noopener";
+
+        const label = document.createElement("span");
+        label.textContent = info.label;
+
+        const size = document.createElement("span");
+        size.className = "size";
+        size.textContent = formatSize(asset.size);
+
+        a.append(label, size);
+        return a;
+      }
+
+      function renderEmpty(list, os) {
+        list.innerHTML = "";
+        const p = document.createElement("p");
+        p.className = "empty-note";
+        p.textContent = "Belum ada paket resmi untuk platform ini di rilis stabil terbaru. ";
+        const link = document.createElement("a");
+        link.href = RELEASES_PAGE;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "Cek riwayat rilis di GitHub";
+        p.appendChild(link);
+        list.appendChild(p);
+      }
+
+      function setFallback() {
+        document.getElementById("version-badge").textContent = "Versi v1.9.2";
+        ["linux", "win"].forEach(os => {
+          renderEmpty(document.querySelector(`[data-list="${os}"]`), os);
+        });
+        document.getElementById("hero-download").href = RELEASES_PAGE;
+      }
+
+      async function loadReleases() {
+        try {
+          const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=15`, {
+            headers: { Accept: "application/vnd.github+json" }
+          });
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const releases = await res.json();
+
+          // Ambil rilis stabil terbaru (bukan prerelease dan punya assets)
+          const release = releases.find(r => !r.draft && !r.prerelease && r.assets && r.assets.length) ||
+                          releases.find(r => !r.draft && r.assets && r.assets.length);
+          if (!release) return setFallback();
+
+          const version = release.tag_name || release.name || "v1.9.2";
+          document.getElementById("version-badge").textContent =
+            "Versi " + version + (release.prerelease ? " (pra-rilis)" : " (stabil)");
+
+          // Hitung total unduhan seluruh aset
           let totalDownloads = 0;
-          for (const r of allReleases) {
+          for (const r of releases) {
             for (const a of r.assets || []) {
               totalDownloads += (a.download_count || 0);
             }
           }
-          if (totalDownloads > 0) {
-            downloadsCount.textContent = `${totalDownloads.toLocaleString()} downloads`;
+
+          // Kelompokkan aset per platform (Linux dan Windows)
+          const groups = { win: [], linux: [] };
+          release.assets.forEach(asset => {
+            const info = classify(asset.name);
+            if (info) groups[info.os].push({ asset, info });
+          });
+
+          const current = detectOS();
+
+          ["linux", "win"].forEach(os => {
+            const list = document.querySelector(`[data-list="${os}"]`);
+            const card = document.querySelector(`[data-os="${os}"]`);
+            const items = groups[os].sort((x, y) => x.info.order - y.info.order);
+
+            if (!items.length) {
+              renderEmpty(list, os);
+              return;
+            }
+
+            list.innerHTML = "";
+            items.forEach((item, i) => {
+              list.appendChild(buildButton(item.asset, item.info, i === 0 && os === current));
+            });
+
+            if (os === current && card) card.classList.add("is-current");
+          });
+
+          // Tombol utama di hero mengarah ke platform pengunjung
+          const hero = document.getElementById("hero-download");
+          const heroLabel = document.getElementById("hero-download-label");
+          const heroMeta = document.getElementById("hero-meta");
+          const currentItems = current ? groups[current].sort((x, y) => x.info.order - y.info.order) : [];
+
+          const metaText = "Versi " + version + " · " + (totalDownloads > 0 ? totalDownloads.toLocaleString() + " unduhan · " : "") + "Gratis & GPLv3";
+          heroMeta.textContent = metaText;
+
+          if (currentItems.length) {
+            hero.href = currentItems[0].asset.browser_download_url;
+            heroLabel.textContent = "Unduh untuk " + ({ win: "Windows", linux: "Linux" })[current];
+          } else {
+            hero.href = "#unduh";
+            heroLabel.textContent = "Unduh BitChord (" + version + ")";
           }
+        } catch (err) {
+          console.warn("Gagal memuat rilis dari GitHub API:", err);
+          setFallback();
         }
-      } catch (err) {
-        console.warn('Could not fetch releases from GitHub API:', err);
       }
 
-      if (latestRelease) {
-        const version = latestRelease.tag_name || 'v1.9.2';
-        releaseText.textContent = `Latest Stable: ${version}`;
-        releaseTag.href = latestRelease.html_url;
-
-        // Map assets
-        const assets = latestRelease.assets || [];
-        const findAsset = (predicate) => assets.find(predicate)?.browser_download_url;
-
-        const appImageUrl = findAsset(a => a.name.endsWith('.AppImage'));
-        const debUrl = findAsset(a => a.name.endsWith('.deb'));
-        const rpmUrl = findAsset(a => a.name.endsWith('.rpm'));
-        const exeUrl = findAsset(a => a.name.endsWith('.exe'));
-        const msiUrl = findAsset(a => a.name.endsWith('.msi'));
-        const zipUrl = findAsset(a => a.name.endsWith('portable.zip') || a.name.endsWith('.zip'));
-
-        if (appImageUrl) document.getElementById('dl-appimage').href = appImageUrl;
-        if (debUrl) document.getElementById('dl-deb').href = debUrl;
-        if (rpmUrl) document.getElementById('dl-rpm').href = rpmUrl;
-        if (exeUrl) document.getElementById('dl-exe').href = exeUrl;
-        if (msiUrl) document.getElementById('dl-msi').href = msiUrl;
-        if (zipUrl) document.getElementById('dl-zip').href = zipUrl;
-
-        // Configure Primary Hero Button based on OS
-        if (os === 'linux') {
-          if (appImageUrl) {
-            primaryBtn.href = appImageUrl;
-            primaryText.textContent = `Download for Linux (.AppImage)`;
-          } else {
-            primaryBtn.href = '#download';
-            primaryText.textContent = `Download for Linux (${version})`;
-          }
-        } else if (os === 'windows') {
-          if (exeUrl) {
-            primaryBtn.href = exeUrl;
-            primaryText.textContent = `Download for Windows (.exe)`;
-          } else if (zipUrl) {
-            primaryBtn.href = zipUrl;
-            primaryText.textContent = `Download for Windows (Portable)`;
-          } else {
-            primaryBtn.href = '#download';
-            primaryText.textContent = `Download for Windows (${version})`;
-          }
-        } else {
-          primaryBtn.href = '#download';
-          primaryText.textContent = `Download BitChord (${version})`;
-        }
-      } else {
-        releaseText.textContent = `Latest Stable: v1.9.2`;
-        if (os === 'linux') {
-          primaryText.textContent = 'Download for Linux (.AppImage)';
-          primaryBtn.href = 'https://github.com/efzynx/BitChord-Desktop/releases/download/v1.9.2/BitChord-1.9.2-x86_64.AppImage';
-        } else if (os === 'windows') {
-          primaryText.textContent = 'Download for Windows (.exe)';
-          primaryBtn.href = 'https://github.com/efzynx/BitChord-Desktop/releases/download/v1.9.2/BitChord-1.9.2.exe';
-        }
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', loadReleaseData);
+      loadReleases();
+    })();
   </script>
 </body>
 </html>
