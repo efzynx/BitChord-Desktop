@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BitChord Desktop - Aesthetic YouTube Music Client for Linux & Windows</title>
+  <meta name="description" content="Aesthetic, high-performance desktop music player for Linux and Windows powered by Compose Multiplatform and FFmpeg 7.1.">
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/Logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090a0f;
+      --surface: rgba(255, 255, 255, 0.035);
+      --surface-hover: rgba(255, 255, 255, 0.065);
+      --surface-active: rgba(255, 255, 255, 0.1);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(56, 189, 248, 0.4);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Background glow orbs */
+    .ambient-glow-1 {
+      position: fixed;
+      top: -150px;
+      left: 15%;
+      width: 550px;
+      height: 550px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, rgba(99, 102, 241, 0.04) 50%, transparent 70%);
+      filter: blur(80px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    .ambient-glow-2 {
+      position: fixed;
+      top: 40%;
+      right: -100px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, rgba(56, 189, 248, 0.03) 60%, transparent 70%);
+      filter: blur(90px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    header {
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .brand img {
+      height: 38px;
+      width: auto;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+    }
+
+    .btn-github {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-full);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-github:hover {
+      background: var(--surface-hover);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 4rem 1.5rem 3rem;
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .release-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.9rem;
+      border-radius: var(--radius-full);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.75rem;
+      text-decoration: none;
+      transition: background 0.2s ease;
+    }
+
+    .release-tag:hover {
+      background: rgba(56, 189, 248, 0.16);
+    }
+
+    .release-tag .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .hero-title {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(180deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 680px;
+      margin-bottom: 2.5rem;
+      font-weight: 400;
+    }
+
+    .download-cta-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.85rem;
+      margin-bottom: 2.5rem;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .btn-primary-download {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 1.05rem 2rem;
+      background: var(--accent);
+      color: #040810;
+      border-radius: var(--radius-full);
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 8px 24px var(--accent-glow);
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(56, 189, 248, 0.35);
+      background: #4fc6ff;
+    }
+
+    .btn-primary-download svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .download-subtext {
+      font-size: 0.85rem;
+      color: var(--text-subtle);
+    }
+
+    .download-subtext a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .download-subtext a:hover {
+      text-decoration: underline;
+    }
+
+    .hero-meta-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.85rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-full);
+      font-size: 0.825rem;
+      color: var(--text-muted);
+    }
+
+    .meta-badge svg {
+      width: 14px;
+      height: 14px;
+      color: var(--accent);
+    }
+
+    /* Banner Preview */
+    .hero-banner-container {
+      max-width: 1100px;
+      width: 90%;
+      margin: 2rem auto 4rem;
+      border-radius: var(--radius-lg);
+      padding: 6px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+    }
+
+    .hero-banner-container img {
+      width: 100%;
+      height: auto;
+      border-radius: calc(var(--radius-lg) - 4px);
+      display: block;
+      background: #0f1118;
+    }
+
+    /* Section Styling */
+    section {
+      max-width: 1160px;
+      margin: 0 auto 5rem;
+      padding: 0 1.5rem;
+      width: 100%;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+    }
+
+    /* Download Matrix */
+    .download-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .download-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .download-card:hover {
+      background: var(--surface-hover);
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-3px);
+    }
+
+    .card-badge {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.25rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: var(--radius-full);
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--accent);
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+    }
+
+    .card-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      flex-grow: 1;
+    }
+
+    .card-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-sm);
+      background: var(--surface-active);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.925rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .card-btn:hover {
+      background: var(--accent);
+      color: #040810;
+      border-color: var(--accent);
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.75rem;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 2rem;
+      transition: all 0.25s ease;
+    }
+
+    .feature-card:hover {
+      background: var(--surface-hover);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .feature-icon-box {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: rgba(56, 189, 248, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      color: var(--accent);
+    }
+
+    .feature-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+    }
+
+    .feature-desc {
+      font-size: 0.925rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: auto;
+      border-top: 1px solid var(--border);
+      padding: 3.5rem 1.5rem 2.5rem;
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    .footer-content {
+      max-width: 1160px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 2rem;
+    }
+
+    .footer-brand {
+      max-width: 420px;
+    }
+
+    .footer-brand p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.75rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-col h4 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .footer-col a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s ease;
+    }
+
+    .footer-col a:hover {
+      color: var(--accent);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 1.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-subtle);
+    }
+
+    .support-badges {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .support-badges img {
+      height: 32px;
+      transition: opacity 0.2s ease;
+    }
+
+    .support-badges img:hover {
+      opacity: 0.85;
+    }
+
+    @media (max-width: 768px) {
+      header {
+        padding: 1.25rem;
+      }
+      .nav-links {
+        display: none;
+      }
+      .hero {
+        padding: 2.5rem 1rem 2rem;
+      }
+      .hero-title {
+        font-size: 2.25rem;
+      }
+      .footer-top {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-glow-1"></div>
+  <div class="ambient-glow-2"></div>
+
+  <header>
+    <a href="#" class="brand">
+      <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/Logo.png" alt="BitChord Desktop Logo">
+      <span class="brand-title">BitChord</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#download" class="nav-link">Download</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" class="nav-link" target="_blank">Documentation</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop" class="btn-github" target="_blank">
+        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/>
+        </svg>
+        GitHub
+      </a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="release-tag" id="releaseTag" target="_blank">
+        <span class="dot"></span>
+        <span id="releaseText">Fetching latest release...</span>
+      </a>
+
+      <h1 class="hero-title">Aesthetic Music Client<br>for Linux & Windows</h1>
+      <p class="hero-subtitle">
+        An independent, high-performance desktop music client for YouTube Music built with Compose Multiplatform, native FFmpeg 7.1, real-time synchronized lyrics, and Listen Together party rooms.
+      </p>
+
+      <div class="download-cta-group">
+        <a href="#download" class="btn-primary-download" id="primaryDownloadBtn">
+          <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          <span id="primaryDownloadText">Download BitChord</span>
+        </a>
+        <p class="download-subtext" id="primaryDownloadSubtext">
+          Free & open source under GPLv3. <a href="#download">View all platform packages</a>.
+        </p>
+      </div>
+
+      <div class="hero-meta-badges">
+        <span class="meta-badge" id="downloadsBadge">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span id="downloadsCount">70+ downloads</span>
+        </span>
+        <span class="meta-badge">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+          FFmpeg 7.1 Hi-Res Audio
+        </span>
+        <span class="meta-badge">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          Linux & Windows Native
+        </span>
+      </div>
+    </section>
+
+    <!-- Banner Preview -->
+    <div class="hero-banner-container">
+      <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/Banner.png" alt="BitChord Desktop Interface Preview">
+    </div>
+
+    <!-- Download Matrix -->
+    <section id="download">
+      <div class="section-header">
+        <h2 class="section-title">Download Packages</h2>
+        <p class="section-subtitle">Choose your platform and preferred packaging format</p>
+      </div>
+
+      <div class="download-grid">
+        <!-- Linux AppImage -->
+        <div class="download-card" id="card-appimage">
+          <span class="card-badge">Linux Recommended</span>
+          <div class="card-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 2v6h6"/></svg>
+          </div>
+          <h3 class="card-title">Universal AppImage</h3>
+          <p class="card-desc">Standalone universal Linux binary. Just chmod +x and run on Ubuntu, Fedora, Arch, and any modern distro.</p>
+          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-appimage">Download .AppImage</a>
+        </div>
+
+        <!-- Linux DEB -->
+        <div class="download-card" id="card-deb">
+          <div class="card-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          </div>
+          <h3 class="card-title">Debian / Ubuntu Package</h3>
+          <p class="card-desc">Native .deb package for Debian, Ubuntu, Linux Mint, Pop!_OS, and other Debian-based operating systems.</p>
+          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-deb">Download .deb</a>
+        </div>
+
+        <!-- Linux RPM -->
+        <div class="download-card" id="card-rpm">
+          <div class="card-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          </div>
+          <h3 class="card-title">Fedora / RPM Package</h3>
+          <p class="card-desc">Native .rpm package for Fedora, RHEL, CentOS Stream, openSUSE, and RPM-based Linux systems.</p>
+          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-rpm">Download .rpm</a>
+        </div>
+
+        <!-- Windows Setup EXE -->
+        <div class="download-card" id="card-exe">
+          <span class="card-badge">Windows Recommended</span>
+          <div class="card-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zm-9 9h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
+          </div>
+          <h3 class="card-title">Windows Setup Installer</h3>
+          <p class="card-desc">Modern per-user installer executable (.exe) with automatic Start Menu and Desktop shortcuts.</p>
+          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-exe">Download .exe</a>
+        </div>
+
+        <!-- Windows MSI -->
+        <div class="download-card" id="card-msi">
+          <div class="card-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zm-9 9h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
+          </div>
+          <h3 class="card-title">Windows MSI Installer</h3>
+          <p class="card-desc">Standard Windows Installer (.msi) package for enterprise and system-wide installation.</p>
+          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-msi">Download .msi</a>
+        </div>
+
+        <!-- Windows Portable ZIP -->
+        <div class="download-card" id="card-zip">
+          <div class="card-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+          </div>
+          <h3 class="card-title">Windows Portable ZIP</h3>
+          <p class="card-desc">Standalone archive requiring no installation. Includes silent background runner (BitChord.vbs).</p>
+          <a href="https://github.com/efzynx/BitChord-Desktop/releases/latest" class="card-btn" id="dl-zip">Download .zip</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Features -->
+    <section id="features">
+      <div class="section-header">
+        <h2 class="section-title">Engineered for Perfection</h2>
+        <p class="section-subtitle">Modern aesthetics harmonized with desktop-grade performance</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+          </div>
+          <h3 class="feature-title">Native FFmpeg 7.1 Pipeline</h3>
+          <p class="feature-desc">Integrated JavaCPP hardware-accelerated audio pipeline supporting lossless Hi-Res streaming (FLAC, ALAC, WAV) and standard Opus/AAC playback with 32-bit float internal precision.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          </div>
+          <h3 class="feature-title">Listen Together (Party Mode)</h3>
+          <p class="feature-desc">Listen synchronously with friends worldwide. Instant connection via built-in cloud server, self-hosted VPS, or local one-click Cloudflare Quick Tunnel.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16m-7 6h7"/></svg>
+          </div>
+          <h3 class="feature-title">Synchronized Lyrics & Motion Art</h3>
+          <p class="feature-desc">Real-time word-by-word synced lyrics accompanied by Apple Music motion canvas banners decoded smoothly at low CPU consumption.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </div>
+          <h3 class="feature-title">Native OS Media Integration</h3>
+          <p class="feature-desc">Full MPRIS D-Bus support on Linux (GNOME, KDE Plasma, playerctl) and Windows System Media Transport Controls (SMTC) in volume overlay and lock screen.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <h3 class="feature-title">Zero-Configuration Discord RPC</h3>
+          <p class="feature-desc">Direct local Inter-Process Communication (IPC) via Unix Domain Sockets on Linux and Named Pipes on Windows. No bots or authentication tokens needed.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </div>
+          <h3 class="feature-title">DJ Automix & Seamless Transitions</h3>
+          <p class="feature-desc">Tempo and beat-matched song transitions powered by Aubio and ONNX neural analysis models for uninterrupted musical flow.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="#" class="brand">
+            <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/Logo.png" alt="BitChord Logo">
+            <span class="brand-title">BitChord Desktop</span>
+          </a>
+          <p>
+            An independent, community-driven desktop port of BitChord by Kushagra Singh. Reconstructed, modernized, and maintained by <strong>efzynx</strong> with AI engineering assistance from <strong>Google DeepMind Gemini</strong>.
+          </p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-col">
+            <h4>Download</h4>
+            <ul>
+              <li><a href="#card-appimage">Linux AppImage</a></li>
+              <li><a href="#card-deb">Debian / Ubuntu (.deb)</a></li>
+              <li><a href="#card-rpm">Fedora (.rpm)</a></li>
+              <li><a href="#card-exe">Windows Setup (.exe)</a></li>
+              <li><a href="#card-zip">Windows Portable (.zip)</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Resources</h4>
+            <ul>
+              <li><a href="https://github.com/efzynx/BitChord-Desktop" target="_blank">GitHub Repository</a></li>
+              <li><a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank">All Releases</a></li>
+              <li><a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" target="_blank">Desktop User Guide</a></li>
+              <li><a href="https://github.com/efzynx/BitChord-Desktop/blob/main/LICENSE" target="_blank">GPL-3.0 License</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          &copy; 2026 BitChord Desktop Community. Licensed under GNU General Public License v3.0.
+        </div>
+        <div class="support-badges">
+          <a href="https://ko-fi.com/efzynx" target="_blank" rel="noopener noreferrer">
+            <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/badges/support-kofi.svg" alt="Support on Ko-fi">
+          </a>
+          <a href="https://trakteer.id/efzyn/gift" target="_blank" rel="noopener noreferrer">
+            <img src="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/badges/support-trakteer.svg" alt="Support on Trakteer">
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Detect OS
+    function detectOS() {
+      const ua = navigator.userAgent.toLowerCase();
+      const platform = (navigator.userAgentData?.platform || navigator.platform || '').toLowerCase();
+      if (platform.includes('win') || ua.includes('windows')) return 'windows';
+      if (platform.includes('linux') || ua.includes('linux') || ua.includes('x11')) return 'linux';
+      if (platform.includes('mac') || ua.includes('macintosh')) return 'macos';
+      return 'other';
+    }
+
+    // Dynamic release & download loader
+    async function loadReleaseData() {
+      const os = detectOS();
+      const primaryBtn = document.getElementById('primaryDownloadBtn');
+      const primaryText = document.getElementById('primaryDownloadText');
+      const releaseTag = document.getElementById('releaseTag');
+      const releaseText = document.getElementById('releaseText');
+      const downloadsCount = document.getElementById('downloadsCount');
+
+      let latestRelease = null;
+      let allReleases = [];
+
+      try {
+        const resp = await fetch('https://api.github.com/repos/efzynx/BitChord-Desktop/releases');
+        if (resp.ok) {
+          allReleases = await resp.json();
+          // Filter first non-prerelease
+          latestRelease = allReleases.find(r => !r.prerelease) || allReleases[0];
+          
+          // Calculate total downloads
+          let totalDownloads = 0;
+          for (const r of allReleases) {
+            for (const a of r.assets || []) {
+              totalDownloads += (a.download_count || 0);
+            }
+          }
+          if (totalDownloads > 0) {
+            downloadsCount.textContent = `${totalDownloads} downloads`;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch releases from GitHub API:', err);
+      }
+
+      if (latestRelease) {
+        const version = latestRelease.tag_name || 'v1.9.2';
+        releaseText.textContent = `Latest Release: ${version}`;
+        releaseTag.href = latestRelease.html_url;
+
+        // Map assets
+        const assets = latestRelease.assets || [];
+        const findAsset = (predicate) => assets.find(predicate)?.browser_download_url;
+
+        const appImageUrl = findAsset(a => a.name.endsWith('.AppImage'));
+        const debUrl = findAsset(a => a.name.endsWith('.deb'));
+        const rpmUrl = findAsset(a => a.name.endsWith('.rpm'));
+        const exeUrl = findAsset(a => a.name.endsWith('.exe'));
+        const msiUrl = findAsset(a => a.name.endsWith('.msi'));
+        const zipUrl = findAsset(a => a.name.endsWith('portable.zip') || a.name.endsWith('.zip'));
+
+        if (appImageUrl) document.getElementById('dl-appimage').href = appImageUrl;
+        if (debUrl) document.getElementById('dl-deb').href = debUrl;
+        if (rpmUrl) document.getElementById('dl-rpm').href = rpmUrl;
+        if (exeUrl) document.getElementById('dl-exe').href = exeUrl;
+        if (msiUrl) document.getElementById('dl-msi').href = msiUrl;
+        if (zipUrl) document.getElementById('dl-zip').href = zipUrl;
+
+        // Configure Primary Hero Button based on OS
+        if (os === 'linux') {
+          if (appImageUrl) {
+            primaryBtn.href = appImageUrl;
+            primaryText.textContent = `Download for Linux (.AppImage)`;
+          } else {
+            primaryBtn.href = '#download';
+            primaryText.textContent = `Download for Linux (${version})`;
+          }
+        } else if (os === 'windows') {
+          if (exeUrl) {
+            primaryBtn.href = exeUrl;
+            primaryText.textContent = `Download for Windows (.exe)`;
+          } else if (zipUrl) {
+            primaryBtn.href = zipUrl;
+            primaryText.textContent = `Download for Windows (Portable)`;
+          } else {
+            primaryBtn.href = '#download';
+            primaryText.textContent = `Download for Windows (${version})`;
+          }
+        } else {
+          primaryBtn.href = '#download';
+          primaryText.textContent = `Download BitChord (${version})`;
+        }
+      } else {
+        releaseText.textContent = `Latest Release: v1.9.2`;
+        if (os === 'linux') {
+          primaryText.textContent = 'Download for Linux (.AppImage)';
+          primaryBtn.href = 'https://github.com/efzynx/BitChord-Desktop/releases/download/v1.9.2/BitChord-1.9.2-x86_64.AppImage';
+        } else if (os === 'windows') {
+          primaryText.textContent = 'Download for Windows (.exe)';
+          primaryBtn.href = 'https://github.com/efzynx/BitChord-Desktop/releases/download/v1.9.2/BitChord-1.9.2.exe';
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadReleaseData);
+  </script>
+</body>
+</html>
