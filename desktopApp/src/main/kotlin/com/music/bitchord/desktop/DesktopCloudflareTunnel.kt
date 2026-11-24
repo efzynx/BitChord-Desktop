@@ -35,7 +35,7 @@ internal object DesktopCloudflareTunnel {
         val status: Status = Status.STOPPED,
         val url: String? = null,
         val error: String? = null,
-        val port: Int = 8080,
+        val port: Int = 8000,
         val notice: String? = null,
     )
 
@@ -164,8 +164,8 @@ internal object DesktopCloudflareTunnel {
      * 2. Otherwise finds the first free port available for binding.
      * Returns Pair(resolvedPort, wasPortSwitched).
      */
-    fun resolveServerPort(preferredPort: Int = 8080): Pair<Int, Boolean> {
-        val candidates = listOf(preferredPort, 8080, 8000, 8081, 8082, 8088, 8888, 9090, 9091, 18080).distinct()
+    fun resolveServerPort(preferredPort: Int = 8000): Pair<Int, Boolean> {
+        val candidates = listOf(preferredPort, 8000, 8080, 8001, 8081, 8082, 8088, 8888, 9090, 9091, 18080).distinct()
 
         // 1. If party server is already running & healthy on any candidate port, reuse it immediately
         for (candidate in candidates) {
@@ -278,7 +278,7 @@ internal object DesktopCloudflareTunnel {
         return null
     }
 
-    fun start(port: Int = 8080, onUrlAssigned: ((String) -> Unit)? = null) {
+    fun start(port: Int = 8000, onUrlAssigned: ((String) -> Unit)? = null) {
         if (!refreshAvailable()) {
             _state.value = State(
                 Status.ERROR,

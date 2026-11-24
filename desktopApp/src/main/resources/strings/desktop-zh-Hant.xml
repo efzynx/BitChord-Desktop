@@ -232,4 +232,18 @@
     <string name="d_delete_local_playlist_desc">「%1$s」將從此電腦中永久刪除。其中的歌曲不會被刪除。</string>
     <string name="d_delete_account_playlist_desc">「%1$s」將從您所有裝置上的 YouTube Music 帳戶中移除。其中的歌曲不會被刪除。</string>
     <string name="d_playlist_deleted">播放列表「%1$s」已刪除</string>
+    <string name="d_party_mode_quick">快速派對</string>
+    <string name="d_party_mode_quick_subtitle">內建雲端伺服器</string>
+    <string name="d_party_mode_quick_desc">使用 BitChord 內建派對伺服器立即主持或加入派對。</string>
+    <string name="d_party_mode_quick_unavailable">此版本未包含</string>
+    <string name="d_party_mode_custom">自訂派對</string>
+    <string name="d_party_mode_custom_subtitle">雲端或本地隧道</string>
+    <string name="d_party_mode_custom_desc">連線到您的個人 VPS 或透過 Cloudflare Quick Tunnel 本地主持。</string>
+    <string name="d_party_submode_cloud">雲端伺服器</string>
+    <string name="d_party_submode_local">本地主機 (隧道)</string>
+    <string name="d_party_saved_servers">已儲存的伺服器</string>
+    <string name="d_party_active">使用中</string>
+    <string name="d_party_local_active_desc">主機已透過 127.0.0.1:%1$d 本地連線 (0 毫秒延遲)</string>
+    <string name="d_party_start_tunnel_prompt">請先啟動本地隧道以在此電腦上主持派對。</string>
+    <string name="d_party_enter_cloud_prompt">請先輸入並儲存有效的雲端伺服器位址。</string>
 </resources>

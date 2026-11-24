@@ -232,4 +232,18 @@
     <string name="d_delete_local_playlist_desc">«%1$s» будет навсегда удален с этого компьютера. Песни в нем не будут удалены.</string>
     <string name="d_delete_account_playlist_desc">«%1$s» будет удален из вашего аккаунта YouTube Music на всех устройствах. Песни в нем не будут удалены.</string>
     <string name="d_playlist_deleted">Плейлист «%1$s» удален</string>
+    <string name="d_party_mode_quick">Быстрая вечеринка</string>
+    <string name="d_party_mode_quick_subtitle">Встроенный облачный сервер</string>
+    <string name="d_party_mode_quick_desc">Создавайте или подключайтесь мгновенно через встроенный сервер BitChord.</string>
+    <string name="d_party_mode_quick_unavailable">Не включено в эту сборку</string>
+    <string name="d_party_mode_custom">Своя вечеринка</string>
+    <string name="d_party_mode_custom_subtitle">Облако или локальный туннель</string>
+    <string name="d_party_mode_custom_desc">Подключайтесь к своему VPS или хостите локально через Cloudflare Quick Tunnel.</string>
+    <string name="d_party_submode_cloud">Облачный сервер</string>
+    <string name="d_party_submode_local">Локальный хост (туннель)</string>
+    <string name="d_party_saved_servers">Сохранённые серверы</string>
+    <string name="d_party_active">Активен</string>
+    <string name="d_party_local_active_desc">Хост подключен локально через 127.0.0.1:%1$d (задержка 0 мс)</string>
+    <string name="d_party_start_tunnel_prompt">Сначала запустите локальный туннель для хостинга на этом компьютере.</string>
+    <string name="d_party_enter_cloud_prompt">Сначала введите и сохраните рабочий адрес облачного сервера.</string>
 </resources>

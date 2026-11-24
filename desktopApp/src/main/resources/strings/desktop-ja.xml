@@ -232,4 +232,18 @@
     <string name="d_delete_local_playlist_desc">「%1$s」はこのコンピューターから完全に削除されます。含まれる曲は削除されません。</string>
     <string name="d_delete_account_playlist_desc">「%1$s」はすべてのデバイスのYouTube Musicアカウントから削除されます。含まれる曲は削除されません。</string>
     <string name="d_playlist_deleted">プレイリスト「%1$s」を削除しました</string>
+    <string name="d_party_mode_quick">クイックパーティ</string>
+    <string name="d_party_mode_quick_subtitle">内蔵クラウドサーバー</string>
+    <string name="d_party_mode_quick_desc">BitChord内蔵のパーティサーバーを使用してすぐにホストまたは参加します。</string>
+    <string name="d_party_mode_quick_unavailable">このビルドには含まれていません</string>
+    <string name="d_party_mode_custom">カスタムパーティ</string>
+    <string name="d_party_mode_custom_subtitle">クラウドまたはローカルトンネル</string>
+    <string name="d_party_mode_custom_desc">独自のVPSに接続するか、Cloudflare Quick Tunnel経由でローカルホストします。</string>
+    <string name="d_party_submode_cloud">クラウドサーバー</string>
+    <string name="d_party_submode_local">ローカルホスト (トンネル)</string>
+    <string name="d_party_saved_servers">保存されたサーバー</string>
+    <string name="d_party_active">アクティブ</string>
+    <string name="d_party_local_active_desc">ホストは 127.0.0.1:%1$d 経由でローカル接続されています (遅延 0 ms)</string>
+    <string name="d_party_start_tunnel_prompt">このコンピューターでホストするには、まずローカルトンネルを開始してください。</string>
+    <string name="d_party_enter_cloud_prompt">まずアクティブなクラウドサーバーのアドレスを入力して保存してください。</string>
 </resources>

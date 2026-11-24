@@ -1,5 +1,6 @@
 package com.music.bitchord.desktop
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,8 +21,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
@@ -74,8 +80,15 @@ import java.util.Locale
 internal fun DesktopListenTogetherDialog(autoplayEnabled: Boolean, onDismiss: () -> Unit) {
     val state by DesktopListenTogether.state.collectAsState()
     val activity by DesktopListenTogether.activity.collectAsState()
+    val partyMode by DesktopListenTogether.partyMode.collectAsState()
+    val customSubMode by DesktopListenTogether.customSubMode.collectAsState()
+    val savedServers by DesktopListenTogether.savedServers.collectAsState()
     val server by DesktopListenTogether.customServerUrl.collectAsState()
+    val builtinStatus by DesktopListenTogether.builtinStatus.collectAsState()
+    val customStatus by DesktopListenTogether.customStatus.collectAsState()
+    val localStatus by DesktopListenTogether.localStatus.collectAsState()
     val serverStatus by DesktopListenTogether.serverStatus.collectAsState()
+    val tunnelState by DesktopCloudflareTunnel.state.collectAsState()
     val scope = rememberCoroutineScope()
     var code by remember { mutableStateOf("") }
     var nickname by remember { mutableStateOf(DesktopListenTogether.nickname()) }
@@ -149,8 +162,25 @@ internal fun DesktopListenTogetherDialog(autoplayEnabled: Boolean, onDismiss: ()
                     },
                 )
                 else -> PartyLanding(
+                    partyMode = partyMode,
+                    onPartyModeChange = { DesktopListenTogether.setPartyMode(it) },
+                    customSubMode = customSubMode,
+                    onCustomSubModeChange = { DesktopListenTogether.setCustomSubMode(it) },
+                    hasBuiltinServer = DesktopListenTogether.hasBuiltinServer,
+                    builtinServerUrl = DesktopListenTogether.builtinServerUrl,
+                    builtinStatus = builtinStatus,
+                    customStatus = customStatus,
+                    localStatus = localStatus,
+                    savedServers = savedServers,
+                    onRemoveSavedServer = { DesktopListenTogether.removeSavedServer(it) },
+                    onSelectSavedServer = { chosen ->
+                        localError = null
+                        DesktopListenTogether.selectSavedServer(chosen)
+                            .onSuccess { serverDraft = chosen }
+                            .onFailure { localError = it.message }
+                    },
+                    tunnelState = tunnelState,
                     signedIn = DesktopListenTogether.canJoin(),
-                    enabled = DesktopListenTogether.canJoin() && DesktopListenTogether.hasServer,
                     avatarUrl = DesktopListenTogether.myAvatarUrl(),
                     nickname = nickname,
                     onNicknameChange = {
@@ -170,13 +200,11 @@ internal fun DesktopListenTogetherDialog(autoplayEnabled: Boolean, onDismiss: ()
                     onServerChange = { serverDraft = it },
                     onSaveServer = {
                         localError = null
-                        DesktopListenTogether.normalizeServerUrl(serverDraft)
-                            .onSuccess { normalized ->
-                                DesktopListenTogether.setCustomServerUrl(normalized)
-                                    .onSuccess { serverDraft = normalized }
-                                    .onFailure { localError = it.message }
-                            }
-                            .onFailure { localError = it.message }
+                        if (serverDraft.isNotBlank()) {
+                            DesktopListenTogether.addSavedServer(serverDraft)
+                                .onSuccess { serverDraft = serverDraft.trim() }
+                                .onFailure { localError = it.message }
+                        }
                     },
                     onRefreshServer = DesktopListenTogether::refreshServerHealth,
                     busy = busy,
@@ -208,8 +236,20 @@ internal fun DesktopListenTogetherDialog(autoplayEnabled: Boolean, onDismiss: ()
 
 @Composable
 private fun PartyLanding(
+    partyMode: DesktopListenTogether.PartyMode,
+    onPartyModeChange: (DesktopListenTogether.PartyMode) -> Unit,
+    customSubMode: DesktopListenTogether.CustomSubMode,
+    onCustomSubModeChange: (DesktopListenTogether.CustomSubMode) -> Unit,
+    hasBuiltinServer: Boolean,
+    builtinServerUrl: String,
+    builtinStatus: DesktopListenTogether.ServerStatus,
+    customStatus: DesktopListenTogether.ServerStatus,
+    localStatus: DesktopListenTogether.ServerStatus,
+    savedServers: List<String>,
+    onRemoveSavedServer: (String) -> Unit,
+    onSelectSavedServer: (String) -> Unit,
+    tunnelState: DesktopCloudflareTunnel.State,
     signedIn: Boolean,
-    enabled: Boolean,
     avatarUrl: String?,
     nickname: String,
     onNicknameChange: (String) -> Unit,
@@ -227,11 +267,521 @@ private fun PartyLanding(
     onCreate: () -> Unit,
     onPreview: () -> Unit,
 ) {
+    val isServerReady = when (partyMode) {
+        DesktopListenTogether.PartyMode.QUICK -> hasBuiltinServer && builtinStatus.health == DesktopListenTogether.Health.ONLINE
+        DesktopListenTogether.PartyMode.CUSTOM -> when (customSubMode) {
+            DesktopListenTogether.CustomSubMode.CLOUD -> server.isNotBlank() && customStatus.health == DesktopListenTogether.Health.ONLINE
+            DesktopListenTogether.CustomSubMode.LOCAL -> tunnelState.status == DesktopCloudflareTunnel.Status.RUNNING
+        }
+    }
+    val canAct = signedIn && isServerReady
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(28.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
+        // 1. Two Main Mode Cards (Quick Party vs Custom Party)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // QUICK PARTY CARD
+                val isQuick = partyMode == DesktopListenTogether.PartyMode.QUICK
+                val quickBorder = if (isQuick) BorderStroke(1.5.dp, DesktopAccent) else BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+                val quickBg = if (isQuick) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.03f)
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(quickBg)
+                        .border(quickBorder, RoundedCornerShape(16.dp))
+                        .clickable(enabled = hasBuiltinServer) {
+                            onPartyModeChange(DesktopListenTogether.PartyMode.QUICK)
+                        }
+                        .padding(18.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isQuick) DesktopAccent.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.06f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Bolt,
+                                    contentDescription = null,
+                                    tint = if (isQuick) DesktopAccent else Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                            Spacer(Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    DesktopStrings["d_party_mode_quick", "Quick Party"],
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                )
+                                Text(
+                                    DesktopStrings["d_party_mode_quick_subtitle", "Built-in Cloud Server"],
+                                    color = DesktopSecondary,
+                                    fontSize = 11.5.sp,
+                                )
+                            }
+                        }
+                        if (isQuick) {
+                            Box(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clip(CircleShape)
+                                    .background(DesktopAccent),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Check,
+                                    contentDescription = "Selected",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        DesktopStrings["d_party_mode_quick_desc", "Host or join instantly using BitChord's included party server."],
+                        color = DesktopSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+                    if (!hasBuiltinServer) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color.White.copy(alpha = 0.08f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                        ) {
+                            Text(
+                                DesktopStrings["d_party_mode_quick_unavailable", "Not included in this build"],
+                                color = DesktopSecondary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val dotColor = when (builtinStatus.health) {
+                                DesktopListenTogether.Health.ONLINE -> Color(0xFF28C840)
+                                DesktopListenTogether.Health.CHECKING -> Color(0xFFFFB300)
+                                DesktopListenTogether.Health.OFFLINE -> DesktopDestructive
+                            }
+                            Box(
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(dotColor),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            val statusText = when (builtinStatus.health) {
+                                DesktopListenTogether.Health.ONLINE -> "${DesktopStrings["d_tunnel_online", "Online"]} · ${builtinStatus.latencyMs} ms"
+                                DesktopListenTogether.Health.CHECKING -> DesktopStrings["d_tunnel_starting", "Checking…"]
+                                DesktopListenTogether.Health.OFFLINE -> DesktopStrings["d_party_offline", "Party server is offline"]
+                            }
+                            Text(
+                                statusText,
+                                color = dotColor,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
+                }
+
+                // CUSTOM PARTY CARD
+                val isCustom = partyMode == DesktopListenTogether.PartyMode.CUSTOM
+                val customBorder = if (isCustom) BorderStroke(1.5.dp, DesktopAccent) else BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
+                val customBg = if (isCustom) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.03f)
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(customBg)
+                        .border(customBorder, RoundedCornerShape(16.dp))
+                        .clickable {
+                            onPartyModeChange(DesktopListenTogether.PartyMode.CUSTOM)
+                        }
+                        .padding(18.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isCustom) DesktopAccent.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.06f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Settings,
+                                    contentDescription = null,
+                                    tint = if (isCustom) DesktopAccent else Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                            Spacer(Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    DesktopStrings["d_party_mode_custom", "Custom Party"],
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                )
+                                Text(
+                                    DesktopStrings["d_party_mode_custom_subtitle", "Cloud or Local Tunnel"],
+                                    color = DesktopSecondary,
+                                    fontSize = 11.5.sp,
+                                )
+                            }
+                        }
+                        if (isCustom) {
+                            Box(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .clip(CircleShape)
+                                    .background(DesktopAccent),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Check,
+                                    contentDescription = "Selected",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        DesktopStrings["d_party_mode_custom_desc", "Connect to your personal VPS or host locally via Cloudflare Quick Tunnel."],
+                        color = DesktopSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val subModeLabel = if (customSubMode == DesktopListenTogether.CustomSubMode.CLOUD) {
+                            DesktopStrings["d_party_submode_cloud", "Cloud Server"]
+                        } else {
+                            DesktopStrings["d_party_submode_local", "Local Host (Tunnel)"]
+                        }
+                        Text(
+                            subModeLabel,
+                            color = DesktopSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            }
+        }
+
+        // 2. Mode Configuration Panel
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .desktopCardInset(RoundedCornerShape(14.dp))
+                    .padding(18.dp),
+            ) {
+                if (partyMode == DesktopListenTogether.PartyMode.QUICK) {
+                    // Quick Party info view
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Rounded.Cloud,
+                            contentDescription = null,
+                            tint = DesktopAccent,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                DesktopStrings["d_party_mode_quick", "Quick Party"],
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.5.sp,
+                            )
+                            Text(
+                                builtinServerUrl,
+                                color = DesktopSecondary,
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val dotColor = when (builtinStatus.health) {
+                                DesktopListenTogether.Health.ONLINE -> Color(0xFF28C840)
+                                DesktopListenTogether.Health.CHECKING -> Color(0xFFFFB300)
+                                DesktopListenTogether.Health.OFFLINE -> DesktopDestructive
+                            }
+                            Box(
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(dotColor),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            val txt = when (builtinStatus.health) {
+                                DesktopListenTogether.Health.ONLINE -> "${DesktopStrings["d_tunnel_online", "Online"]} (${builtinStatus.latencyMs} ms)"
+                                DesktopListenTogether.Health.CHECKING -> DesktopStrings["d_tunnel_starting", "Checking…"]
+                                DesktopListenTogether.Health.OFFLINE -> DesktopStrings["d_party_offline", "Party server is offline"]
+                            }
+                            Text(
+                                txt,
+                                color = dotColor,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            OutlinedButton(
+                                onClick = onRefreshServer,
+                                shape = RoundedCornerShape(50),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                modifier = Modifier.height(28.dp),
+                            ) {
+                                Icon(Icons.Rounded.Refresh, null, modifier = Modifier.size(13.dp), tint = Color.White)
+                                Spacer(Modifier.width(4.dp))
+                                Text(DesktopStrings["test", "Test"], fontSize = 11.sp, color = Color.White)
+                            }
+                        }
+                    }
+                } else {
+                    // Custom Party view with Sub-mode tabs (Cloud vs Local)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White.copy(alpha = 0.05f))
+                            .padding(4.dp),
+                    ) {
+                        val isCloud = customSubMode == DesktopListenTogether.CustomSubMode.CLOUD
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isCloud) DesktopAccent else Color.Transparent)
+                                .clickable { onCustomSubModeChange(DesktopListenTogether.CustomSubMode.CLOUD) }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Rounded.Cloud,
+                                    contentDescription = null,
+                                    tint = if (isCloud) Color.Black else Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    DesktopStrings["d_party_submode_cloud", "Cloud Server"],
+                                    color = if (isCloud) Color.Black else Color.White,
+                                    fontSize = 12.5.sp,
+                                    fontWeight = if (isCloud) FontWeight.Bold else FontWeight.Medium,
+                                )
+                            }
+                        }
+
+                        val isLocal = customSubMode == DesktopListenTogether.CustomSubMode.LOCAL
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isLocal) DesktopAccent else Color.Transparent)
+                                .clickable { onCustomSubModeChange(DesktopListenTogether.CustomSubMode.LOCAL) }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Rounded.Computer,
+                                    contentDescription = null,
+                                    tint = if (isLocal) Color.Black else Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    DesktopStrings["d_party_submode_local", "Local Host (Tunnel)"],
+                                    color = if (isLocal) Color.Black else Color.White,
+                                    fontSize = 12.5.sp,
+                                    fontWeight = if (isLocal) FontWeight.Bold else FontWeight.Medium,
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    if (customSubMode == DesktopListenTogether.CustomSubMode.CLOUD) {
+                        // CLOUD SUB-MODE: Server URL input + Test & Save + Saved Servers list
+                        Text(
+                            DesktopStrings["d_party_server", "Party server"],
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        DesktopSearchField(
+                            query = server,
+                            onQueryChange = onServerChange,
+                            onSearch = {},
+                            placeholder = "https://your-party-server.example.com",
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val dotColor = when (customStatus.health) {
+                                DesktopListenTogether.Health.ONLINE -> Color(0xFF28C840)
+                                DesktopListenTogether.Health.CHECKING -> Color(0xFFFFB300)
+                                DesktopListenTogether.Health.OFFLINE -> DesktopDestructive
+                            }
+                            Box(
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(dotColor),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            val statusLine = when (customStatus.health) {
+                                DesktopListenTogether.Health.ONLINE -> "${DesktopStrings["d_tunnel_online", "Online"]} · ${customStatus.latencyMs} ms"
+                                DesktopListenTogether.Health.CHECKING -> DesktopStrings["d_tunnel_starting", "Checking…"]
+                                DesktopListenTogether.Health.OFFLINE -> DesktopStrings["d_party_offline", "Party server is offline"]
+                            }
+                            Text(
+                                statusLine,
+                                color = dotColor,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = onRefreshServer) {
+                                Text(DesktopStrings["test", "Test"])
+                            }
+                            Spacer(Modifier.width(6.dp))
+                            Button(
+                                onClick = onSaveServer,
+                                colors = ButtonDefaults.buttonColors(containerColor = DesktopCardInsetFill),
+                            ) {
+                                Text(DesktopStrings["save", "Save"])
+                            }
+                        }
+
+                        // Saved servers list
+                        if (savedServers.isNotEmpty()) {
+                            Spacer(Modifier.height(14.dp))
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                DesktopStrings["d_party_saved_servers", "Saved Servers"],
+                                fontWeight = FontWeight.SemiBold,
+                                color = DesktopSecondary,
+                                fontSize = 11.5.sp,
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                savedServers.forEach { itemUrl ->
+                                    val isCurrent = itemUrl == server
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isCurrent) DesktopAccent.copy(alpha = 0.12f)
+                                                else Color.White.copy(alpha = 0.04f),
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = if (isCurrent) DesktopAccent.copy(alpha = 0.5f) else Color.Transparent,
+                                                shape = RoundedCornerShape(8.dp),
+                                            )
+                                            .clickable { onSelectSavedServer(itemUrl) }
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        if (isCurrent) {
+                                            Icon(
+                                                Icons.Rounded.Check,
+                                                contentDescription = DesktopStrings["d_party_active", "Active"],
+                                                tint = DesktopAccent,
+                                                modifier = Modifier.size(14.dp),
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                        }
+                                        Text(
+                                            text = itemUrl,
+                                            color = if (isCurrent) DesktopAccent else Color.White,
+                                            fontSize = 11.5.sp,
+                                            fontFamily = FontFamily.Monospace,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        IconButton(
+                                            onClick = { onRemoveSavedServer(itemUrl) },
+                                            modifier = Modifier.size(24.dp),
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.DeleteOutline,
+                                                contentDescription = "Delete",
+                                                tint = DesktopSecondary,
+                                                modifier = Modifier.size(15.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // LOCAL SUB-MODE: Cloudflare Quick Tunnel section
+                        CloudflareTunnelSection(
+                            tunnelState = tunnelState,
+                        )
+                    }
+                }
+            }
+        }
+
+        // 3. Informational Notice if not ready or not signed in
+        if (!signedIn) {
+            item { Notice("Sign in to YouTube Music before creating or joining a party.", true) }
+        } else if (!isServerReady) {
+            item {
+                val prompt = when (partyMode) {
+                    DesktopListenTogether.PartyMode.QUICK -> "Built-in server is currently unreachable. Check your internet connection or use a Custom Party."
+                    DesktopListenTogether.PartyMode.CUSTOM -> when (customSubMode) {
+                        DesktopListenTogether.CustomSubMode.CLOUD -> DesktopStrings["d_party_enter_cloud_prompt", "Enter and save an active cloud server address first."]
+                        DesktopListenTogether.CustomSubMode.LOCAL -> DesktopStrings["d_party_start_tunnel_prompt", "Start the local tunnel first to host on this computer."]
+                    }
+                }
+                Notice(prompt, false)
+            }
+        }
+        error?.takeIf(String::isNotBlank)?.let { item { Notice(it, true) } }
+
+        // 4. Action Cards: Start a party & Join a party
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                 PartyChoiceCard(
@@ -256,12 +806,12 @@ private fun PartyLanding(
                             Text("Party size", fontWeight = FontWeight.Medium)
                             Text("2–10 people", color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
                         }
-                        Stepper("−", enabled && maxMembers > 2) { onMaxMembersChange(maxMembers - 1) }
+                        Stepper("−", canAct && maxMembers > 2) { onMaxMembersChange(maxMembers - 1) }
                         Text("$maxMembers", modifier = Modifier.width(34.dp), textAlign = TextAlign.Center)
-                        Stepper("+", enabled && maxMembers < 10) { onMaxMembersChange(maxMembers + 1) }
+                        Stepper("+", canAct && maxMembers < 10) { onMaxMembersChange(maxMembers + 1) }
                     }
                     Spacer(Modifier.height(16.dp))
-                    PrimaryButton("Start party", busy, enabled, onCreate)
+                    PrimaryButton("Start party", busy, canAct, onCreate)
                 }
 
                 PartyChoiceCard(
@@ -282,56 +832,10 @@ private fun PartyLanding(
                     PrimaryButton(
                         label = "Look up party",
                         busy = busy,
-                        enabled = enabled && code.length == DesktopListenTogether.CODE_LENGTH,
+                        enabled = canAct && code.length == DesktopListenTogether.CODE_LENGTH,
                         onClick = onPreview,
                     )
                 }
-            }
-        }
-        if (!signedIn) item { Notice("Sign in to YouTube Music before creating or joining a party.", true) }
-        error?.takeIf(String::isNotBlank)?.let { item { Notice(it, true) } }
-        item {
-            Column(Modifier.desktopCardInset(RoundedCornerShape(14.dp)).padding(18.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Settings, null, tint = DesktopSecondary, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(10.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(DesktopStrings["d_party_server", "Party server"], fontWeight = FontWeight.Medium)
-                        Text(DesktopStrings["d_party_server_desc", "Leave blank to use the server included with this build."], color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                DesktopSearchField(
-                    query = server,
-                    onQueryChange = onServerChange,
-                    onSearch = {},
-                    placeholder = "Custom server address",
-                )
-                Spacer(Modifier.height(10.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        serverStatusLine(serverStatus),
-                        color = when (serverStatus.health) {
-                            DesktopListenTogether.Health.ONLINE -> DesktopSecondary
-                            DesktopListenTogether.Health.CHECKING -> DesktopSecondary
-                            DesktopListenTogether.Health.OFFLINE -> DesktopDestructive
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(onClick = onRefreshServer) { Text(DesktopStrings["test", "Test"]) }
-                    Button(
-                        onClick = onSaveServer,
-                        colors = ButtonDefaults.buttonColors(containerColor = DesktopCardInsetFill),
-                    ) { Text(if (server.isBlank()) DesktopStrings["d_use_builtin", "Use built-in"] else DesktopStrings["save", "Save"]) }
-                }
-                Spacer(Modifier.height(14.dp))
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
-                Spacer(Modifier.height(14.dp))
-                CloudflareTunnelSection(
-                    onServerChange = onServerChange,
-                    onSaveServer = onSaveServer,
-                )
             }
         }
     }
@@ -339,10 +843,8 @@ private fun PartyLanding(
 
 @Composable
 private fun CloudflareTunnelSection(
-    onServerChange: (String) -> Unit,
-    onSaveServer: () -> Unit,
+    tunnelState: DesktopCloudflareTunnel.State,
 ) {
-    val tunnelState by DesktopCloudflareTunnel.state.collectAsState()
     val isAvailable by DesktopCloudflareTunnel.isAvailable.collectAsState()
     val isRunning = tunnelState.status == DesktopCloudflareTunnel.Status.RUNNING
     val isStarting = tunnelState.status == DesktopCloudflareTunnel.Status.STARTING
@@ -452,12 +954,7 @@ private fun CloudflareTunnelSection(
                 } else {
                     Button(
                         onClick = {
-                            DesktopCloudflareTunnel.start { _ ->
-                                // On the local host, bind to loopback for 0-4 ms direct latency without hairpinning,
-                                // while the public trycloudflare.com URL is ready below to share with friends.
-                                onServerChange("http://127.0.0.1:${DesktopCloudflareTunnel.state.value.port}")
-                                onSaveServer()
-                            }
+                            DesktopCloudflareTunnel.start()
                         },
                         enabled = !isStarting,
                         shape = RoundedCornerShape(50),
@@ -668,7 +1165,7 @@ private fun CloudflareTunnelSection(
                     )
                 }
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -679,16 +1176,16 @@ private fun CloudflareTunnelSection(
                     color = DesktopSecondary,
                     fontSize = 11.sp,
                 )
-                TextButton(
-                    onClick = {
-                        onServerChange("http://127.0.0.1:${tunnelState.port}")
-                        onSaveServer()
-                    },
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
-                    modifier = Modifier.height(24.dp),
-                ) {
-                    Text(DesktopStrings["d_tunnel_use_local", "Use local address"], color = DesktopAccent, fontSize = 11.sp)
-                }
+                Text(
+                    DesktopStrings.format(
+                        "d_party_local_active_desc",
+                        tunnelState.port,
+                        fallback = "Host is connected locally via 127.0.0.1:%1\$d (0 ms latency)",
+                    ),
+                    color = Color(0xFF28C840),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                )
             }
         }
     }

@@ -227,12 +227,12 @@ class DesktopPersistence {
     private fun writeSongs(key: String, songs: List<Song>) =
         writeLines(key, songs.map(::encodeSong))
 
-    private fun readLines(key: String): List<String> =
+    internal fun readLines(key: String): List<String> =
         DesktopPreferenceChunks.read(preferences, key).orEmpty()
             .split('\n')
             .filter(String::isNotBlank)
 
-    private fun writeLines(key: String, lines: List<String>) =
+    internal fun writeLines(key: String, lines: List<String>) =
         DesktopPreferenceChunks.write(preferences, key, lines.joinToString("\n"))
 
     private fun encodeSong(song: Song): String = listOf(

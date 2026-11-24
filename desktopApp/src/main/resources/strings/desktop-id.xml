@@ -242,4 +242,18 @@
     <string name="d_delete_local_playlist_desc">“%1$s” akan dihapus secara permanen dari komputer ini. Lagu di dalamnya tidak akan terhapus.</string>
     <string name="d_delete_account_playlist_desc">“%1$s” akan dihapus dari akun YouTube Music Anda di semua perangkat. Lagu di dalamnya tidak akan terhapus.</string>
     <string name="d_playlist_deleted">Playlist “%1$s” berhasil dihapus</string>
+    <string name="d_party_mode_quick">Quick Party</string>
+    <string name="d_party_mode_quick_subtitle">Server Cloud Bawaan</string>
+    <string name="d_party_mode_quick_desc">Buat atau gabung party secara instan dengan server bawaan BitChord.</string>
+    <string name="d_party_mode_quick_unavailable">Tidak tersedia pada build ini</string>
+    <string name="d_party_mode_custom">Custom Party</string>
+    <string name="d_party_mode_custom_subtitle">Cloud atau Tunnel Lokal</string>
+    <string name="d_party_mode_custom_desc">Gunakan VPS pribadi Anda atau host lokal dengan Cloudflare Quick Tunnel.</string>
+    <string name="d_party_submode_cloud">Server Cloud</string>
+    <string name="d_party_submode_local">Host Lokal (Tunnel)</string>
+    <string name="d_party_saved_servers">Server Tersimpan</string>
+    <string name="d_party_active">Aktif</string>
+    <string name="d_party_local_active_desc">Host terhubung langsung via 127.0.0.1:%1$d (latensi 0 ms)</string>
+    <string name="d_party_start_tunnel_prompt">Nyalakan tunnel lokal terlebih dahulu untuk membuat party di komputer ini.</string>
+    <string name="d_party_enter_cloud_prompt">Masukkan dan simpan alamat server cloud yang aktif terlebih dahulu.</string>
 </resources>

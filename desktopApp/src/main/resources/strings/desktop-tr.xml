@@ -232,4 +232,18 @@
     <string name="d_delete_local_playlist_desc">“%1$s” bu bilgisayardan kalıcı olarak silinecektir. İçindeki şarkılar silinmez.</string>
     <string name="d_delete_account_playlist_desc">“%1$s” tüm cihazlarınızdaki YouTube Music hesabınızdan kaldırılacaktır. İçindeki şarkılar silinmez.</string>
     <string name="d_playlist_deleted">“%1$s” çalma listesi silindi</string>
+    <string name="d_party_mode_quick">Hızlı Parti</string>
+    <string name="d_party_mode_quick_subtitle">Dahili Bulut Sunucu</string>
+    <string name="d_party_mode_quick_desc">BitChord dahili parti sunucusunu kullanarak anında katılın veya başlatın.</string>
+    <string name="d_party_mode_quick_unavailable">Bu sürümde dahil değil</string>
+    <string name="d_party_mode_custom">Özel Parti</string>
+    <string name="d_party_mode_custom_subtitle">Bulut veya Yerel Tünel</string>
+    <string name="d_party_mode_custom_desc">Kişisel VPS\'inize bağlanın veya Cloudflare Quick Tunnel ile yerel olarak barındırın.</string>
+    <string name="d_party_submode_cloud">Bulut Sunucu</string>
+    <string name="d_party_submode_local">Yerel Ana Bilgisayar (Tünel)</string>
+    <string name="d_party_saved_servers">Kayıtlı Sunucular</string>
+    <string name="d_party_active">Aktif</string>
+    <string name="d_party_local_active_desc">Ana bilgisayar 127.0.0.1:%1$d üzerinden yerel olarak bağlı (0 ms gecikme)</string>
+    <string name="d_party_start_tunnel_prompt">Bu bilgisayarda barındırmak için önce yerel tüneli başlatın.</string>
+    <string name="d_party_enter_cloud_prompt">Önce etkin bir bulut sunucu adresi girin ve kaydedin.</string>
 </resources>

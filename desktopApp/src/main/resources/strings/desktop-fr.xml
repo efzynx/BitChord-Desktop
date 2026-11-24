@@ -232,4 +232,18 @@
     <string name="d_delete_local_playlist_desc">« %1$s » sera définitivement supprimée de cet ordinateur. Les morceaux qu\'elle contient ne seront pas supprimés.</string>
     <string name="d_delete_account_playlist_desc">« %1$s » sera supprimée de votre compte YouTube Music sur tous les appareils. Les morceaux qu\'elle contient ne seront pas supprimés.</string>
     <string name="d_playlist_deleted">Playlist « %1$s » supprimée</string>
+    <string name="d_party_mode_quick">Fête Rapide</string>
+    <string name="d_party_mode_quick_subtitle">Serveur Cloud Intégré</string>
+    <string name="d_party_mode_quick_desc">Créez ou rejoignez instantanément avec le serveur de fête intégré de BitChord.</string>
+    <string name="d_party_mode_quick_unavailable">Non inclus dans cette version</string>
+    <string name="d_party_mode_custom">Fête Personnalisée</string>
+    <string name="d_party_mode_custom_subtitle">Cloud ou Tunnel Local</string>
+    <string name="d_party_mode_custom_desc">Connectez-vous à votre VPS ou hébergez localement via Cloudflare Quick Tunnel.</string>
+    <string name="d_party_submode_cloud">Serveur Cloud</string>
+    <string name="d_party_submode_local">Hôte Local (Tunnel)</string>
+    <string name="d_party_saved_servers">Serveurs Enregistrés</string>
+    <string name="d_party_active">Actif</string>
+    <string name="d_party_local_active_desc">L\'hôte est connecté localement via 127.0.0.1:%1$d (latence 0 ms)</string>
+    <string name="d_party_start_tunnel_prompt">Démarrez d\'abord le tunnel local pour héberger sur cet ordinateur.</string>
+    <string name="d_party_enter_cloud_prompt">Entrez et enregistrez d\'abord une adresse de serveur cloud active.</string>
 </resources>

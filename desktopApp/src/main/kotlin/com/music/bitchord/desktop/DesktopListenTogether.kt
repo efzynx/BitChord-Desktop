@@ -122,6 +122,16 @@ internal object DesktopListenTogether {
         isLenient = true
     }
 
+    enum class PartyMode {
+        QUICK,
+        CUSTOM,
+    }
+
+    enum class CustomSubMode {
+        CLOUD,
+        LOCAL,
+    }
+
     /** Where the party server lives, injected at build time like the other endpoints. */
     private val DEFAULT_SERVER: String by lazy {
         val configured = System.getProperty("bitchord.listentogether.server").orEmpty()
@@ -129,6 +139,9 @@ internal object DesktopListenTogether {
             .getOrNull()
             .orEmpty()
     }
+
+    val hasBuiltinServer: Boolean get() = DEFAULT_SERVER.isNotBlank()
+    val builtinServerUrl: String get() = DEFAULT_SERVER
 
     private val http = HttpClient(CIO) {
         install(ContentNegotiation) { json(json) }
@@ -152,14 +165,105 @@ internal object DesktopListenTogether {
     private val _activity = MutableStateFlow<List<PartyActivity>>(emptyList())
     val activity: StateFlow<List<PartyActivity>> = _activity.asStateFlow()
 
+    private val _partyMode = MutableStateFlow(
+        runCatching {
+            PartyMode.valueOf(persistence.string(KEY_PARTY_MODE, if (DEFAULT_SERVER.isNotBlank()) "QUICK" else "CUSTOM"))
+        }.getOrDefault(if (DEFAULT_SERVER.isNotBlank()) PartyMode.QUICK else PartyMode.CUSTOM)
+    )
+    val partyMode: StateFlow<PartyMode> = _partyMode.asStateFlow()
+
+    fun setPartyMode(mode: PartyMode) {
+        if (mode == PartyMode.QUICK && DEFAULT_SERVER.isBlank()) return
+        _partyMode.value = mode
+        persistence.saveString(KEY_PARTY_MODE, mode.name)
+        refreshServerHealth()
+    }
+
+    private val _customSubMode = MutableStateFlow(
+        runCatching {
+            CustomSubMode.valueOf(persistence.string(KEY_CUSTOM_SUBMODE, "CLOUD"))
+        }.getOrDefault(CustomSubMode.CLOUD)
+    )
+    val customSubMode: StateFlow<CustomSubMode> = _customSubMode.asStateFlow()
+
+    fun setCustomSubMode(subMode: CustomSubMode) {
+        _customSubMode.value = subMode
+        persistence.saveString(KEY_CUSTOM_SUBMODE, subMode.name)
+        refreshServerHealth()
+    }
+
     private val _customServer = MutableStateFlow(DesktopPersistence().string(KEY_SERVER))
     val customServerUrl: StateFlow<String> = _customServer.asStateFlow()
+
+    private val _savedServers = MutableStateFlow<List<String>>(
+        persistence.readLines(KEY_SAVED_SERVERS).filter(String::isNotBlank).ifEmpty {
+            val initial = persistence.string(KEY_SERVER)
+            if (initial.isNotBlank()) listOf(initial) else emptyList()
+        }
+    )
+    val savedServers: StateFlow<List<String>> = _savedServers.asStateFlow()
+
+    fun addSavedServer(value: String): Result<Unit> {
+        val normalized = normalizeServerUrl(value).getOrElse { return Result.failure(it) }
+        if (normalized.isBlank()) return Result.failure(PartyException("bad_server", "Enter a valid server address."))
+        val current = _savedServers.value.toMutableList()
+        if (normalized !in current) {
+            current.add(0, normalized)
+            _savedServers.value = current
+            persistence.writeLines(KEY_SAVED_SERVERS, current)
+        }
+        return setCustomServerUrl(normalized)
+    }
+
+    fun removeSavedServer(value: String) {
+        val current = _savedServers.value.toMutableList()
+        current.remove(value)
+        _savedServers.value = current
+        persistence.writeLines(KEY_SAVED_SERVERS, current)
+        if (_customServer.value == value) {
+            val next = current.firstOrNull().orEmpty()
+            setCustomServerUrl(next)
+        }
+    }
+
+    fun selectSavedServer(value: String): Result<Unit> = setCustomServerUrl(value)
+
+    private val _builtinStatus = MutableStateFlow(ServerStatus())
+    val builtinStatus: StateFlow<ServerStatus> = _builtinStatus.asStateFlow()
+
+    private val _customStatus = MutableStateFlow(ServerStatus())
+    val customStatus: StateFlow<ServerStatus> = _customStatus.asStateFlow()
+
+    private val _localStatus = MutableStateFlow(ServerStatus())
+    val localStatus: StateFlow<ServerStatus> = _localStatus.asStateFlow()
 
     private val _serverStatus = MutableStateFlow(ServerStatus())
     val serverStatus: StateFlow<ServerStatus> = _serverStatus.asStateFlow()
 
+    fun currentTargetServer(): String = when (_partyMode.value) {
+        PartyMode.QUICK -> DEFAULT_SERVER
+        PartyMode.CUSTOM -> when (_customSubMode.value) {
+            CustomSubMode.CLOUD -> _customServer.value
+            CustomSubMode.LOCAL -> "http://127.0.0.1:${DesktopCloudflareTunnel.state.value.port}"
+        }
+    }
+
     /** Whether there is an address to talk to at all. */
-    val hasServer: Boolean get() = DEFAULT_SERVER.isNotBlank() || _customServer.value.isNotBlank()
+    val hasServer: Boolean get() = when (_partyMode.value) {
+        PartyMode.QUICK -> DEFAULT_SERVER.isNotBlank()
+        PartyMode.CUSTOM -> when (_customSubMode.value) {
+            CustomSubMode.CLOUD -> _customServer.value.isNotBlank()
+            CustomSubMode.LOCAL -> DesktopCloudflareTunnel.state.value.status == DesktopCloudflareTunnel.Status.RUNNING
+        }
+    }
+
+    val isCurrentServerReady: Boolean get() = when (_partyMode.value) {
+        PartyMode.QUICK -> DEFAULT_SERVER.isNotBlank() && _builtinStatus.value.health == Health.ONLINE
+        PartyMode.CUSTOM -> when (_customSubMode.value) {
+            CustomSubMode.CLOUD -> _customServer.value.isNotBlank() && _customStatus.value.health == Health.ONLINE
+            CustomSubMode.LOCAL -> DesktopCloudflareTunnel.state.value.status == DesktopCloudflareTunnel.Status.RUNNING
+        }
+    }
 
     private var socketJob: Job? = null
     private var healthJob: Job? = null
@@ -188,6 +292,13 @@ internal object DesktopListenTogether {
             }
         }
         refreshServerHealth()
+        scope.launch {
+            DesktopCloudflareTunnel.state.collect {
+                if (_partyMode.value == PartyMode.CUSTOM && _customSubMode.value == CustomSubMode.LOCAL) {
+                    refreshServerHealth()
+                }
+            }
+        }
     }
 
     fun setCustomServerUrl(value: String): Result<Unit> = runCatching {
@@ -239,7 +350,41 @@ internal object DesktopListenTogether {
     fun refreshServerHealth() {
         healthJob?.cancel()
         _serverStatus.value = ServerStatus(Health.CHECKING)
-        healthJob = scope.launch { resolveIdleServer(forceProbe = true) }
+        healthJob = scope.launch {
+            if (DEFAULT_SERVER.isNotBlank()) {
+                val (ok, ms) = probeHealth(DEFAULT_SERVER, DEFAULT_SERVER_TIMEOUT_MS)
+                _builtinStatus.value = if (ok) ServerStatus(Health.ONLINE, ms) else ServerStatus(Health.OFFLINE)
+            } else {
+                _builtinStatus.value = ServerStatus(Health.OFFLINE)
+            }
+
+            val custom = normalizeServerUrl(_customServer.value).getOrNull().orEmpty()
+            if (custom.isNotBlank()) {
+                val (ok, ms) = probeHealth(custom, CUSTOM_SERVER_TIMEOUT_MS)
+                _customStatus.value = if (ok) ServerStatus(Health.ONLINE, ms) else ServerStatus(Health.OFFLINE)
+            } else {
+                _customStatus.value = ServerStatus(Health.OFFLINE)
+            }
+
+            val tunnel = DesktopCloudflareTunnel.state.value
+            if (tunnel.status == DesktopCloudflareTunnel.Status.RUNNING) {
+                val localUrl = "http://127.0.0.1:${tunnel.port}"
+                val (ok, ms) = probeHealth(localUrl, 2000L)
+                _localStatus.value = if (ok) ServerStatus(Health.ONLINE, ms) else ServerStatus(Health.OFFLINE)
+            } else {
+                _localStatus.value = ServerStatus(Health.OFFLINE)
+            }
+
+            val active = when (_partyMode.value) {
+                PartyMode.QUICK -> _builtinStatus.value
+                PartyMode.CUSTOM -> when (_customSubMode.value) {
+                    CustomSubMode.CLOUD -> _customStatus.value
+                    CustomSubMode.LOCAL -> _localStatus.value
+                }
+            }
+            effectiveIdleServerBase = currentTargetServer()
+            _serverStatus.value = active
+        }
     }
 
     fun nickname(): String = persistence.string(KEY_NICKNAME)
@@ -250,17 +395,14 @@ internal object DesktopListenTogether {
 
     /** Public invite for the server that actually owns the current membership. */
     fun inviteUrl(code: String): String {
-        val server = activePartyServerBase
-        val publicServer = if (server != null && (server.contains("127.0.0.1") || server.contains("localhost"))) {
+        val server = activePartyServerBase ?: currentTargetServer()
+        val publicServer = if (server.contains("127.0.0.1") || server.contains("localhost")) {
             DesktopCloudflareTunnel.state.value.url ?: server
         } else {
             server
         }
-        return if (publicServer.isNullOrBlank() || publicServer == DEFAULT_SERVER) {
-            JamInvite.url(code)
-        } else {
-            "$publicServer/invite/${code.uppercase()}"
-        }
+        val target = if (publicServer.isBlank()) DEFAULT_SERVER else publicServer
+        return "$target/invite/${code.uppercase()}"
     }
 
     /** Whether this device can join at all — a party is joined as an account, not anonymously. */
@@ -315,10 +457,16 @@ internal object DesktopListenTogether {
                 PartyException("no_server", "Set the party server address first."),
             )
         }
-        val primary = resolveIdleServer()
+        val primary = currentTargetServer()
+        if (primary.isBlank()) {
+            return@withContext Result.failure(
+                PartyException("no_server", "Set the party server address first."),
+            )
+        }
         val first = runCatching { request(who, primary) }
         val attempt = if (
             first.isFailure &&
+            _partyMode.value == PartyMode.CUSTOM &&
             primary != DEFAULT_SERVER &&
             DEFAULT_SERVER.isNotBlank() &&
             first.exceptionOrNull()?.let(::isEligibleForFallback) == true
@@ -739,48 +887,20 @@ internal object DesktopListenTogether {
     }
 
     private suspend fun resolveIdleServer(forceProbe: Boolean = false): String {
-        if (!forceProbe && _serverStatus.value.health == Health.ONLINE) return effectiveIdleServerBase
-        val custom = normalizeServerUrl(_customServer.value).getOrNull().orEmpty()
-        if (custom.isNotBlank() && custom != DEFAULT_SERVER) {
-            val isLocalTunnel = DesktopCloudflareTunnel.isLocalTunnelUrl(custom)
-            val effectiveTarget = if (isLocalTunnel) {
-                "http://127.0.0.1:${DesktopCloudflareTunnel.state.value.port}"
-            } else {
-                custom
-            }
-            val customProbe = probeHealth(effectiveTarget, CUSTOM_SERVER_TIMEOUT_MS)
-            if (customProbe.first) {
-                effectiveIdleServerBase = effectiveTarget
-                _serverStatus.value = ServerStatus(Health.ONLINE, customProbe.second)
-                return effectiveTarget
-            }
-            if (DEFAULT_SERVER.isNotBlank()) {
-                val fallback = probeHealth(DEFAULT_SERVER, DEFAULT_SERVER_TIMEOUT_MS)
-                effectiveIdleServerBase = DEFAULT_SERVER
-                _serverStatus.value = if (fallback.first) {
-                    ServerStatus(Health.ONLINE, fallback.second, isFallback = true)
-                } else {
-                    ServerStatus(Health.OFFLINE)
-                }
-                return DEFAULT_SERVER
-            }
-            effectiveIdleServerBase = effectiveTarget
-            _serverStatus.value = ServerStatus(Health.OFFLINE)
-            return effectiveTarget
-        }
-
-        effectiveIdleServerBase = DEFAULT_SERVER
-        if (DEFAULT_SERVER.isBlank()) {
+        val target = currentTargetServer()
+        if (target.isBlank()) {
             _serverStatus.value = ServerStatus(Health.OFFLINE)
             return ""
         }
-        val probe = probeHealth(DEFAULT_SERVER, DEFAULT_SERVER_TIMEOUT_MS)
+        val timeout = if (target == DEFAULT_SERVER) DEFAULT_SERVER_TIMEOUT_MS else CUSTOM_SERVER_TIMEOUT_MS
+        val probe = probeHealth(target, timeout)
+        effectiveIdleServerBase = target
         _serverStatus.value = if (probe.first) {
             ServerStatus(Health.ONLINE, probe.second)
         } else {
             ServerStatus(Health.OFFLINE)
         }
-        return DEFAULT_SERVER
+        return target
     }
 
     private suspend fun probeHealth(server: String, timeoutMs: Long): Pair<Boolean, Long> {
@@ -881,6 +1001,9 @@ internal object DesktopListenTogether {
         .joinToString("") { "%02x".format(it) }
 
     private const val KEY_SERVER = "listen_together_server"
+    private const val KEY_SAVED_SERVERS = "listen_together_saved_servers"
+    private const val KEY_PARTY_MODE = "listen_together_party_mode"
+    private const val KEY_CUSTOM_SUBMODE = "listen_together_custom_submode"
     private const val KEY_CODE = "listen_together_code"
     private const val KEY_TOKEN = "listen_together_token"
     private const val KEY_DEVICE = "listen_together_device"

@@ -232,4 +232,18 @@
     <string name="d_delete_local_playlist_desc">“%1$s” इस कंप्यूटर से स्थायी रूप से हटा दी जाएगी। इसके गाने नहीं हटाए जाएंगे।</string>
     <string name="d_delete_account_playlist_desc">“%1$s” आपके YouTube Music खाते से सभी उपकरणों पर हटा दी जाएगी। इसके गाने नहीं हटाए जाएंगे।</string>
     <string name="d_playlist_deleted">प्लेलिस्ट “%1$s” हटा दी गई</string>
+    <string name="d_party_mode_quick">त्वरित पार्टी</string>
+    <string name="d_party_mode_quick_subtitle">अंतर्निहित क्लाउड सर्वर</string>
+    <string name="d_party_mode_quick_desc">BitChord के अंतर्निहित पार्टी सर्वर का उपयोग करके तुरंत होस्ट करें या जुड़ें।</string>
+    <string name="d_party_mode_quick_unavailable">इस बिल्ड में शामिल नहीं है</string>
+    <string name="d_party_mode_custom">कस्टम पार्टी</string>
+    <string name="d_party_mode_custom_subtitle">क्लाउड या स्थानीय टनल</string>
+    <string name="d_party_mode_custom_desc">अपने व्यक्तिगत वीपीएस से कनेक्ट करें या क्लाउडफ्लेयर क्विक टनल के माध्यम से स्थानीय रूप से होस्ट करें।</string>
+    <string name="d_party_submode_cloud">क्लाउड सर्वर</string>
+    <string name="d_party_submode_local">स्थानीय होस्ट (टनल)</string>
+    <string name="d_party_saved_servers">सहेजे गए सर्वर</string>
+    <string name="d_party_active">सक्रिय</string>
+    <string name="d_party_local_active_desc">होस्ट स्थानीय रूप से 127.0.0.1:%1$d के माध्यम से जुड़ा हुआ है (0 एमएस विलंबता)</string>
+    <string name="d_party_start_tunnel_prompt">इस कंप्यूटर पर होस्ट करने के लिए पहले स्थानीय टनल शुरू करें।</string>
+    <string name="d_party_enter_cloud_prompt">पहले एक सक्रिय क्लाउड सर्वर पता दर्ज करें और सहेजें।</string>
 </resources>

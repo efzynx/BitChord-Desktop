@@ -232,4 +232,18 @@
     <string name="d_delete_local_playlist_desc">”%1$s” תימחק לצמיתות ממחשב זה. השירים שבתוכה לא יימחקו.</string>
     <string name="d_delete_account_playlist_desc">”%1$s” תוסר מחשבון YouTube Music שלך בכל המכשירים. השירים שבתוכה לא יימחקו.</string>
     <string name="d_playlist_deleted">רשימת ההשמעה ”%1$s” נמחקה</string>
+    <string name="d_party_mode_quick">מסיבה מהירה</string>
+    <string name="d_party_mode_quick_subtitle">שרת ענן מובנה</string>
+    <string name="d_party_mode_quick_desc">ארח או הצטרף באופן מיידי באמצעות שרת המסיבות המובנה של BitChord.</string>
+    <string name="d_party_mode_quick_unavailable">לא כלול בגרסה זו</string>
+    <string name="d_party_mode_custom">מסיבה מותאמת אישית</string>
+    <string name="d_party_mode_custom_subtitle">ענן או מנהרה מקומית</string>
+    <string name="d_party_mode_custom_desc">התחבר ל-VPS האישי שלך או ארח מקומית באמצעות Cloudflare Quick Tunnel.</string>
+    <string name="d_party_submode_cloud">שרת ענן</string>
+    <string name="d_party_submode_local">מארח מקומי (מנהרה)</string>
+    <string name="d_party_saved_servers">שרתים שמורים</string>
+    <string name="d_party_active">פעיל</string>
+    <string name="d_party_local_active_desc">המארח מחובר מקומית דרך 127.0.0.1:%1$d (השהיה של 0 אלפיות השנייה)</string>
+    <string name="d_party_start_tunnel_prompt">הפעל תחילה את המנהרה המקומית כדי לארח במחשב זה.</string>
+    <string name="d_party_enter_cloud_prompt">הזן ושמור תחילה כתובת שרת ענן פעילה.</string>
 </resources>
