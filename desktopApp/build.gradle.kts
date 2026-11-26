@@ -649,8 +649,12 @@ val packageWindowsInstaller by tasks.registering {
             "/DOutputDir=${output.absolutePath}",
             "/DIconFile=${iconFile.absolutePath}",
             issFile.absolutePath,
-        ).inheritIO().start()
+        ).redirectErrorStream(true).start()
 
+        val isccLog = proc.inputStream.bufferedReader().readText()
+        if (isccLog.isNotBlank()) {
+            logger.lifecycle(isccLog.trimEnd())
+        }
         val exitCode = proc.waitFor()
         check(exitCode == 0) { "Inno Setup compilation failed with exit code $exitCode" }
         val installerFile = File(output, "BitChord-$version.exe")

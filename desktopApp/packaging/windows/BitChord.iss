@@ -53,8 +53,8 @@ WizardStyle=modern
 CloseApplications=yes
 CloseApplicationsFilter=BitChord.exe,party-server.exe
 RestartApplications=no
-ArchitecturesAllowed=x64compatible
-ArchitecturesInstallIn64BitMode=x64compatible
+ArchitecturesAllowed=x64
+ArchitecturesInstallIn64BitMode=x64
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -138,7 +138,7 @@ begin
   begin
     CloseRunningBitChord();
     UninstallLegacyMsiInRoot(HKCU);
-    if IsAdmin then
+    if IsAdminInstallMode then
       UninstallLegacyMsiInRoot(HKLM);
   end;
 end;
