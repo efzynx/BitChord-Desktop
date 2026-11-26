@@ -57,8 +57,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.roundToInt
+import kotlin.math.sin
 import kotlin.random.Random
 
 /**
@@ -91,7 +94,10 @@ import kotlin.random.Random
  * as the old backdrop draws — would be thirty-six full-screen radial gradients.
  */
 @Immutable
-class ArtworkMesh internal constructor(internal val image: ImageBitmap)
+class ArtworkMesh internal constructor(
+    internal val image: ImageBitmap,
+    internal val lightTheme: Boolean = false,
+)
 
 /**
  * One pre-blurred bitmap for the full-cover player backdrop.
@@ -237,7 +243,10 @@ internal fun FullArtworkBlurBackdrop(
     image: ImageBitmap?, modifier: Modifier, mix: AutoMixAmbientMix?, currentIsOutgoing: Boolean,
     immediate: Boolean = false,
 ) {
-    Box(modifier = modifier.fillMaxSize().background(FallbackBackdrop)) {
+    val lightTheme = LocalPlayerLightTheme.current
+    val floorColor = if (lightTheme) FallbackLightBackdrop else FallbackBackdrop
+    val scrimBrush = if (lightTheme) FullArtworkLightScrim else FullArtworkScrim
+    Box(modifier = modifier.fillMaxSize().background(floorColor)) {
         val history = remember { BlurLayers() }
         val heldTarget = remember(mix) {
             if (mix == null) null else history.target ?: cachedFullArtworkBlur(mix.outgoingUrl)
@@ -258,10 +267,9 @@ internal fun FullArtworkBlurBackdrop(
             }
         }
 
-        // Everything on this is white: the lyrics, the queue and the main
-        // player's controls. Preserve the cover's colour and layout, but keep
-        // bright sleeves from lowering contrast.
-        Canvas(Modifier.fillMaxSize()) { drawRect(brush = FullArtworkScrim) }
+        // Preserve the cover's colour and layout, while keeping bright or dark
+        // sleeves from lowering contrast against player text and controls.
+        Canvas(Modifier.fillMaxSize()) { drawRect(brush = scrimBrush) }
     }
 }
 
@@ -331,15 +339,21 @@ fun rememberArtworkMesh(
 internal fun rememberArtworkMesh(
     imageUrl: String?, canvasFrame: ImageBitmap?, artPx: Int, seed: ArtworkMesh?,
     clipKey: Any? = imageUrl,
+    lightTheme: Boolean = LocalPlayerLightTheme.current,
 ): ArtworkMesh? {
     val context = LocalPlatformContext.current
+    val cacheKey = imageUrl?.let { meshCacheKey(it, lightTheme) }
     // Keep the old single displayed mesh, but scope clip-derived pixels to the
     // clip owner and let the backdrop fade to fallback when a still is missing.
-    var mesh by remember(imageUrl, clipKey) {
-        mutableStateOf(seed ?: clipMeshFor(clipKey) ?: imageUrl?.let(meshCache::get))
+    var mesh by remember(imageUrl, clipKey, lightTheme) {
+        mutableStateOf(
+            seed?.takeIf { it.lightTheme == lightTheme }
+                ?: clipMeshFor(clipKey, lightTheme)
+                ?: cacheKey?.let(meshCache::get),
+        )
     }
 
-    LaunchedEffect(imageUrl, artPx, clipKey) {
+    LaunchedEffect(imageUrl, artPx, clipKey, lightTheme) {
         if (imageUrl == null || mesh != null) return@LaunchedEffect
         val request = artworkPixelsRequest(context, imageUrl, artPx, MESH_PX)
         // Tried more than once, because this effect is keyed on the artwork and
@@ -353,7 +367,7 @@ internal fun rememberArtworkMesh(
             val result = SingletonImageLoader.get(context).execute(request)
             val bitmap = (result as? SuccessResult)?.image?.toImageBitmap()
             if (bitmap != null) {
-                val found = cacheStillMesh(imageUrl, bitmap)
+                val found = cacheStillMesh(imageUrl, bitmap, lightTheme)
                 if (found != null) mesh = found
                 // A cover that decoded but had no mesh in it — see [meshOf] —
                 // is an answer, not a failure. Asking again gets the same one.
@@ -362,17 +376,17 @@ internal fun rememberArtworkMesh(
         }
     }
 
-    LaunchedEffect(imageUrl, clipKey, canvasFrame) {
+    LaunchedEffect(imageUrl, clipKey, canvasFrame, lightTheme) {
         val frame = canvasFrame ?: return@LaunchedEffect
         // Reject frames that are too dark or uniform — they are almost always
         // the first read after a surface recreation, before ExoPlayer has
         // decoded real content.  A frame whose mean luminance is below this
         // threshold is discarded; the last valid mesh is kept instead.
         val found = withContext(Dispatchers.Default) {
-            if (isLikelyBlackFrame(frame)) null else meshOf(frame, imageUrl?.hashCode() ?: 0)
+            if (isLikelyBlackFrame(frame)) null else meshOf(frame, imageUrl?.hashCode() ?: 0, lightTheme)
         } ?: return@LaunchedEffect
         mesh = found
-        if (clipKey != null) lastClipMesh = ClipMesh(clipKey, found)
+        if (clipKey != null) lastClipMesh = ClipMesh(clipKey, lightTheme, found)
     }
     return mesh
 }
@@ -422,6 +436,8 @@ internal fun ArtworkMeshBackdrop(
     mix: AutoMixAmbientMix?, currentIsOutgoing: Boolean = false,
     directSelection: Pair<Long, QueueEntryIdentity>? = null, directStill: Boolean = false,
 ) {
+    val lightTheme = LocalPlayerLightTheme.current
+    val resolvedFallback = if (lightTheme && fallback == FallbackBackdrop) FallbackLightBackdrop else fallback
     val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
 
     // The mesh on screen, and the one fading in over it. Two states rather than
@@ -472,10 +488,11 @@ internal fun ArtworkMeshBackdrop(
 
     // If a still/frame fade was running, pin the last drawn blend, not its target.
     val drawn = remember { DrawnMesh() }
-    val outgoing = remember(mix) {
+    val outgoing = remember(mix, lightTheme) {
         if (mix == null) null else drawn.copy().also {
-            if (!it.wasDrawn) it.base = mix.outgoingUrl?.let { url -> clipMeshFor(url) ?: meshCache[url] }
-                ?: mesh.takeIf { currentIsOutgoing }
+            if (!it.wasDrawn) it.base = mix.outgoingUrl?.let { url ->
+                clipMeshFor(url, lightTheme) ?: meshCache[meshCacheKey(url, lightTheme)]
+            } ?: mesh?.takeIf { currentIsOutgoing && it.lightTheme == lightTheme }
         }
     }
     Canvas(
@@ -483,13 +500,13 @@ internal fun ArtworkMeshBackdrop(
             .fillMaxSize()
             // A flat opaque floor: the player is a sheet with the app's own pages
             // behind it, and every pixel here has to be opaque.
-            .background(fallback),
+            .background(resolvedFallback),
     ) {
         val seamY = seam().toPx().coerceIn(0f, size.height)
         if (outgoing != null && mix != null) {
             outgoing.base?.let { drawMesh(it, seamY, alpha = outgoing.baseAlpha) }
             outgoing.overlay?.let { drawMesh(it, seamY, alpha = outgoing.alpha) }
-            mix.prepared?.mesh?.let { drawMesh(it, seamY, alpha = mix.ease()) }
+            mix.prepared?.mesh?.takeIf { it.lightTheme == lightTheme }?.let { drawMesh(it, seamY, alpha = mix.ease()) }
         } else {
             drawn.wasDrawn = true
             // Paint the selected mesh (or the regular fallback) even before the effect settles.
@@ -501,18 +518,17 @@ internal fun ArtworkMeshBackdrop(
             drawn.overlay?.let { drawMesh(it, seamY, alpha = drawn.alpha) }
         }
 
-        // Enough of a scrim to keep white text off a bright sleeve, and no
-        // more. The old backdrop needed a heavier one because it lightened
-        // every colour it drew to a fixed band; these are the sleeve's own,
-        // and a sleeve that ends dark should leave a dark screen.
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color.Black.copy(alpha = 0.06f),
-                    Color.Black.copy(alpha = 0.30f),
+        // Soft contrast scrim only for Dark mode; Light mode lets vivid cover hues shine without white fog.
+        if (!lightTheme) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = 0.06f),
+                        Color.Black.copy(alpha = 0.30f),
+                    ),
                 ),
-            ),
-        )
+            )
+        }
     }
 }
 
@@ -567,8 +583,16 @@ private val FullArtworkScrim = Brush.verticalGradient(
     1f to Color.Black.copy(alpha = 0.64f),
 )
 
+/** Light-mode veil over blurred art so dark foreground ink stays high-contrast. */
+private val FullArtworkLightScrim = Brush.verticalGradient(
+    0f to Color.White.copy(alpha = 0.44f),
+    0.55f to Color.White.copy(alpha = 0.56f),
+    1f to Color.White.copy(alpha = 0.72f),
+)
+
 /** Drawn only until an artwork has been read — never a colour anyone chose. */
 private val FallbackBackdrop = Color(0xFF121212)
+private val FallbackLightBackdrop = Color(0xFFF6F6F9)
 
 /** A screen cannot recover detail discarded here; small is the performance feature. */
 private const val FULL_BLUR_SOURCE_PX = 128
@@ -652,20 +676,27 @@ private val meshCache = object : LinkedHashMap<String, ArtworkMesh>(0, 0.75f, tr
     override fun removeEldestEntry(eldest: Map.Entry<String, ArtworkMesh>) = size > MESH_CACHE_ENTRIES
 }
 
-private suspend fun cacheStillMesh(imageUrl: String, bitmap: ImageBitmap): ArtworkMesh? {
-    val found = withContext(Dispatchers.Default) { meshOf(bitmap, imageUrl.hashCode()) }
-    if (found != null) meshCache[imageUrl] = found
+private fun meshCacheKey(imageUrl: String, lightTheme: Boolean): String =
+    if (lightTheme) "$imageUrl|L" else imageUrl
+
+private suspend fun cacheStillMesh(
+    imageUrl: String,
+    bitmap: ImageBitmap,
+    lightTheme: Boolean = false,
+): ArtworkMesh? {
+    val found = withContext(Dispatchers.Default) { meshOf(bitmap, imageUrl.hashCode(), lightTheme) }
+    if (found != null) meshCache[meshCacheKey(imageUrl, lightTheme)] = found
     return found
 }
 
 /** The mesh of the clip last on screen, kept for when the player comes back to it. */
-private class ClipMesh(val key: Any, val mesh: ArtworkMesh)
+private class ClipMesh(val key: Any, val lightTheme: Boolean, val mesh: ArtworkMesh)
 
 /** One at a time: a clip's frames only matter for the clip that is playing. */
 private var lastClipMesh: ClipMesh? = null
 
-private fun clipMeshFor(key: Any?): ArtworkMesh? =
-    lastClipMesh?.takeIf { it.key == key }?.mesh
+private fun clipMeshFor(key: Any?, lightTheme: Boolean = false): ArtworkMesh? =
+    lastClipMesh?.takeIf { it.key == key && it.lightTheme == lightTheme }?.mesh
 
 /** A session's worth of covers, at four kilobytes of texture each. */
 private const val MESH_CACHE_ENTRIES = 64
@@ -759,7 +790,7 @@ private const val MESH_SAMPLE = 128
  * what a blur of the artwork would leave there, and a blur has no opinion about
  * which colour in the frame was the interesting one.
  */
-private fun meshOf(source: ImageBitmap, seed: Int): ArtworkMesh? {
+private fun meshOf(source: ImageBitmap, seed: Int, lightTheme: Boolean = false): ArtworkMesh? {
     val width = source.width
     val height = source.height
     if (width < 1 || height < 1) return null
@@ -798,9 +829,14 @@ private fun meshOf(source: ImageBitmap, seed: Int): ArtworkMesh? {
         y += rowStep
     }
 
-    val grid = IntArray(cells) { cell ->
+    val means = IntArray(cells) { cell ->
         val n = count[cell].coerceAtLeast(1)
-        argb((red[cell] / n).toInt(), (green[cell] / n).toInt(), (blue[cell] / n).toInt()).lifted()
+        argb((red[cell] / n).toInt(), (green[cell] / n).toInt(), (blue[cell] / n).toInt())
+    }
+    val dominant = if (lightTheme) findDominantChroma(means) else null
+    val grid = IntArray(cells) { cell ->
+        val raw = means[cell]
+        if (lightTheme) raw.liftedLight(dominant) else raw.lifted()
     }
     val texels = grid.rotatedBelowSeam(cols, rows, seed).resampled(cols, rows, MESH_TEX)
     val scratch = IntArray(texels.size)
@@ -808,7 +844,7 @@ private fun meshOf(source: ImageBitmap, seed: Int): ArtworkMesh? {
         boxBlurPass(texels, scratch, MESH_TEX, MESH_TEX, MESH_BLUR_RADIUS, horizontal = true)
         boxBlurPass(scratch, texels, MESH_TEX, MESH_TEX, MESH_BLUR_RADIUS, horizontal = false)
     }
-    return ArtworkMesh(imageBitmapOf(texels, MESH_TEX, MESH_TEX))
+    return ArtworkMesh(imageBitmapOf(texels, MESH_TEX, MESH_TEX), lightTheme = lightTheme)
 }
 
 /**
@@ -914,6 +950,53 @@ private fun Int.lifted(): Int {
     val hsl = FloatArray(3).also { ColorUtils.colorToHSL(this, it) }
     hsl[1] = (hsl[1] * MESH_VIBRANCE).coerceAtMost(1f)
     hsl[2] = hsl[2].coerceAtLeast(MESH_FLOOR)
+    return ColorUtils.HSLToColor(hsl)
+}
+
+private fun findDominantChroma(means: IntArray): Pair<Float, Float>? {
+    var cosSum = 0.0
+    var sinSum = 0.0
+    var satSum = 0.0
+    var weightSum = 0.0
+    val hsl = FloatArray(3)
+    for (color in means) {
+        ColorUtils.colorToHSL(color, hsl)
+        val sat = hsl[1]
+        val lightness = hsl[2]
+        if (sat >= 0.12f && lightness in 0.10f..0.92f) {
+            val w = (sat * (1f - kotlin.math.abs(2f * lightness - 1f))).toDouble()
+            val rad = Math.toRadians(hsl[0].toDouble())
+            cosSum += cos(rad) * w
+            sinSum += sin(rad) * w
+            satSum += sat * w
+            weightSum += w
+        }
+    }
+    if (weightSum <= 0.01) return null
+    val domHue = Math.toDegrees(atan2(sinSum, cosSum)).toFloat().let { if (it < 0f) it + 360f else it }
+    val domSat = (satSum / weightSum).toFloat().coerceIn(0.25f, 0.90f)
+    return domHue to domSat
+}
+
+/** Luminous cover-tinted transform for Light theme preserving rich pigment and harmonizing dark silhouettes. */
+private fun Int.liftedLight(dominant: Pair<Float, Float>?): Int {
+    val hsl = FloatArray(3).also { ColorUtils.colorToHSL(this, it) }
+    val sat = hsl[1]
+    val lightness = hsl[2]
+    val neutralDark = sat < 0.08f || (sat < 0.13f && lightness < 0.09f)
+    if (neutralDark) {
+        if (dominant != null) {
+            hsl[0] = dominant.first
+            hsl[1] = (dominant.second * 0.58f).coerceIn(0.22f, 0.44f)
+            hsl[2] = (0.64f + lightness * 0.15f).coerceIn(0.64f, 0.77f)
+            return ColorUtils.HSLToColor(hsl)
+        }
+        hsl[1] = (sat * 0.5f).coerceAtMost(0.06f)
+        hsl[2] = (0.72f + lightness * 0.12f).coerceIn(0.72f, 0.84f)
+        return ColorUtils.HSLToColor(hsl)
+    }
+    hsl[1] = (sat * 1.75f).coerceIn(0.48f, 0.98f)
+    hsl[2] = (0.48f + lightness * 0.22f).coerceIn(0.48f, 0.72f)
     return ColorUtils.HSLToColor(hsl)
 }
 

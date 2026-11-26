@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.ceil
@@ -71,10 +72,33 @@ class DesktopPlaybackEngine(
     // here so both the shared main-player sheet and the desktop settings dialog move the live
     // stream, on Windows and Linux alike.
     private var observedOutputDevice = DesktopAudioDevices.selected.value
+    private var observedBitPerfectMode = DesktopBitPerfect.mode.value
+    private var observedConvertForDac = DesktopBitPerfect.convertForLimitedDac.value
+    @Volatile private var bitPerfectMode = DesktopBitPerfect.mode.value
+    @Volatile private var convertForLimitedDac = DesktopBitPerfect.convertForLimitedDac.value
+    @Volatile private var reopeningStreamForBitPerfect: String? = null
     private val outputDeviceJob = scope.launch {
         DesktopAudioDevices.selected.collect { selected ->
             if (selected != observedOutputDevice) {
                 observedOutputDevice = selected
+                commands += Command.Reconfigure
+            }
+        }
+    }
+    private val bitPerfectJob = scope.launch {
+        DesktopBitPerfect.mode.collect { mode ->
+            bitPerfectMode = mode
+            if (mode != observedBitPerfectMode) {
+                observedBitPerfectMode = mode
+                commands += Command.Reconfigure
+            }
+        }
+    }
+    private val bitPerfectConvertJob = scope.launch {
+        DesktopBitPerfect.convertForLimitedDac.collect { enabled ->
+            convertForLimitedDac = enabled
+            if (enabled != observedConvertForDac) {
+                observedConvertForDac = enabled
                 commands += Command.Reconfigure
             }
         }
@@ -91,8 +115,11 @@ class DesktopPlaybackEngine(
             DesktopAudioDevices.changes.collect {
                 if (DesktopPlatform.isWindows) return@collect // its native side moves the stream itself
                 observedOutputDevice.let { chosen ->
+                    val hwExists = DesktopLinuxAudio.parseAlsaCard(chosen) != null &&
+                        DesktopLinuxAudio.devices().any { it.id == chosen }
                     if (chosen != DesktopAudioDevices.SYSTEM_DEFAULT &&
-                        DesktopAudioDevices.mixerFor(chosen) == null
+                        DesktopAudioDevices.mixerFor(chosen) == null &&
+                        !hwExists
                     ) {
                         // The stored device is gone: fall back to the system default rather than
                         // leaving playback pointed at a mixer that no longer exists.
@@ -176,11 +203,20 @@ class DesktopPlaybackEngine(
         var tempoDrained = false
         /** Brings this track to the output stream's rate, when the two differ; see [readSource]. */
         var converter: DesktopRateConverter? = null
+        var bitPerfectActive: Boolean = false
+        var dacConverter: DesktopDacFormatConverter? = null
+        var pcmStaging: ByteArray = ByteArray(0)
+
+        val isBitPerfectCapable: Boolean
+            get() = !decoder.outputFormat.isFloat &&
+                !stream.isDolbyAtmos &&
+                (decoder.measuredFormat?.isLossless == true || stream.format.isLossless)
 
         /** Back to the decoder at the listener's speed, dropping any beatmatch stretch. */
         fun dropTempo() {
             // The converter's history is from before whatever moved the decoder.
             converter = null
+            dacConverter?.reset()
             tempo = null
             tempoRate = 1.0
             tempoEaseStep = 0.0
@@ -292,6 +328,7 @@ class DesktopPlaybackEngine(
                 requested = DesktopPcmFormat(44_100, 2, bytesPerSample = 4, isFloat = true),
                 windowed = stream.windowedReads,
                 transport = stream.transport,
+                preserveSourcePcm = bitPerfectMode.isEnabled && !stream.isDolbyAtmos,
             ).map {
                 if (startAtMs > 0) decoder.seek(startAtMs * 1_000)
                 // From here the decoder belongs to its own read-ahead thread: the audio thread only
@@ -379,33 +416,61 @@ class DesktopPlaybackEngine(
 
     /** Re-opens the current track on a different stream, carrying the playhead over. */
     private fun swapStream(song: Song, stream: DesktopStream, positionMs: Long) {
+        val sourceStream = activeStream
+        val shouldAlign = smartVersionAlignmentEnabled &&
+            sourceStream != null &&
+            sourceStream.url.isNotBlank() &&
+            stream.url.isNotBlank() &&
+            DesktopVersionAudioAligner.renditionKey(song, sourceStream) !=
+                DesktopVersionAudioAligner.renditionKey(song, stream)
         scope.launch {
-            openTrack(song, stream, positionMs).fold(
-                onSuccess = { track ->
-                    val latest = _state.value
-                    if (latest.song?.videoId != song.videoId) {
-                        track.decoder.close()
-                        return@fold
+            if (shouldAlign) {
+                DesktopPlayerSettings.versionAlignmentInProgress.value = true
+            }
+            try {
+                val offsetMs = if (shouldAlign) {
+                    val result = withTimeoutOrNull(30_000L) {
+                        DesktopVersionAudioAligner.findOffsetMs(song, sourceStream, song, stream)
+                    } ?: 0L
+                    if (result != 0L) {
+                        DesktopTrackLog.log("smart audio alignment for '${song.title}': offset=${result}ms")
                     }
-                    // Resolving and opening the better rendition can take a few seconds. Hand it
-                    // over at the live playhead rather than jumping back to the position at which
-                    // the upgrade was first offered.
-                    if (kotlin.math.abs(latest.positionMs - positionMs) >= UPGRADE_RESEEK_THRESHOLD_MS) {
-                        track.decoder.seek(latest.positionMs * 1_000)
-                        track.startUs = latest.positionMs * 1_000
-                    }
-                    commands += Command.ReplaceCurrent(track, playWhenReady = latest.isPlaying)
-                },
-                onFailure = { failure ->
-                    DesktopTrackLog.log(
-                        "could not open the copy of '${song.title}' from " +
-                            "${DesktopMusicSources.sourceNameFor(stream)}: ${failure.message}",
-                    )
-                    _state.update { it.copy(
-                        error = "Could not switch version: ${failure.message ?: "that copy would not open"}",
-                    ) }
-                },
-            )
+                    result
+                } else {
+                    0L
+                }
+                if (_state.value.song?.videoId != song.videoId) return@launch
+                val openPosMs = (_state.value.positionMs.coerceAtLeast(positionMs) + offsetMs).coerceAtLeast(0L)
+                openTrack(song, stream, openPosMs).fold(
+                    onSuccess = { track ->
+                        val latest = _state.value
+                        if (latest.song?.videoId != song.videoId) {
+                            track.decoder.close()
+                            return@fold
+                        }
+                        // Resolving, aligning, and opening the better rendition can take a few
+                        // seconds. Hand it over at the live aligned playhead rather than jumping
+                        // back to the position at which the swap began.
+                        val targetPosMs = (latest.positionMs + offsetMs).coerceAtLeast(0L)
+                        if (kotlin.math.abs(targetPosMs - openPosMs) >= UPGRADE_RESEEK_THRESHOLD_MS) {
+                            track.decoder.seek(targetPosMs * 1_000)
+                            track.startUs = targetPosMs * 1_000
+                        }
+                        commands += Command.ReplaceCurrent(track, playWhenReady = latest.isPlaying)
+                    },
+                    onFailure = { failure ->
+                        DesktopTrackLog.log(
+                            "could not open the copy of '${song.title}' from " +
+                                "${DesktopMusicSources.sourceNameFor(stream)}: ${failure.message}",
+                        )
+                        _state.update { it.copy(
+                            error = "Could not switch version: ${failure.message ?: "that copy would not open"}",
+                        ) }
+                    },
+                )
+            } finally {
+                DesktopPlayerSettings.versionAlignmentInProgress.value = false
+            }
         }
     }
 
@@ -465,7 +530,7 @@ class DesktopPlaybackEngine(
 
     fun setVolume(value: Float) {
         volume = value.coerceIn(0f, 1f)
-        sink.gain = volume
+        sink.gain = if (current?.bitPerfectActive == true) 1f else volume
         _state.update { it.copy(volume = volume) }
     }
 
@@ -692,6 +757,7 @@ class DesktopPlaybackEngine(
 
     private fun transitionSecondsFor(next: Song?): Int = when {
         next == null -> 0
+        bitPerfectMode.isEnabled && current?.isBitPerfectCapable == true -> 0
         crossfadeSeconds > 0 -> crossfadeSeconds
         automixEnabled -> AUTOMIX_FALLBACK_SECONDS
         // Skip-mix needs the incoming deck open to blend into, even when neither Automix nor a
@@ -810,6 +876,10 @@ class DesktopPlaybackEngine(
             return
         }
         sink.resume()
+        if (track.bitPerfectActive) {
+            stepBitPerfect(track)
+            return
+        }
 
         val block = readCurrent(track)
         val count = currentReadCount
@@ -839,6 +909,95 @@ class DesktopPlaybackEngine(
         val (stretched, stretchedCount) = stretch(trimmed, trimmedCount)
         play(track, stretched, stretchedCount, skipped)
         publishPosition(track)
+    }
+
+    /** Hardware bit-perfect playback loop bypassing EQ, Spatial, Skip Silence, Speed, Automix and gain. */
+    private fun stepBitPerfect(track: Track) {
+        val block = track.decoder.readIntSamples()
+        val count = track.decoder.sampleCount
+        if (block == null) {
+            track.dacConverter?.let { conv ->
+                var done = false
+                while (!done) {
+                    if (track.pcmStaging.size < conv.maxOutputBytesFor(64)) {
+                        track.pcmStaging = ByteArray(conv.maxOutputBytesFor(64))
+                    }
+                    val (bytes, drained) = conv.drain(track.pcmStaging)
+                    done = drained
+                    if (bytes > 0) {
+                        val written = sink.writePcmBytes(track.pcmStaging, bytes)
+                        if (written > 0) {
+                            framesWritten += bytes / sink.format.frameBytes.coerceAtLeast(1)
+                        }
+                    }
+                }
+            }
+            finishTrack(track)
+            return
+        }
+        if (count == 0) return
+
+        val byteCount = encodeBitPerfectBlock(track, block, count)
+        if (byteCount <= 0) return
+
+        val rate = sink.format.sampleRate
+        if (rate > 0) {
+            playhead.change(
+                frame = framesWritten,
+                usPerFrame = 1_000_000.0 / rate,
+                skippedUs = 0.0,
+            )
+        }
+        val written = sink.writePcmBytes(track.pcmStaging, byteCount)
+        if (written < 0) {
+            // Exclusive device disconnected or preempted: fall back to shared output without stopping playback.
+            DesktopTrackLog.log("bit-perfect write interrupted; falling back to shared audio output")
+            val posUs = playhead.peek(framesWritten)
+            track.bitPerfectActive = false
+            track.dacConverter = null
+            DesktopBitPerfect.publishStatus(
+                DesktopBitPerfectStatus(
+                    active = false,
+                    sourceBits = track.decoder.outputFormat.validBitsPerSample,
+                    sourceRateHz = track.decoder.outputFormat.sampleRate,
+                    fallbackReason = DesktopStrings["bit_perfect_device_lost", "Exclusive device lost"],
+                ),
+            )
+            sink.open(track.decoder.outputFormat.copy(bytesPerSample = precisionBytes(), isFloat = preferFloat))
+                .onSuccess {
+                    sink.gain = volume
+                    framesWritten = sink.framesPlayed()
+                    buildChain()
+                    resetPlayhead(track, posUs)
+                }
+                .onFailure { err ->
+                    paused = true
+                    _state.update { it.copy(isPlaying = false, error = "No audio output: ${err.message}") }
+                }
+            return
+        }
+        framesWritten += byteCount / sink.format.frameBytes.coerceAtLeast(1)
+        if (_state.value.awaitingAudio) _state.update { it.copy(awaitingAudio = false) }
+        publishPosition(track)
+    }
+
+    private fun encodeBitPerfectBlock(track: Track, samples: IntArray, count: Int): Int {
+        val conv = track.dacConverter
+        if (conv != null) {
+            val needed = conv.maxOutputBytesFor(count)
+            if (track.pcmStaging.size < needed) track.pcmStaging = ByteArray(needed)
+            return conv.process(samples, count, track.pcmStaging)
+        }
+        val containerBits = sink.format.bytesPerSample * 8
+        val needed = count * (containerBits / 8)
+        if (track.pcmStaging.size < needed) track.pcmStaging = ByteArray(needed)
+        return DesktopBitPerfectPcm.packLeftAligned32(
+            samples = samples,
+            count = count,
+            containerBits = containerBits,
+            alsaLsb24 = sink.alsaLsb24,
+            out = track.pcmStaging,
+        )
     }
 
     /**
@@ -1309,6 +1468,7 @@ class DesktopPlaybackEngine(
                 Command.Flush -> {
                     current?.decoder?.close()
                     current = null
+                    activeStream = null
                     upcoming?.decoder?.close()
                     upcoming = null
                     nextDeckOpenId = null
@@ -1386,37 +1546,19 @@ class DesktopPlaybackEngine(
         // decoder it is about to read from.
         if (current !== track) current?.decoder?.close()
         current = track
+        activeStream = track.stream
         fadeRemaining = 0
+        reopeningStreamForBitPerfect = null
 
-        val decoded = track.decoder.outputFormat
-        // Only renegotiate when the device would actually have to change.
-        val output = if (
-            !sink.isOpen ||
-            !sink.isUsingSelection(DesktopAudioDevices.selected.value) ||
-            sink.format.sampleRate != decoded.sampleRate ||
-            sink.format.channels != decoded.channels
-        ) {
-            sink.open(decoded.copy(bytesPerSample = precisionBytes(), isFloat = preferFloat))
-        } else {
-            Result.success(sink.format)
-        }
+        val output = configureSinkForTrack(track, forceReopen = false)
         output.onFailure { failure ->
             paused = true
             DesktopTrackLog.log("audio output failed: ${failure.message}")
             _state.update { it.copy(isPlaying = false, error = "No audio output: ${failure.message}") }
             return
         }
-        sink.gain = volume
         framesWritten = sink.framesPlayed()
-        speedProcessor = DesktopAudioSpeed(sink.format.channels, sink.format.sampleRate)
-        spatial = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
-        spatialIncoming = DesktopSpatialAudio(sink.format.channels, sink.format.sampleRate)
-        equalizer.configure(sink.format.channels, sink.format.sampleRate)
-        equalizerIncoming.configure(sink.format.channels, sink.format.sampleRate)
-        silence = DesktopSilenceSkipper(sink.format.channels, sink.format.sampleRate)
-            .apply { enabled = skipSilenceEnabled }
-        outgoingFilter.configure(sink.format.channels, sink.format.sampleRate)
-        incomingFilter.configure(sink.format.channels, sink.format.sampleRate)
+        buildChain()
         resetPlayhead(track, track.startUs)
         paused = !playWhenReady
         publishTrack(track, isPlaying = playWhenReady)
@@ -1425,13 +1567,20 @@ class DesktopPlaybackEngine(
     /** Reopens the output on the current decoder, keeping the track playing. */
     private fun reconfigureSink() {
         val track = current ?: return
-        val decoded = track.decoder.outputFormat
-        // Where the next block written carries on from: what was queued on the old line is dropped
-        // with it, and the decoder is already past it.
         val positionUs = playhead.peek(framesWritten)
-        sink.open(decoded.copy(bytesPerSample = precisionBytes(), isFloat = preferFloat))
+        val wantsIntegerDecode = bitPerfectMode.isEnabled &&
+            !track.stream.isDolbyAtmos &&
+            (track.decoder.measuredFormat?.isLossless == true || track.stream.format.isLossless)
+        if (wantsIntegerDecode && track.decoder.outputFormat.isFloat &&
+            reopeningStreamForBitPerfect != track.stream.url
+        ) {
+            reopeningStreamForBitPerfect = track.stream.url
+            swapStream(track.song, track.stream, (positionUs / 1_000).coerceAtLeast(0L))
+            return
+        }
+
+        configureSinkForTrack(track, forceReopen = true)
             .onSuccess {
-                sink.gain = volume
                 framesWritten = sink.framesPlayed()
                 buildChain()
                 // A reopened line counts frames from zero again, so the clock has to be rebased
@@ -1441,6 +1590,109 @@ class DesktopPlaybackEngine(
             .onFailure { failure ->
                 _state.update { it.copy(error = "No audio output: ${failure.message}") }
             }
+    }
+
+    /** Opens either the exclusive Bit-Perfect hardware sink or the shared DSP sink for [track]. */
+    private fun configureSinkForTrack(track: Track, forceReopen: Boolean): Result<Unit> {
+        val decoded = track.decoder.outputFormat
+        val selectedId = DesktopAudioDevices.selected.value
+        val wantExclusive = bitPerfectMode.isEnabled && track.isBitPerfectCapable
+        if (wantExclusive) {
+            val needOpen = forceReopen ||
+                !sink.isOpen ||
+                !sink.isExclusive ||
+                !sink.isUsingSelection(selectedId) ||
+                (sink.format.sampleRate != decoded.sampleRate && track.dacConverter == null) ||
+                sink.format.channels != decoded.channels
+            val exclusiveResult = if (needOpen) {
+                sink.openExclusive(decoded, decoded.validBitsPerSample, convertForLimitedDac)
+            } else {
+                val active = DesktopBitPerfect.status.value
+                Result.success(
+                    DesktopExclusiveOpenResult(
+                        driver = active.driver ?: sink.exclusiveDriver ?: "Exclusive",
+                        deviceName = active.deviceName ?: sink.deviceName ?: "DAC",
+                        sampleRateHz = sink.format.sampleRate,
+                        outputBits = sink.format.validBitsPerSample,
+                        containerBits = sink.format.bytesPerSample * 8,
+                        alsaLsb24 = sink.alsaLsb24,
+                        exact = sink.format.sampleRate == decoded.sampleRate &&
+                            sink.format.validBitsPerSample >= decoded.validBitsPerSample,
+                        dacLimited = sink.format.sampleRate != decoded.sampleRate ||
+                            sink.format.validBitsPerSample < decoded.validBitsPerSample,
+                    ),
+                )
+            }
+            if (exclusiveResult.isSuccess) {
+                val res = exclusiveResult.getOrThrow()
+                track.bitPerfectActive = true
+                track.dacConverter = if (res.sampleRateHz != decoded.sampleRate ||
+                    res.outputBits != decoded.validBitsPerSample
+                ) {
+                    DesktopDacFormatConverter(
+                        channels = decoded.channels,
+                        inputRate = decoded.sampleRate,
+                        outputRate = res.sampleRateHz,
+                        validBits = res.outputBits,
+                        containerBits = res.containerBits,
+                        alsaLsb24 = res.alsaLsb24,
+                    )
+                } else {
+                    null
+                }
+                sink.gain = 1f
+                upcoming?.decoder?.close()
+                upcoming = null
+                nextDeckOpenId = null
+                fadeRemaining = 0
+                blendActive = false
+                DesktopBitPerfect.publishStatus(
+                    DesktopBitPerfectStatus(
+                        active = true,
+                        driver = res.driver,
+                        deviceName = res.deviceName,
+                        sampleRateHz = res.sampleRateHz,
+                        outputBits = res.outputBits,
+                        sourceBits = decoded.validBitsPerSample,
+                        sourceRateHz = decoded.sampleRate,
+                        exact = res.exact && track.dacConverter == null,
+                        dacLimited = res.dacLimited || track.dacConverter != null,
+                        fallbackReason = null,
+                    ),
+                )
+                return Result.success(Unit)
+            }
+            val err = exclusiveResult.exceptionOrNull()
+            DesktopTrackLog.log("bit-perfect open failed (${err?.message}); falling back to shared output")
+            DesktopBitPerfect.publishStatus(
+                DesktopBitPerfectStatus(
+                    active = false,
+                    sourceBits = decoded.validBitsPerSample,
+                    sourceRateHz = decoded.sampleRate,
+                    fallbackReason = err?.message ?: "Exclusive output unavailable",
+                ),
+            )
+        } else {
+            DesktopBitPerfect.publishStatus(DesktopBitPerfectStatus())
+        }
+
+        track.bitPerfectActive = false
+        track.dacConverter = null
+        val sharedFormat = decoded.copy(bytesPerSample = precisionBytes(), isFloat = preferFloat)
+        val needSharedOpen = forceReopen ||
+            !sink.isOpen ||
+            sink.isExclusive ||
+            !sink.isUsingSelection(selectedId) ||
+            sink.format.sampleRate != sharedFormat.sampleRate ||
+            sink.format.channels != sharedFormat.channels ||
+            sink.format.isFloat != sharedFormat.isFloat ||
+            sink.format.bytesPerSample != sharedFormat.bytesPerSample
+        return if (needSharedOpen) {
+            sink.open(sharedFormat).map { sink.gain = volume }
+        } else {
+            sink.gain = volume
+            Result.success(Unit)
+        }
     }
 
     private fun buildChain() {
@@ -1488,6 +1740,7 @@ class DesktopPlaybackEngine(
         // listener who has moved the playhead is past the handoff, so the ease ends here — as it
         // does on Android.
         track.dropTempo()
+        track.dacConverter?.reset()
         sink.flush()
         framesWritten = sink.framesPlayed()
         speedProcessor?.reset()
@@ -1609,6 +1862,7 @@ class DesktopPlaybackEngine(
     )
 
     private fun maybeStartCrossfade(track: Track, positionMs: Long) {
+        if (track.bitPerfectActive) return
         val incoming = upcoming
         if (incoming == null) {
             // A next track not open yet — held back from read-ahead, or still resolving — is
@@ -1833,7 +2087,14 @@ class DesktopPlaybackEngine(
 
     @Volatile private var equalizerBalance = 0f
     @Volatile private var skipSilenceEnabled = false
+    @Volatile private var smartVersionAlignmentEnabled = true
+    @Volatile private var activeStream: DesktopStream? = null
     @Volatile private var automixPerformance = AutomixPerformanceMode.BALANCED
+
+    /** Android's "Smart audio alignment": align playback time when swapping renditions. */
+    fun setSmartVersionAlignment(enabled: Boolean) {
+        smartVersionAlignmentEnabled = enabled
+    }
 
     /** Android's "Automix performance": how much CPU background analysis may use. */
     fun setAutomixPerformance(mode: AutomixPerformanceMode) {
@@ -1879,13 +2140,29 @@ class DesktopPlaybackEngine(
      */
     internal fun pipeline(): DesktopAudioPipeline {
         val track = current
+        val measured = track?.decoder?.measuredFormat
+        val declared = track?.stream?.format
+        val sourceFormat = if (measured != null || declared != null) {
+            DesktopStreamFormat(
+                codec = measured?.codec ?: declared?.codec,
+                kbps = measured?.kbps ?: declared?.kbps,
+                sampleRateHz = measured?.sampleRateHz ?: declared?.sampleRateHz,
+                bitDepth = measured?.bitDepth ?: declared?.bitDepth,
+                channels = measured?.channels ?: declared?.channels,
+                container = measured?.container ?: declared?.container,
+            )
+        } else {
+            null
+        }
         val decoded = track?.decoder?.outputFormat
         val out = sink.format
         return DesktopAudioPipeline(
-            sourceFormat = track?.stream?.format,
-            decoderName = track?.stream?.format?.codec,
+            sourceFormat = sourceFormat,
+            decoderName = measured?.codec ?: declared?.codec,
             decodedSampleRateHz = decoded?.sampleRate,
             decodedChannels = decoded?.channels,
+            decodedBytesPerSample = decoded?.bytesPerSample,
+            decodedIsFloat = decoded?.isFloat,
             outputSampleRateHz = out.sampleRate.takeIf { sink.isOpen },
             outputChannels = out.channels.takeIf { sink.isOpen },
             outputIsFloat = out.isFloat.takeIf { sink.isOpen },
@@ -1894,13 +2171,23 @@ class DesktopPlaybackEngine(
             bufferBytes = sink.bufferBytes,
             equalizerEnabled = equalizerEnabled,
             skipSilence = skipSilenceEnabled,
+            spatialEnabled = spatialEnabled,
+            bitPerfect = DesktopBitPerfect.status.value,
         )
     }
 
     /** What the device actually accepted, for the settings screen to report. */
-    fun outputSummary(): String = if (!sink.isOpen) "Not started" else with(sink.format) {
-        val depth = if (isFloat) "32-bit float" else "${bytesPerSample * 8}-bit"
-        "$depth · ${sampleRate / 1000.0} kHz · ${if (channels == 2) "stereo" else "$channels ch"}"
+    fun outputSummary(): String = if (!sink.isOpen) "Not started" else {
+        val bp = DesktopBitPerfect.status.value
+        if (bp.active) {
+            val tag = if (bp.exact) "Bit-Perfect" else "Exclusive DAC"
+            "$tag · ${bp.driver.orEmpty()} · ${bp.outputBits}-bit · ${bp.sampleRateHz / 1000.0} kHz"
+        } else {
+            with(sink.format) {
+                val depth = if (isFloat) "32-bit float" else "${bytesPerSample * 8}-bit"
+                "$depth · ${sampleRate / 1000.0} kHz · ${if (channels == 2) "stereo" else "$channels ch"}"
+            }
+        }
     }
 
     companion object {

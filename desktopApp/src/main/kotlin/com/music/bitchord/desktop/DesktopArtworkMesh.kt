@@ -6,10 +6,13 @@ import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.ColorAlphaType
 import org.jetbrains.skia.ColorType
 import org.jetbrains.skia.ImageInfo
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlin.math.sin
 import kotlin.random.Random
 
 /** The artwork's own colours, upside down and reduced to a mesh, for the player to stand on. */
@@ -28,7 +31,7 @@ internal object DesktopArtworkMesh {
     private const val MESH_FLOOR = 0.045f
 
     /** Averages [source] into the mesh texture, flipped top to bottom and then rotated sideways. */
-    fun of(source: ImageBitmap, seed: Int): ImageBitmap? {
+    fun of(source: ImageBitmap, seed: Int, lightTheme: Boolean = false): ImageBitmap? {
         val width = source.width
         val height = source.height
         if (width < 1 || height < 1) return null
@@ -65,9 +68,14 @@ internal object DesktopArtworkMesh {
             y += rowStep
         }
 
-        val grid = IntArray(cells) { cell ->
+        val means = IntArray(cells) { cell ->
             val n = max(1, count[cell])
-            argb((red[cell] / n).toInt(), (green[cell] / n).toInt(), (blue[cell] / n).toInt()).lifted()
+            argb((red[cell] / n).toInt(), (green[cell] / n).toInt(), (blue[cell] / n).toInt())
+        }
+        val dominant = if (lightTheme) findDominantChroma(means) else null
+        val grid = IntArray(cells) { cell ->
+            val mean = means[cell]
+            if (lightTheme) mean.liftedLight(dominant) else mean.lifted()
         }
         val texels = grid.rotatedBelowSeam(cols, rows, seed).resampled(cols, rows, MESH_TEX)
         return texels.toImageBitmap(MESH_TEX)
@@ -168,6 +176,77 @@ internal object DesktopArtworkMesh {
         }
         saturation = (saturation * MESH_VIBRANCE).coerceAtMost(1f)
         return hslToArgb(if (hue < 0f) hue + 360f else hue, saturation, lightness.coerceAtLeast(MESH_FLOOR))
+    }
+
+    private fun findDominantChroma(means: IntArray): Pair<Float, Float>? {
+        var cosSum = 0.0
+        var sinSum = 0.0
+        var satSum = 0.0
+        var weightSum = 0.0
+        for (argb in means) {
+            val r = ((argb shr 16) and 0xFF) / 255f
+            val g = ((argb shr 8) and 0xFF) / 255f
+            val b = (argb and 0xFF) / 255f
+            val maxC = maxOf(r, g, b)
+            val minC = minOf(r, g, b)
+            val lightness = (maxC + minC) / 2f
+            val delta = maxC - minC
+            val sat = if (delta == 0f) 0f else delta / (1f - kotlin.math.abs(2f * lightness - 1f))
+            if (sat >= 0.12f && lightness in 0.10f..0.92f) {
+                val hue = when {
+                    delta == 0f -> 0f
+                    maxC == r -> 60f * (((g - b) / delta) % 6f)
+                    maxC == g -> 60f * (((b - r) / delta) + 2f)
+                    else -> 60f * (((r - g) / delta) + 4f)
+                }
+                val normHue = if (hue < 0f) hue + 360f else hue
+                val w = (sat * (1f - kotlin.math.abs(2f * lightness - 1f))).toDouble()
+                val rad = Math.toRadians(normHue.toDouble())
+                cosSum += cos(rad) * w
+                sinSum += sin(rad) * w
+                satSum += sat * w
+                weightSum += w
+            }
+        }
+        if (weightSum <= 0.01) return null
+        val domHue = Math.toDegrees(atan2(sinSum, cosSum)).toFloat().let { if (it < 0f) it + 360f else it }
+        val domSat = (satSum / weightSum).toFloat().coerceIn(0.25f, 0.90f)
+        return domHue to domSat
+    }
+
+    /**
+     * Transforms artwork averages for Light mode so cover hues stay rich and vivid while dark
+     * silhouettes harmonize softly with the cover's dominant color instead of white-grey fog.
+     */
+    private fun Int.liftedLight(dominant: Pair<Float, Float>?): Int {
+        val r = ((this shr 16) and 0xFF) / 255f
+        val g = ((this shr 8) and 0xFF) / 255f
+        val b = (this and 0xFF) / 255f
+        val maxC = maxOf(r, g, b)
+        val minC = minOf(r, g, b)
+        val lightness = (maxC + minC) / 2f
+        val delta = maxC - minC
+        val saturation = if (delta == 0f) 0f else delta / (1f - kotlin.math.abs(2f * lightness - 1f))
+        val hue = when {
+            delta == 0f -> 0f
+            maxC == r -> 60f * (((g - b) / delta) % 6f)
+            maxC == g -> 60f * (((b - r) / delta) + 2f)
+            else -> 60f * (((r - g) / delta) + 4f)
+        }
+        val normalizedHue = if (hue < 0f) hue + 360f else hue
+        if (saturation < 0.08f || (saturation < 0.13f && lightness < 0.09f)) {
+            if (dominant != null) {
+                val tintSat = (dominant.second * 0.58f).coerceIn(0.22f, 0.44f)
+                val softLight = (0.64f + lightness * 0.15f).coerceIn(0.64f, 0.77f)
+                return hslToArgb(dominant.first, tintSat, softLight)
+            }
+            val softSat = (saturation * 0.5f).coerceAtMost(0.06f)
+            val softLightness = (0.72f + lightness * 0.12f).coerceIn(0.72f, 0.84f)
+            return hslToArgb(normalizedHue, softSat, softLightness)
+        }
+        val pastelSaturation = (saturation * 1.75f).coerceIn(0.48f, 0.98f)
+        val pastelLightness = (0.48f + lightness * 0.22f).coerceIn(0.48f, 0.72f)
+        return hslToArgb(normalizedHue, pastelSaturation, pastelLightness)
     }
 
     private fun hslToArgb(hue: Float, saturation: Float, lightness: Float): Int {

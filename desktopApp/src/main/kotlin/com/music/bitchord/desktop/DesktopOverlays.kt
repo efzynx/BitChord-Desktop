@@ -27,6 +27,7 @@ internal class DesktopOverlays {
     var downloadManager by mutableStateOf(false)
     var replay by mutableStateOf(false)
     var playlistDialog by mutableStateOf(false)
+    var localPlaylistDialog by mutableStateOf(false)
     var rename by mutableStateOf(false)
     var delete by mutableStateOf(false)
     var reorder by mutableStateOf(false)
@@ -59,6 +60,26 @@ internal class DesktopOverlays {
  */
 internal enum class DesktopSettingsPage {
     MAIN,
+    SOURCES,
+    DOWNLOADS,
+    PLAYBACK,
+    APPEARANCE,
+    PERFORMANCE,
+    LYRICS,
+    LOCAL_MUSIC,
+    STORAGE,
+    BACKUP_AND_RESTORE,
+    GOOGLE_DRIVE_BACKUP,
+    MISCELLANEOUS,
+    LANGUAGE,
+    CHOICE_AUDIO_QUALITY,
+    CHOICE_DOWNLOAD_QUALITY,
+    CHOICE_BIT_PERFECT,
+    CHOICE_AUTOMIX_PERFORMANCE,
+    CHOICE_OUTPUT_PRECISION,
+    CHOICE_REPEAT_MODE,
+    CHOICE_PLAYBACK_SPEED,
+    CHOICE_SLEEP_TIMER,
     EQUALIZER,
     AUDIO_OUTPUT,
     LISTEN_TOGETHER,

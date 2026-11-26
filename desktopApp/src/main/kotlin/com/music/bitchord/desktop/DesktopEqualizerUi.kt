@@ -5,14 +5,17 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -26,18 +29,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.music.bitchord.playback.EqLayout
 import com.music.bitchord.playback.EqualizerPreset
+import com.music.bitchord.ui.components.PillSegmentedControl
 import com.music.bitchord.ui.icons.BitChordIcons
 import java.util.Locale
 import kotlin.math.abs
@@ -78,101 +80,179 @@ internal fun DesktopEqualizerDialog(onDismiss: () -> Unit) {
     val enabled by DesktopEqualizerSettings.enabled.collectAsState()
     val mode by DesktopEqualizerSettings.mode.collectAsState()
     val balance by DesktopEqualizerSettings.balance.collectAsState()
+    val isPage = LocalDesktopPanelIsPage.current
 
     DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 560) {
-        Row(
-            Modifier.fillMaxWidth().padding(start = panelInset(22.dp), end = panelInset(18.dp), top = 18.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    DesktopStrings["equalizer", "Equalizer"],
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
+        if (isPage) {
+            Column(Modifier.fillMaxSize()) {
+                DesktopSettingsSubPageHeader(
+                    title = DesktopStrings["equalizer", "Equalizer"],
+                    subtitle = DesktopStrings["equalizer_footer", "Shapes the sound inside BitChord, before it reaches the system."],
+                    onBack = onDismiss,
                 )
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 32.dp),
+                ) {
+                    DesktopGroupedCard(topSpacing = 4.dp) {
+                        val switchInteraction = remember { MutableInteractionSource() }
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .desktopHoverFill(corner = 0.dp)
+                                .clickable(interactionSource = switchInteraction, indication = null) {
+                                    DesktopEqualizerSettings.setEnabled(!enabled)
+                                }
+                                .heightIn(min = 52.dp)
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = DesktopStrings["equalizer", "Equalizer"],
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.White,
+                                )
+                                Text(
+                                    text = if (enabled) DesktopStrings["on", "On"] else DesktopStrings["d_off", "Off"],
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = DesktopSecondary,
+                                )
+                            }
+                            Switch(
+                                checked = enabled,
+                                onCheckedChange = DesktopEqualizerSettings::setEnabled,
+                                colors = desktopSwitchColors(),
+                            )
+                        }
+                    }
+
+                    val alpha by animateFloatAsState(if (enabled) 1f else 0.38f, label = "equalizerEnabled")
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .alpha(alpha)
+                            .then(if (enabled) Modifier else Modifier.pointerInput(Unit) {}),
+                    ) {
+                        Spacer(Modifier.height(18.dp))
+                        ModeTabs(mode, enabled, DesktopEqualizerSettings::setMode)
+
+                        DesktopGroupedCard(
+                            header = if (mode == DesktopEqualizerMode.DYNAMIC) {
+                                DesktopStrings["equalizer_tone", "Tone"]
+                            } else {
+                                DesktopStrings["equalizer_bands", "Bands"]
+                            },
+                            footer = if (mode == DesktopEqualizerMode.DYNAMIC) {
+                                null
+                            } else {
+                                DesktopStrings["equalizer_bands_footer", "Moving a band leaves the preset behind and the curve becomes your own."]
+                            },
+                            topSpacing = 18.dp,
+                        ) {
+                            Column(Modifier.fillMaxWidth().padding(vertical = 14.dp)) {
+                                when (mode) {
+                                    DesktopEqualizerMode.DYNAMIC -> DynamicTab(showHeader = false)
+                                    DesktopEqualizerMode.MANUAL -> ManualTab(showHeader = false)
+                                }
+                            }
+                        }
+
+                        DesktopGroupedCard(
+                            header = DesktopStrings["equalizer_balance", "Balance"],
+                            footer = DesktopStrings["equalizer_balance_footer", "Shifts the sound towards one ear by quietening the other."],
+                            topSpacing = 18.dp,
+                        ) {
+                            Column(Modifier.fillMaxWidth().padding(vertical = 14.dp)) {
+                                BalanceControl(balance, DesktopEqualizerSettings::setBalance)
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            Row(
+                Modifier.fillMaxWidth().padding(start = panelInset(22.dp), end = panelInset(18.dp), top = 18.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        DesktopStrings["equalizer", "Equalizer"],
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White,
+                    )
+                    Text(
+                        DesktopStrings["equalizer_footer", "Shapes the sound inside BitChord, before it reaches the system."],
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DesktopSecondary,
+                    )
+                }
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = DesktopEqualizerSettings::setEnabled,
+                    colors = desktopSwitchColors(),
+                )
+            }
+
+            // Off, the apparatus below reads as unavailable rather than merely idle: dimmed, and it
+            // stops answering the pointer, so nobody drags a band wondering why nothing changed.
+            val alpha by animateFloatAsState(if (enabled) 1f else 0.38f, label = "equalizerEnabled")
+            Column(
+                Modifier
+                    .graphicsLayer { this.alpha = alpha }
+                    .then(if (enabled) Modifier else Modifier.pointerInput(Unit) {})
+                    .then(desktopPanelBody(cardMax = 520.dp))
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                Spacer(Modifier.height(14.dp))
+                ModeTabs(mode, enabled, DesktopEqualizerSettings::setMode)
+
+                when (mode) {
+                    DesktopEqualizerMode.DYNAMIC -> DynamicTab(showHeader = true)
+                    DesktopEqualizerMode.MANUAL -> ManualTab(showHeader = true)
+                }
+
+                SectionLabel(DesktopStrings["equalizer_balance", "Balance"])
+                BalanceControl(balance, DesktopEqualizerSettings::setBalance)
                 Text(
-                    DesktopStrings["equalizer_footer", "Shapes the sound inside BitChord, before it reaches the system."],
+                    DesktopStrings["equalizer_balance_footer", "Shifts the sound towards one ear by quietening the other."],
                     style = MaterialTheme.typography.bodySmall,
                     color = DesktopSecondary,
+                    modifier = Modifier.padding(horizontal = panelInset(22.dp), vertical = 6.dp),
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+
+            Row(Modifier.fillMaxWidth().padding(horizontal = panelInset(20.dp), vertical = 14.dp)) {
+                Spacer(Modifier.weight(1f))
+                DesktopGlassPillButton(
+                    text = DesktopStrings["done", "Done"],
+                    accent = true,
+                    onClick = onDismiss,
                 )
             }
-            Switch(
-                checked = enabled,
-                onCheckedChange = DesktopEqualizerSettings::setEnabled,
-                colors = desktopSwitchColors(),
-            )
-        }
-
-        // Off, the apparatus below reads as unavailable rather than merely idle: dimmed, and it
-        // stops answering the pointer, so nobody drags a band wondering why nothing changed.
-        val alpha by animateFloatAsState(if (enabled) 1f else 0.38f, label = "equalizerEnabled")
-        Column(
-            Modifier
-                .graphicsLayer { this.alpha = alpha }
-                .then(if (enabled) Modifier else Modifier.pointerInput(Unit) {})
-                .then(desktopPanelBody(cardMax = 520.dp))
-                .verticalScroll(rememberScrollState()),
-        ) {
-            Spacer(Modifier.height(14.dp))
-            ModeTabs(mode, DesktopEqualizerSettings::setMode)
-
-            when (mode) {
-                DesktopEqualizerMode.DYNAMIC -> DynamicTab()
-                DesktopEqualizerMode.MANUAL -> ManualTab()
-            }
-
-            SectionLabel(DesktopStrings["equalizer_balance", "Balance"])
-            BalanceControl(balance, DesktopEqualizerSettings::setBalance)
-            Text(
-                DesktopStrings["equalizer_balance_footer", "Shifts the sound towards one ear by quietening the other."],
-                style = MaterialTheme.typography.bodySmall,
-                color = DesktopSecondary,
-                modifier = Modifier.padding(horizontal = panelInset(22.dp), vertical = 6.dp),
-            )
-            Spacer(Modifier.height(8.dp))
-        }
-
-        Row(Modifier.fillMaxWidth().padding(horizontal = panelInset(20.dp), vertical = 14.dp)) {
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text(DesktopStrings["done", "Done"], color = Color.White) }
         }
     }
 }
 
 @Composable
-private fun ModeTabs(mode: DesktopEqualizerMode, onSelect: (DesktopEqualizerMode) -> Unit) {
-    Row(
-        Modifier
+private fun ModeTabs(mode: DesktopEqualizerMode, enabled: Boolean, onSelect: (DesktopEqualizerMode) -> Unit) {
+    val options = listOf(
+        DesktopStrings["equalizer_dynamic", "Dynamic"],
+        DesktopStrings["equalizer_manual", "Manual"],
+    )
+    PillSegmentedControl(
+        options = options,
+        selectedIndex = mode.ordinal,
+        onSelect = { onSelect(DesktopEqualizerMode.entries[it]) },
+        enabled = enabled,
+        modifier = Modifier
             .padding(horizontal = panelInset(22.dp))
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color.White.copy(alpha = 0.08f))
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        DesktopEqualizerMode.entries.forEach { option ->
-            val selected = option == mode
-            Box(
-                Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(7.dp))
-                    .background(if (selected) Color.White.copy(alpha = 0.92f) else Color.Transparent)
-                    .clickable { onSelect(option) }
-                    .padding(vertical = 7.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    when (option) {
-                        DesktopEqualizerMode.DYNAMIC -> DesktopStrings["equalizer_dynamic", "Dynamic"]
-                        DesktopEqualizerMode.MANUAL -> DesktopStrings["equalizer_manual", "Manual"]
-                    },
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (selected) Color.Black else Color.White,
-                )
-            }
-        }
-    }
+            .fillMaxWidth(),
+    )
 }
 
 @Composable
@@ -188,12 +268,12 @@ private fun SectionLabel(text: String) {
 // ---- Dynamic ---------------------------------------------------------------
 
 @Composable
-private fun DynamicTab() {
+private fun DynamicTab(showHeader: Boolean = true) {
     val x by DesktopEqualizerSettings.toneX.collectAsState()
     val y by DesktopEqualizerSettings.toneY.collectAsState()
     val focused by DesktopEqualizerSettings.focused.collectAsState()
 
-    SectionLabel(DesktopStrings["equalizer_tone", "Tone"])
+    if (showHeader) SectionLabel(DesktopStrings["equalizer_tone", "Tone"])
     TonePad(x, y, DesktopEqualizerSettings::setTone)
     Row(
         Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -203,7 +283,7 @@ private fun DynamicTab() {
         Spacer(Modifier.width(28.dp))
         Readout(DesktopStrings["equalizer_contour", "Contour"], y)
     }
-    Row(Modifier.padding(horizontal = panelInset(22.dp)), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         WidthChoice(DesktopStrings["equalizer_broad", "Broad"], !focused) {
             DesktopEqualizerSettings.setFocused(false)
         }
@@ -219,7 +299,7 @@ private fun DynamicTab() {
         },
         style = MaterialTheme.typography.bodySmall,
         color = DesktopSecondary,
-        modifier = Modifier.padding(horizontal = panelInset(22.dp), vertical = 8.dp),
+        modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
     )
 }
 
@@ -231,25 +311,37 @@ private fun Readout(label: String, value: Int) {
         Text(
             if (value > 0) "+$value" else value.toString(),
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.White,
+            color = DesktopInk,
         )
     }
 }
 
 @Composable
 private fun WidthChoice(label: String, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(10.dp)
+    val interaction = remember { MutableInteractionSource() }
+    val ink = DesktopInk
     Row(
         Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (selected) Color.White.copy(alpha = 0.12f) else Color.Transparent)
-            .clickable(onClick = onClick)
+            .desktopGlassPress(shape, interactionSource = interaction, pressScale = 0.95f)
+            .clip(shape)
+            .background(if (selected) ink.copy(alpha = 0.14f) else ink.copy(alpha = 0.04f))
+            .then(
+                if (selected) {
+                    Modifier.border(0.75.dp, ink.copy(alpha = 0.24f), shape)
+                } else {
+                    Modifier.border(0.5.dp, DesktopCardEdge, shape)
+                },
+            )
+            .desktopHoverFill(corner = 10.dp)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) Color.White else DesktopSecondary,
+            color = if (selected) ink else DesktopSecondary,
         )
         if (selected) {
             Spacer(Modifier.width(6.dp))
@@ -286,10 +378,11 @@ private fun TonePad(x: Int, y: Int, onChange: (Int, Int) -> Unit) {
         label = "tonePadY",
     )
 
+    val ink = DesktopInk
     Canvas(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = panelInset(22.dp))
+            .padding(horizontal = if (LocalDesktopPanelIsPage.current) 18.dp else 22.dp)
             .height(200.dp)
             .pointerInput(steps) {
                 awaitEachGesture {
@@ -332,7 +425,7 @@ private fun TonePad(x: Int, y: Int, onChange: (Int, Int) -> Unit) {
                 // without a reading.
                 val onAxis = column == steps || row == steps
                 drawCircle(
-                    color = Color.White.copy(alpha = if (onAxis) 0.45f else 0.22f),
+                    color = ink.copy(alpha = if (onAxis) 0.45f else 0.22f),
                     radius = DOT_RADIUS.toPx(),
                     center = Offset(
                         inset + usableWidth * column / columns,
@@ -373,12 +466,12 @@ private fun stepAt(offset: Offset, size: Size, inset: Float, steps: Int): Pair<I
 // ---- Manual ----------------------------------------------------------------
 
 @Composable
-private fun ManualTab() {
+private fun ManualTab(showHeader: Boolean = true) {
     val bands by DesktopEqualizerSettings.bands.collectAsState()
     val preset by DesktopEqualizerSettings.preset.collectAsState()
 
-    SectionLabel(DesktopStrings["equalizer_bands", "Bands"])
-    Row(Modifier.fillMaxWidth().padding(horizontal = panelInset(18.dp))) {
+    if (showHeader) SectionLabel(DesktopStrings["equalizer_bands", "Bands"])
+    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
         BandSliders(bands, Modifier.weight(1f)) { DesktopEqualizerSettings.setBands(it) }
         Spacer(Modifier.width(14.dp))
         // Beside the bands rather than behind a sheet: a window has the width for the list, and
@@ -386,18 +479,24 @@ private fun ManualTab() {
         PresetList(preset, Modifier.width(168.dp))
     }
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = panelInset(22.dp), vertical = 8.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            DesktopStrings["equalizer_bands_footer", "Moving a band leaves the preset behind and the curve becomes your own."],
-            style = MaterialTheme.typography.bodySmall,
-            color = DesktopSecondary,
-            modifier = Modifier.weight(1f),
-        )
-        TextButton(onClick = { DesktopEqualizerSettings.setPreset(EqualizerPreset.FLAT) }) {
-            Text(DesktopStrings["equalizer_reset", "Reset all bands"], color = DesktopAccent)
+        if (showHeader) {
+            Text(
+                DesktopStrings["equalizer_bands_footer", "Moving a band leaves the preset behind and the curve becomes your own."],
+                style = MaterialTheme.typography.bodySmall,
+                color = DesktopSecondary,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(12.dp))
+        } else {
+            Spacer(Modifier.weight(1f))
         }
+        DesktopGlassPillButton(
+            text = DesktopStrings["equalizer_reset", "Reset all bands"],
+            onClick = { DesktopEqualizerSettings.setPreset(EqualizerPreset.FLAT) },
+        )
     }
 }
 
@@ -445,6 +544,9 @@ private fun BandFader(value: Float, onChange: (Float) -> Unit) {
     // The caller's lambda closes over the whole band list; a stale one writes the other bands back.
     val currentOnChange by rememberUpdatedState(onChange)
 
+    val ink = DesktopInk
+    val accent = DesktopAccent
+
     Canvas(
         Modifier
             .width(30.dp)
@@ -488,14 +590,14 @@ private fun BandFader(value: Float, onChange: (Float) -> Unit) {
         val knobY = inset + usable * (1f - (value / range + 1f) / 2f)
 
         drawRoundRect(
-            color = Color.White.copy(alpha = 0.18f),
+            color = ink.copy(alpha = 0.18f),
             topLeft = Offset(centreX - trackWidth / 2, inset),
             size = Size(trackWidth, usable),
             cornerRadius = CornerRadius(trackWidth / 2),
         )
         if (abs(value) > 0.05f) {
             drawRoundRect(
-                color = DesktopAccent,
+                color = accent,
                 topLeft = Offset(centreX - trackWidth / 2, minOf(centreY, knobY)),
                 size = Size(trackWidth, abs(centreY - knobY)),
                 cornerRadius = CornerRadius(trackWidth / 2),
@@ -503,7 +605,7 @@ private fun BandFader(value: Float, onChange: (Float) -> Unit) {
         }
         // The zero line, over the track so it survives a full-scale fill.
         drawLine(
-            color = Color.White.copy(alpha = 0.35f),
+            color = ink.copy(alpha = 0.35f),
             start = Offset(centreX - trackWidth, centreY),
             end = Offset(centreX + trackWidth, centreY),
             strokeWidth = 1.dp.toPx(),
@@ -528,7 +630,7 @@ private fun PresetList(selected: EqualizerPreset, modifier: Modifier = Modifier)
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(7.dp))
-                    .background(if (chosen) Color.White.copy(alpha = 0.09f) else Color.Transparent)
+                    .background(if (chosen) DesktopInk.copy(alpha = 0.09f) else Color.Transparent)
                     .clickable(enabled = preset != EqualizerPreset.CUSTOM) {
                         DesktopEqualizerSettings.setPreset(preset)
                     }
@@ -539,7 +641,7 @@ private fun PresetList(selected: EqualizerPreset, modifier: Modifier = Modifier)
                     presetLabel(preset),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Normal,
-                    color = Color.White,
+                    color = DesktopInk,
                     modifier = Modifier.weight(1f),
                 )
                 if (chosen) {
@@ -560,9 +662,11 @@ private fun PresetList(selected: EqualizerPreset, modifier: Modifier = Modifier)
 private fun BalanceControl(balance: Float, onChange: (Float) -> Unit) {
     val latest by rememberUpdatedState(balance)
     val currentOnChange by rememberUpdatedState(onChange)
-    Column(Modifier.padding(horizontal = panelInset(22.dp))) {
+    val ink = DesktopInk
+    val accent = DesktopAccent
+    Column(Modifier.padding(horizontal = if (LocalDesktopPanelIsPage.current) 18.dp else 22.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(DesktopStrings["equalizer_balance_left", "L"], style = MaterialTheme.typography.bodyMedium, color = Color.White)
+            Text(DesktopStrings["equalizer_balance_left", "L"], style = MaterialTheme.typography.bodyMedium, color = DesktopInk)
             Text(
                 String.format(Locale.ROOT, "%.2f", balance),
                 style = MaterialTheme.typography.bodyMedium,
@@ -570,7 +674,7 @@ private fun BalanceControl(balance: Float, onChange: (Float) -> Unit) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),
             )
-            Text(DesktopStrings["equalizer_balance_right", "R"], style = MaterialTheme.typography.bodyMedium, color = Color.White)
+            Text(DesktopStrings["equalizer_balance_right", "R"], style = MaterialTheme.typography.bodyMedium, color = DesktopInk)
         }
         Spacer(Modifier.height(6.dp))
         Canvas(
@@ -616,14 +720,14 @@ private fun BalanceControl(balance: Float, onChange: (Float) -> Unit) {
             val knobX = inset + usable * (balance + 1f) / 2f
 
             drawRoundRect(
-                color = Color.White.copy(alpha = 0.18f),
+                color = ink.copy(alpha = 0.18f),
                 topLeft = Offset(inset, centreY - trackHeight / 2),
                 size = Size(usable, trackHeight),
                 cornerRadius = CornerRadius(trackHeight / 2),
             )
             if (abs(balance) > 0.004f) {
                 drawRoundRect(
-                    color = DesktopAccent,
+                    color = accent,
                     topLeft = Offset(minOf(centreX, knobX), centreY - trackHeight / 2),
                     size = Size(abs(centreX - knobX), trackHeight),
                     cornerRadius = CornerRadius(trackHeight / 2),

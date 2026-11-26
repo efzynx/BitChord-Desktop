@@ -18,10 +18,13 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +44,7 @@ internal fun DesktopThinSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     onValueChangeFinished: (() -> Unit)? = null,
     /** Sends a sheen travelling along the bar for as long as it is true. */
     mixing: Boolean = false,
@@ -53,12 +57,18 @@ internal fun DesktopThinSlider(
     activeHeight: Dp = 12.dp,
     hitTargetHeight: Dp = activeHeight + 22.dp,
     barAlignment: Alignment = Alignment.Center,
-    activeColor: Color = Color.White.copy(alpha = 0.92f),
-    inactiveColor: Color = Color.White.copy(alpha = 0.26f),
+    activeColor: Color = Color.Unspecified,
+    inactiveColor: Color = Color.Unspecified,
     /** Halfway between the two track colours: visible against unplayed, invisible under played. */
-    markerColor: Color = Color.White.copy(alpha = 0.5f),
+    markerColor: Color = Color.Unspecified,
 ) {
+    val baseInk = LocalContentColor.current
+    val resolvedActive = if (activeColor != Color.Unspecified) activeColor else baseInk.copy(alpha = 0.92f)
+    val resolvedInactive = if (inactiveColor != Color.Unspecified) inactiveColor else baseInk.copy(alpha = 0.24f)
+    val resolvedMarker = if (markerColor != Color.Unspecified) markerColor else baseInk.copy(alpha = 0.48f)
     var dragging by remember { mutableStateOf(false) }
+    val currentOnValueChange by rememberUpdatedState(onValueChange)
+    val currentOnValueChangeFinished by rememberUpdatedState(onValueChangeFinished)
     val height by animateDpAsState(
         targetValue = if (dragging) activeHeight else idleHeight,
         animationSpec = spring(
@@ -73,11 +83,12 @@ internal fun DesktopThinSlider(
             // Generous invisible hit target — the visible bar is only ~7dp.
             .height(hitTargetHeight)
             // One gesture loop for both clicks and drags.
-            .pointerInput(Unit) {
+            .pointerInput(enabled) {
+                if (!enabled) return@pointerInput
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     dragging = true
-                    onValueChange((down.position.x / size.width).coerceIn(0f, 1f))
+                    currentOnValueChange((down.position.x / size.width).coerceIn(0f, 1f))
 
                     while (true) {
                         val event = awaitPointerEvent()
@@ -87,13 +98,13 @@ internal fun DesktopThinSlider(
                             break
                         }
                         if (pointer.positionChanged()) {
-                            onValueChange((pointer.position.x / size.width).coerceIn(0f, 1f))
+                            currentOnValueChange((pointer.position.x / size.width).coerceIn(0f, 1f))
                             pointer.consume()
                         }
                     }
 
                     dragging = false
-                    onValueChangeFinished?.invoke()
+                    currentOnValueChangeFinished?.invoke()
                 }
             },
         contentAlignment = barAlignment,
@@ -104,14 +115,14 @@ internal fun DesktopThinSlider(
                 .height(height),
         ) {
             val radius = CornerRadius(size.height / 2f)
-            drawRoundRect(color = inactiveColor, cornerRadius = radius)
+            drawRoundRect(color = resolvedInactive, cornerRadius = radius)
             // Between the two track colours, and drawn *under* the played fill.
             transitionWindow?.let { window ->
                 val from = size.width * window.start.coerceIn(0f, 1f)
                 val to = size.width * window.endInclusive.coerceIn(0f, 1f)
                 if (to > from) {
                     drawRoundRect(
-                        color = markerColor,
+                        color = resolvedMarker,
                         topLeft = Offset(from, 0f),
                         // Never thinner than the bar is tall, so a short transition still reads as
                         // a dot rather than a hairline.
@@ -123,7 +134,7 @@ internal fun DesktopThinSlider(
             val filled = size.width * value.coerceIn(0f, 1f)
             if (filled > 0f && !mixing) {
                 drawRoundRect(
-                    color = activeColor,
+                    color = resolvedActive,
                     size = Size(filled.coerceAtLeast(size.height), size.height),
                     cornerRadius = radius,
                 )
@@ -135,7 +146,7 @@ internal fun DesktopThinSlider(
             enter = fadeIn(tween(durationMillis = 420)),
             exit = fadeOut(tween(durationMillis = 520)),
         ) {
-            DesktopMixSheen(height = height)
+            DesktopMixSheen(height = height, ink = baseInk)
         }
     }
 }
@@ -145,7 +156,9 @@ internal fun DesktopThinSlider(
  * being mixed.
  */
 @Composable
-private fun DesktopMixSheen(height: Dp) {
+private fun DesktopMixSheen(height: Dp, ink: Color) {
+    val reduceAnimation by DesktopAppearanceSettings.reduceAnimation.collectAsState()
+    if (reduceAnimation) return
     val transition = rememberInfiniteTransition(label = "mixSheen")
     val phase by transition.animateFloat(
         initialValue = 0f,
@@ -169,7 +182,7 @@ private fun DesktopMixSheen(height: Dp) {
             brush = Brush.linearGradient(
                 colorStops = arrayOf(
                     0f to Color.Transparent,
-                    0.5f to Color.White.copy(alpha = 0.95f),
+                    0.5f to ink.copy(alpha = 0.95f),
                     1f to Color.Transparent,
                 ),
                 start = Offset(centre - band / 2f, 0f),

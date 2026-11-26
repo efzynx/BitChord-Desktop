@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,12 +60,17 @@ internal fun DesktopPlayerSheet(
     visible: Boolean,
     onDismiss: () -> Unit,
     playerHaze: HazeState = remember { HazeState() },
+    playerBackdrop: DesktopLayerBackdrop = rememberDesktopLayerBackdrop(),
     content: @Composable BoxScope.(windowWidth: Dp, windowHeight: Dp) -> Unit,
 ) {
     // Mounted while it animates out, so the slide down is seen.
     var mounted by remember { mutableStateOf(visible) }
     if (visible) mounted = true
     if (!mounted) return
+
+    val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
+    val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
+    val glassRecordActive = liquidGlass && DesktopPlatform.supportsLiquidGlass && !reduceDynamicBlur
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val windowWidth = maxWidth
@@ -85,7 +91,10 @@ internal fun DesktopPlayerSheet(
         val dragState = rememberDraggableState { delta ->
             scope.launch { offset.snapTo((offset.value + delta).coerceIn(0f, heightPx)) }
         }
-        CompositionLocalProvider(LocalDesktopHaze provides playerHaze) {
+        CompositionLocalProvider(
+            LocalDesktopHaze provides playerHaze,
+            LocalDesktopBackdrop provides playerBackdrop,
+        ) {
             Box(
                 Modifier
                     .fillMaxSize()
@@ -102,7 +111,12 @@ internal fun DesktopPlayerSheet(
                         },
                     ),
             ) {
-                Box(Modifier.fillMaxSize().hazeSource(playerHaze)) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .hazeSource(playerHaze)
+                        .desktopLayerBackdrop(playerBackdrop, enabled = glassRecordActive),
+                ) {
                     content(windowWidth, windowHeight)
                 }
                 // Desktop close button in the top-left corner
@@ -124,12 +138,20 @@ internal fun DesktopClosePlayerButton(
     modifier: Modifier = Modifier,
 ) {
     var hovered by remember { mutableStateOf(false) }
+    val isDark = LocalDesktopPalette.current.isDark
+    val fill = if (isDark) {
+        if (hovered) Color.White.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.12f)
+    } else {
+        if (hovered) Color.White.copy(alpha = 0.78f) else Color.White.copy(alpha = 0.56f)
+    }
+    val borderColor = if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.12f)
+    val iconTint = if (isDark) Color.White else DesktopInk
     Box(
         modifier = modifier
             .size(36.dp)
             .clip(CircleShape)
-            .background(if (hovered) Color.White.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.12f))
-            .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
+            .background(fill)
+            .border(1.dp, borderColor, CircleShape)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -149,7 +171,7 @@ internal fun DesktopClosePlayerButton(
         Icon(
             Icons.Rounded.Close,
             contentDescription = "Close player",
-            tint = Color.White,
+            tint = iconTint,
             modifier = Modifier.size(18.dp),
         )
     }

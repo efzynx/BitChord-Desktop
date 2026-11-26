@@ -8,7 +8,10 @@ internal interface DesktopSampleSource {
     /** The next block as interleaved floats, or null at the end. The array may be reused. */
     fun readSamples(): FloatArray?
 
-    /** How much of the array [readSamples] returned is actually this block. */
+    /** The next block as left-aligned 32-bit signed integers, or null when reading floats / EOF. */
+    fun readIntSamples(): IntArray? = null
+
+    /** How much of the array [readSamples] / [readIntSamples] returned is actually this block. */
     val sampleCount: Int
 
     fun seek(micros: Long): Boolean
@@ -45,6 +48,8 @@ internal class DesktopDecodeAhead(
     private val wake = lock.newCondition()
 
     private val queue = ArrayDeque<FloatArray>()
+    private val intQueue = ArrayDeque<IntArray>()
+    private val integerMode = !outputFormat.isFloat
     private var queuedSamples = 0
     private var ended = false
     private var closed = false
@@ -67,15 +72,40 @@ internal class DesktopDecodeAhead(
 
     /** The next decoded block, waiting for the decoder only if it has fallen behind. */
     fun readSamples(): FloatArray? = lock.withLock {
-        if (queue.isEmpty() && !ended && !closed) {
+        if (queue.isEmpty() && intQueue.isEmpty() && !ended && !closed) {
             val waitedFrom = System.nanoTime()
-            while (queue.isEmpty() && !ended && !closed) ready.await()
+            while (queue.isEmpty() && intQueue.isEmpty() && !ended && !closed) ready.await()
             val waitedMs = (System.nanoTime() - waitedFrom) / 1_000_000
             if (started && waitedMs >= STARVED_LOG_MS) {
                 DesktopTrackLog.log("decode-ahead ran dry: the audio thread waited ${waitedMs}ms for the decoder")
             }
         }
-        val block = queue.removeFirstOrNull()
+        val block = queue.removeFirstOrNull() ?: intQueue.removeFirstOrNull()?.let { ints ->
+            FloatArray(ints.size) { index -> (ints[index] / 2_147_483_648.0).toFloat() }
+        }
+        if (block == null) {
+            sampleCount = 0
+            return null
+        }
+        queuedSamples -= block.size
+        started = true
+        wake.signal()
+        sampleCount = block.size
+        block
+    }
+
+    /** The next integer PCM block for bit-perfect output, or null at EOF. */
+    fun readIntSamples(): IntArray? = lock.withLock {
+        if (!integerMode) return@withLock null
+        if (intQueue.isEmpty() && !ended && !closed) {
+            val waitedFrom = System.nanoTime()
+            while (intQueue.isEmpty() && !ended && !closed) ready.await()
+            val waitedMs = (System.nanoTime() - waitedFrom) / 1_000_000
+            if (started && waitedMs >= STARVED_LOG_MS) {
+                DesktopTrackLog.log("decode-ahead ran dry: the audio thread waited ${waitedMs}ms for the decoder")
+            }
+        }
+        val block = intQueue.removeFirstOrNull()
         if (block == null) {
             sampleCount = 0
             return null
@@ -92,6 +122,7 @@ internal class DesktopDecodeAhead(
         lock.withLock {
             generation++
             queue.clear()
+            intQueue.clear()
             queuedSamples = 0
             ended = false
             started = false
@@ -106,6 +137,7 @@ internal class DesktopDecodeAhead(
         lock.withLock {
             closed = true
             queue.clear()
+            intQueue.clear()
             queuedSamples = 0
             wake.signal()
             ready.signalAll()
@@ -131,28 +163,48 @@ internal class DesktopDecodeAhead(
                     continue
                 }
 
-                val decoded = try {
-                    source.readSamples()?.copyOf(source.sampleCount)
-                } catch (failure: Exception) {
-                    DesktopTrackLog.log("decode-ahead: decoder failed, ending the track: ${failure.message}")
-                    null
-                }
-                lock.withLock {
-                    // A seek came in while this block was being read; it belongs to the old position.
-                    if (decodingFor != generation) return@withLock
-                    // Close came in while this block was being read. Committing it would leave the
-                    // queue non-empty after close, and the caller's very next readSamples() — which
-                    // the contract says is null — would return this block instead. Seen on Windows
-                    // CI, where scheduling lets the caller's close win this race consistently;
-                    // Linux's timing hides it. The block dies with the closed reader.
-                    if (closed) return@withLock
-                    if (decoded == null) {
-                        ended = true
-                    } else if (decoded.isNotEmpty()) {
-                        queue.addLast(decoded)
-                        queuedSamples += decoded.size
+                if (integerMode) {
+                    val decodedInt = try {
+                        source.readIntSamples()?.copyOf(source.sampleCount)
+                    } catch (failure: Exception) {
+                        DesktopTrackLog.log("decode-ahead: decoder failed, ending the track: ${failure.message}")
+                        null
                     }
-                    ready.signalAll()
+                    lock.withLock {
+                        if (decodingFor != generation) return@withLock
+                        if (closed) return@withLock
+                        if (decodedInt == null) {
+                            ended = true
+                        } else if (decodedInt.isNotEmpty()) {
+                            intQueue.addLast(decodedInt)
+                            queuedSamples += decodedInt.size
+                        }
+                        ready.signalAll()
+                    }
+                } else {
+                    val decoded = try {
+                        source.readSamples()?.copyOf(source.sampleCount)
+                    } catch (failure: Exception) {
+                        DesktopTrackLog.log("decode-ahead: decoder failed, ending the track: ${failure.message}")
+                        null
+                    }
+                    lock.withLock {
+                        // A seek came in while this block was being read; it belongs to the old position.
+                        if (decodingFor != generation) return@withLock
+                        // Close came in while this block was being read. Committing it would leave the
+                        // queue non-empty after close, and the caller's very next readSamples() — which
+                        // the contract says is null — would return this block instead. Seen on Windows
+                        // CI, where scheduling lets the caller's close win this race consistently;
+                        // Linux's timing hides it. The block dies with the closed reader.
+                        if (closed) return@withLock
+                        if (decoded == null) {
+                            ended = true
+                        } else if (decoded.isNotEmpty()) {
+                            queue.addLast(decoded)
+                            queuedSamples += decoded.size
+                        }
+                        ready.signalAll()
+                    }
                 }
             }
         } catch (_: InterruptedException) {

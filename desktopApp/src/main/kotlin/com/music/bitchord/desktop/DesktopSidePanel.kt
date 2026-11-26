@@ -21,17 +21,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,18 +64,34 @@ internal fun DesktopSidePanelColumn(
         exit = shrinkHorizontally(tween(SLIDE_MS, easing = FastOutSlowInEasing), shrinkTowards = Alignment.End) +
             fadeOut(tween(SLIDE_MS / 2)),
     ) {
+        val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
+        val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
+        val floatingGlass = liquidGlass && DesktopPlatform.supportsLiquidGlass && !reduceDynamicBlur
+        val panelShape = RoundedCornerShape(20.dp)
         Row(
             Modifier
                 .width(SIDE_PANEL_WIDTH)
                 .fillMaxHeight()
-                .desktopSidePanelGlass()
+                .then(
+                    if (floatingGlass) {
+                        Modifier
+                            .padding(top = 10.dp, end = 10.dp, bottom = 10.dp)
+                            .shadow(16.dp, panelShape)
+                            .clip(panelShape)
+                            .desktopSidePanelGlass(panelShape)
+                    } else {
+                        Modifier.desktopSidePanelGlass(RoundedCornerShape(0.dp))
+                    },
+                )
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     onClick = {},
                 ),
         ) {
-            Box(Modifier.width(0.5.dp).fillMaxHeight().background(DesktopBarEdge))
+            if (!floatingGlass) {
+                Box(Modifier.width(0.5.dp).fillMaxHeight().background(DesktopBarEdge))
+            }
             Crossfade(
                 targetState = shown ?: return@Row,
                 animationSpec = tween(CROSSFADE_MS),
@@ -90,7 +110,7 @@ internal fun DesktopSidePanelColumn(
                             // need a name over them.
                             Text(
                                 text = if (which == DesktopSidePanel.LYRICS) DesktopStrings["lyrics", "Lyrics"] else "",
-                                color = Color.White,
+                                color = DesktopInk,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.weight(1f),

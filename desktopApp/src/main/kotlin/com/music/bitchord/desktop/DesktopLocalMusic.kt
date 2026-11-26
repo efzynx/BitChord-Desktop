@@ -14,12 +14,14 @@ import kotlin.io.path.nameWithoutExtension
 object DesktopLocalMusic {
     private val supportedExtensions = setOf("aac", "flac", "m4a", "mp3", "ogg", "wav", "webm")
 
-    fun scan(): List<Song> {
+    fun scan(downloads: List<Song> = DesktopPersistence().downloads()): List<Song> {
         val filterNonMusic = DesktopPersistence().boolean(KEY_FILTER_NON_MUSIC_AUDIO, false)
-        return roots()
+        val scanned = roots()
             .filter(Files::isDirectory)
             .flatMap { scanDirectory(it, filterNonMusic) }
             .distinctBy(Song::localPath)
+        DesktopLocalMetadata.flushCache()
+        return DesktopLocalMetadata.enrichWithDownloads(scanned, downloads)
             .sortedBy { it.title.lowercase() }
     }
 
@@ -112,40 +114,34 @@ object DesktopLocalMusic {
         val modified = attributes?.lastModifiedTime()?.toInstant()
         val added = attributes?.creationTime()?.toInstant() ?: modified ?: Instant.now()
         val identity = absolutePath.toString()
-        val parsed = parseFileName(nameWithoutExtension)
-        val codec = extension.lowercase(Locale.ROOT).let { value ->
-            when (value) {
-                "flac" -> "FLAC"
-                "wav" -> "WAV"
-                "aac", "m4a" -> "AAC"
-                "ogg" -> "OGG"
-                "webm" -> "OPUS"
-                else -> value.uppercase(Locale.ROOT)
-            }
-        }
+        val mtimeSec = modified?.epochSecond ?: 0L
+        val sizeBytes = attributes?.size() ?: 0L
+
+        val probed = DesktopLocalMetadata.probeCached(absolutePath, mtimeSec, sizeBytes)
+        val unknownArtist = DesktopStrings["unknown_artist", "Unknown artist"]
+        val parsed = DesktopLocalMetadata.parseFileName(nameWithoutExtension, unknownArtist)
+        val title = probed.title?.takeIf(String::isNotBlank) ?: parsed.title
+        val artist = probed.artist?.takeIf(String::isNotBlank) ?: parsed.artist
+        val thumbnailUrl = probed.artworkPath
+            ?.let { runCatching { Path.of(it).toUri().toString() }.getOrNull() }
+            ?: DesktopLocalMetadata.findSidecarArtwork(absolutePath)
+        val resolvedQuality = DesktopLocalMetadata.resolveAudioQuality(probed, extension)
         return Song(
             videoId = "local:$identity",
-            title = parsed.title,
-            artist = parsed.artist,
-            thumbnailUrl = null,
+            title = title,
+            artist = artist,
+            thumbnailUrl = thumbnailUrl,
+            durationText = probed.durationText,
+            albumName = probed.album?.takeIf(String::isNotBlank),
             localUri = absolutePath.toUri().toString(),
             localPath = absolutePath.toString(),
             localDateAddedSeconds = added.epochSecond,
             localDateModifiedSeconds = modified?.epochSecond,
-            sourceQuality = codec,
+            sourceQuality = resolvedQuality.sourceQuality,
+            sourceHiRes = resolvedQuality.sourceHiRes,
+            trackNumber = probed.trackNumber,
         )
     }
-
-    private fun parseFileName(name: String): ParsedName {
-        val parts = name.split(" - ", limit = 2)
-        return if (parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()) {
-            ParsedName(title = parts[1].trim(), artist = parts[0].trim())
-        } else {
-            ParsedName(title = name, artist = "On This Computer")
-        }
-    }
-
-    private data class ParsedName(val title: String, val artist: String)
 }
 
 enum class DesktopLibrarySort {

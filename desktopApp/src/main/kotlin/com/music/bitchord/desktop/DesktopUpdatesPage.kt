@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,27 +20,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.RadioButtonChecked
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Tune
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -77,51 +72,22 @@ internal fun DesktopUpdatesPage(onDismiss: () -> Unit) {
         }
     }
 
-    // Jalankan cek saat halaman pertama kali dibuka
+    // Run check on first open
     LaunchedEffect(Unit) {
         triggerCheck()
     }
 
     DesktopSettingsPageFrame {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.ArrowBack,
-                    contentDescription = "Kembali",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            Spacer(Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = "Pembaruan & Info Sistem",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = "BitChord Desktop · efzynx/BitChord-Desktop",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DesktopSecondary,
-                )
-            }
-        }
+        DesktopSettingsSubPageHeader(
+            title = DesktopStrings["d_updates_system_info", "Updates & System Info"],
+            subtitle = "BitChord Desktop · efzynx/BitChord-Desktop",
+            onBack = onDismiss,
+        )
 
         LazyColumn(
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             // Section 1: Update Channel Selector
             item {
@@ -161,31 +127,22 @@ private fun UpdateChannelCard(
     channel: DesktopUpdateChannel,
     onChannelChange: (DesktopUpdateChannel) -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-                RoundedCornerShape(16.dp),
-            ),
-    ) {
-        Column(Modifier.padding(20.dp)) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(Modifier.fillMaxWidth().desktopSettingsCardSurface(shape)) {
+        Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)),
+                        .background(DesktopInk.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Tune,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(24.dp),
+                        tint = DesktopInk,
+                        modifier = Modifier.size(21.dp),
                     )
                 }
                 Spacer(Modifier.width(14.dp))
@@ -194,6 +151,7 @@ private fun UpdateChannelCard(
                         text = DesktopStrings["d_update_channel", "Update Channel"],
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
+                        color = DesktopInk,
                     )
                     Text(
                         text = DesktopStrings["d_update_channel_desc", "Choose which updates you would like to receive"],
@@ -203,7 +161,7 @@ private fun UpdateChannelCard(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -211,21 +169,25 @@ private fun UpdateChannelCard(
             ) {
                 DesktopUpdateChannel.values().forEach { opt ->
                     val isSelected = opt == channel
-                    Surface(
+                    val tileShape = RoundedCornerShape(12.dp)
+                    val interaction = remember(opt) { MutableInteractionSource() }
+                    Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onChannelChange(opt) },
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) {
-                            DesktopAccent.copy(alpha = 0.15f)
-                        } else {
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
-                        },
-                        border = BorderStroke(
-                            1.dp,
-                            if (isSelected) DesktopAccent else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                        ),
+                            .desktopGlassPress(tileShape, interactionSource = interaction, pressScale = 0.97f)
+                            .clip(tileShape)
+                            .background(
+                                if (isSelected) DesktopAccent.copy(alpha = 0.14f) else DesktopInk.copy(alpha = 0.04f),
+                            )
+                            .border(
+                                BorderStroke(
+                                    if (isSelected) 1.dp else 0.75.dp,
+                                    if (isSelected) DesktopAccent.copy(alpha = 0.72f) else DesktopCardEdge,
+                                ),
+                                tileShape,
+                            )
+                            .desktopHoverFill(corner = 12.dp)
+                            .clickable(interactionSource = interaction, indication = null) { onChannelChange(opt) },
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
@@ -243,7 +205,7 @@ private fun UpdateChannelCard(
                                     text = opt.label,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                    color = DesktopInk,
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
@@ -266,18 +228,9 @@ private fun UpdateStatusCard(
     status: DesktopUpdateChecker.UpdateCheckStatus,
     onCheckAgain: () -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-                RoundedCornerShape(16.dp),
-            ),
-    ) {
-        Column(Modifier.padding(20.dp)) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(Modifier.fillMaxWidth().desktopSettingsCardSurface(shape)) {
+        Column(Modifier.padding(18.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -286,16 +239,16 @@ private fun UpdateStatusCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
-                            .background(DesktopAccent.copy(alpha = 0.15f)),
+                            .background(DesktopAccent.copy(alpha = 0.14f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.SystemUpdate,
                             contentDescription = null,
                             tint = DesktopAccent,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(22.dp),
                         )
                     }
                     Spacer(Modifier.width(14.dp))
@@ -304,6 +257,7 @@ private fun UpdateStatusCard(
                             text = DesktopStrings["d_update_status", "Update Status"],
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
+                            color = DesktopInk,
                         )
                         Text(
                             text = DesktopStrings.format("d_installed_version", DesktopSystemInfo.appVersion, "Installed Version: v%s"),
@@ -314,22 +268,14 @@ private fun UpdateStatusCard(
                 }
 
                 if (status !is DesktopUpdateChecker.UpdateCheckStatus.Checking) {
-                    OutlinedButton(
+                    DesktopGlassPillButton(
+                        text = DesktopStrings["d_check_updates", "Check"],
                         onClick = onCheckAgain,
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(DesktopStrings["d_check_updates", "Check"], fontSize = 13.sp)
-                    }
+                    )
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
 
             when (status) {
                 is DesktopUpdateChecker.UpdateCheckStatus.Idle,
@@ -338,7 +284,7 @@ private fun UpdateStatusCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 12.dp),
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         CircularProgressIndicator(
@@ -359,7 +305,7 @@ private fun UpdateStatusCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -374,7 +320,7 @@ private fun UpdateStatusCard(
                                 text = DesktopStrings["d_up_to_date_title", "BitChord Desktop is up to date."],
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = DesktopInk,
                             )
                             Text(
                                 text = DesktopStrings["d_up_to_date_subtitle", "No new releases available at this time."],
@@ -392,6 +338,7 @@ private fun UpdateStatusCard(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .background(DesktopAccent.copy(alpha = 0.08f))
+                            .border(0.75.dp, DesktopAccent.copy(alpha = 0.28f), RoundedCornerShape(12.dp))
                             .padding(16.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -416,7 +363,7 @@ private fun UpdateStatusCard(
                                 text = DesktopStrings["d_release_notes", "Release Notes:"],
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = DesktopInk,
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
@@ -431,31 +378,17 @@ private fun UpdateStatusCard(
 
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             if (!update.downloadUrl.isNullOrBlank()) {
-                                Button(
+                                DesktopGlassPillButton(
+                                    text = DesktopStrings["d_download_installer", "Download Installer"],
+                                    accent = true,
                                     onClick = { DesktopExternalLinks.open(update.downloadUrl) },
-                                    colors = ButtonDefaults.buttonColors(containerColor = DesktopAccent),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.CloudDownload,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(DesktopStrings["d_download_installer", "Download Installer"])
-                                }
-                            }
-
-                            OutlinedButton(
-                                onClick = { DesktopExternalLinks.open(update.releaseUrl) },
-                            ) {
-                                Text(DesktopStrings["d_open_github_release", "Open GitHub Release"])
-                                Spacer(Modifier.width(6.dp))
-                                Icon(
-                                    imageVector = Icons.Rounded.OpenInNew,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
                                 )
                             }
+
+                            DesktopGlassPillButton(
+                                text = DesktopStrings["d_open_github_release", "Open GitHub Release"],
+                                onClick = { DesktopExternalLinks.open(update.releaseUrl) },
+                            )
                         }
                     }
                 }
@@ -470,14 +403,14 @@ private fun UpdateStatusCard(
                         Icon(
                             imageVector = Icons.Rounded.ErrorOutline,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = DesktopDestructive,
                             modifier = Modifier.size(22.dp),
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
                             text = status.message,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
+                            color = DesktopDestructive,
                         )
                     }
                 }
@@ -488,31 +421,22 @@ private fun UpdateStatusCard(
 
 @Composable
 private fun SystemInfoCard() {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-                RoundedCornerShape(16.dp),
-            ),
-    ) {
-        Column(Modifier.padding(20.dp)) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(Modifier.fillMaxWidth().desktopSettingsCardSurface(shape)) {
+        Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                        .background(DesktopInk.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Computer,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp),
+                        tint = DesktopInk,
+                        modifier = Modifier.size(21.dp),
                     )
                 }
                 Spacer(Modifier.width(14.dp))
@@ -521,6 +445,7 @@ private fun SystemInfoCard() {
                         text = DesktopStrings["d_system_info", "System & Runtime Information"],
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
+                        color = DesktopInk,
                     )
                     Text(
                         text = DesktopStrings["d_current_environment", "Current device environment"],
@@ -530,13 +455,18 @@ private fun SystemInfoCard() {
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
 
             InfoRow(label = DesktopStrings["d_os", "Operating System"], value = DesktopSystemInfo.prettyOsName)
+            HorizontalDivider(thickness = 0.5.dp, color = DesktopCardEdge)
             InfoRow(label = DesktopStrings["d_cpu_arch", "CPU Architecture"], value = DesktopSystemInfo.osArch)
+            HorizontalDivider(thickness = 0.5.dp, color = DesktopCardEdge)
             InfoRow(label = DesktopStrings["d_java_runtime", "Java Runtime"], value = "${DesktopSystemInfo.javaVersion} (${DesktopSystemInfo.javaVendor})")
+            HorizontalDivider(thickness = 0.5.dp, color = DesktopCardEdge)
             InfoRow(label = DesktopStrings["d_desktop_version", "BitChord Desktop Version"], value = "v${DesktopSystemInfo.appVersion}")
+            HorizontalDivider(thickness = 0.5.dp, color = DesktopCardEdge)
             InfoRow(label = DesktopStrings["d_base_sync_version", "BitChord Base Sync"], value = "v${DesktopSystemInfo.BASE_UPSTREAM_VERSION} (${DesktopStrings["d_base_sync_detail", "Core & Feature Base"]})")
+            HorizontalDivider(thickness = 0.5.dp, color = DesktopCardEdge)
             InfoRow(
                 label = DesktopStrings["d_source_repo", "Source Repository"],
                 value = "efzynx/BitChord-Desktop",
@@ -550,32 +480,23 @@ private fun SystemInfoCard() {
 @Composable
 private fun InstallationInfoCard() {
     val installType = DesktopSystemInfo.installType
+    val shape = RoundedCornerShape(14.dp)
 
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-                RoundedCornerShape(16.dp),
-            ),
-    ) {
-        Column(Modifier.padding(20.dp)) {
+    Box(Modifier.fillMaxWidth().desktopSettingsCardSurface(shape)) {
+        Column(Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)),
+                        .background(DesktopInk.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Info,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(24.dp),
+                        tint = DesktopInk,
+                        modifier = Modifier.size(21.dp),
                     )
                 }
                 Spacer(Modifier.width(14.dp))
@@ -584,6 +505,7 @@ private fun InstallationInfoCard() {
                         text = DesktopStrings["d_install_method", "Detected Installation Method"],
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
+                        color = DesktopInk,
                     )
                     Text(
                         text = installType.label,
@@ -599,24 +521,24 @@ private fun InstallationInfoCard() {
             Text(
                 text = installType.formatDescription,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = DesktopInk.copy(alpha = 0.92f),
             )
 
             Spacer(Modifier.height(14.dp))
 
-            // Box panduan uninstall
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+                    .background(DesktopInk.copy(alpha = 0.045f))
+                    .border(0.5.dp, DesktopCardEdge, RoundedCornerShape(10.dp))
                     .padding(14.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Rounded.Delete,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = DesktopDestructive,
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(8.dp))
@@ -624,7 +546,7 @@ private fun InstallationInfoCard() {
                         text = DesktopStrings["d_uninstall_guide", "Uninstall Guide:"],
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.error,
+                        color = DesktopDestructive,
                     )
                 }
                 Spacer(Modifier.height(4.dp))
@@ -648,7 +570,7 @@ private fun InfoRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -665,12 +587,12 @@ private fun InfoRow(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = if (isLink) DesktopAccent else MaterialTheme.colorScheme.onSurface,
+                color = if (isLink) DesktopAccent else DesktopInk,
             )
             if (isLink) {
                 Spacer(Modifier.width(4.dp))
                 Icon(
-                    imageVector = Icons.Rounded.OpenInNew,
+                    imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
                     contentDescription = null,
                     tint = DesktopAccent,
                     modifier = Modifier.size(13.dp),

@@ -11,6 +11,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
+import java.nio.file.attribute.BasicFileAttributes
+import kotlin.io.path.extension
 
 /** Downloads resolved audio into the user's own BitChord folder. */
 object DesktopDownloadManager {
@@ -41,7 +43,7 @@ object DesktopDownloadManager {
             val target = directory.resolve("$safeName.$extension")
             val temporary = directory.resolve(".$safeName.$extension.part")
             if (Files.isRegularFile(target) && Files.size(target) > 0L) {
-                return Result.success(song.copy(localUri = target.toUri().toString(), localPath = target.toString()))
+                return Result.success(finishedSong(song, target, stream.format))
             }
 
             if (manifest) {
@@ -58,7 +60,7 @@ object DesktopDownloadManager {
                 }
                 check(Files.size(temporary) > 0L) { "Download failed: nothing was sent" }
                 Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING)
-                return Result.success(song.copy(localUri = target.toUri().toString(), localPath = target.toString()))
+                return Result.success(finishedSong(song, target, stream.format))
             }
 
             val existing = if (Files.isRegularFile(temporary)) Files.size(temporary) else 0L
@@ -107,7 +109,7 @@ object DesktopDownloadManager {
             }.getOrElse {
                 Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING)
             }
-            Result.success(song.copy(localUri = target.toUri().toString(), localPath = target.toString()))
+            Result.success(finishedSong(song, target, stream.format))
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Throwable) {
@@ -142,12 +144,55 @@ object DesktopDownloadManager {
     fun isSaved(song: Song): Boolean = savedFile(song) != null
 
     /**
-     * The records that still name a file, with the rest dropped.
+     * The records that still name a file, with the rest dropped and local stream quality probed.
      *
      * A claim that has just been shown to be false is not worth keeping to be shown false again on
      * the next play.
      */
-    fun verified(downloads: List<Song>): List<Song> = downloads.filter(::isSaved)
+    fun verified(downloads: List<Song>): List<Song> {
+        val verifiedSongs = downloads.mapNotNull { song ->
+            val file = savedFile(song) ?: return@mapNotNull null
+            refreshSavedQuality(song, file)
+        }
+        DesktopLocalMetadata.flushCache()
+        return verifiedSongs
+    }
+
+    private fun finishedSong(
+        song: Song,
+        target: Path,
+        streamFormat: DesktopStreamFormat? = null,
+    ): Song {
+        val completed = refreshSavedQuality(
+            song.copy(localUri = target.toUri().toString(), localPath = target.toString()),
+            target,
+            streamFormat,
+        )
+        DesktopLocalMetadata.flushCache()
+        return completed
+    }
+
+    private fun refreshSavedQuality(
+        song: Song,
+        file: Path,
+        streamFormat: DesktopStreamFormat? = null,
+    ): Song {
+        val attrs = runCatching { Files.readAttributes(file, BasicFileAttributes::class.java) }.getOrNull()
+        val mtimeSec = attrs?.lastModifiedTime()?.toInstant()?.epochSecond ?: 0L
+        val sizeBytes = attrs?.size() ?: 0L
+        val probed = DesktopLocalMetadata.probeCached(file, mtimeSec, sizeBytes)
+        val resolved = DesktopLocalMetadata.resolveAudioQuality(probed, file.extension, streamFormat)
+        val probedIsLossless = DesktopStreamFormat(codec = probed.codec ?: resolved.sourceQuality).isLossless ||
+            streamFormat?.isLossless == true
+        return if (probedIsLossless) {
+            song.copy(
+                sourceQuality = resolved.sourceQuality ?: song.sourceQuality,
+                sourceHiRes = resolved.sourceHiRes || song.sourceHiRes,
+            )
+        } else {
+            song
+        }
+    }
 
     /** Deletes the file saved for [song]. Returns whether there was one to delete. */
     fun delete(song: Song): Boolean {

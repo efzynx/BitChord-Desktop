@@ -288,7 +288,7 @@ fun SongRow(
      * background — an album page tinted from its sleeve would otherwise drag a
      * black band across itself on every swipe.
      */
-    rowBackground: Color = MaterialTheme.colorScheme.background,
+    rowBackground: Color = Color.Transparent,
     /**
      * Drawn in place of the artwork, for lists where every row would otherwise
      * repeat the same cover — an album's own track listing.
@@ -344,7 +344,11 @@ fun SongRow(
             onClick = onClick,
             onLongPress = onLongPress,
             onMore = onMore ?: onLongPress,
-            modifier = if (onSwipeToQueue != null) Modifier.background(rowBackground) else modifier,
+            modifier = if (onSwipeToQueue != null && rowBackground != Color.Transparent) {
+                Modifier.background(rowBackground)
+            } else {
+                modifier
+            },
             trackNumber = trackNumber,
             subtitleColor = subtitleColor,
             downloadedTint = downloadedTint,

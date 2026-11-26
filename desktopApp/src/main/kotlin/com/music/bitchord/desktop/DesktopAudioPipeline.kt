@@ -12,6 +12,8 @@ internal data class DesktopAudioPipeline(
     val decoderName: String? = null,
     val decodedSampleRateHz: Int? = null,
     val decodedChannels: Int? = null,
+    val decodedBytesPerSample: Int? = null,
+    val decodedIsFloat: Boolean? = null,
     val outputSampleRateHz: Int? = null,
     val outputChannels: Int? = null,
     val outputIsFloat: Boolean? = null,
@@ -20,6 +22,8 @@ internal data class DesktopAudioPipeline(
     val bufferBytes: Int = 0,
     val equalizerEnabled: Boolean = false,
     val skipSilence: Boolean = false,
+    val spatialEnabled: Boolean = false,
+    val bitPerfect: DesktopBitPerfectStatus = DesktopBitPerfectStatus(),
 ) {
     /** The decoder under its usual name, the same one the quality badge shows. */
     val decoderLabel: String?

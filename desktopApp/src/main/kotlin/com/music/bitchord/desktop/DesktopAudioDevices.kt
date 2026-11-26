@@ -37,7 +37,21 @@ internal object DesktopAudioDevices {
     /** Bumped whenever the system's set of outputs changes; lists keyed on it re-enumerate. */
     val changes: StateFlow<Int> = _changes
 
-    internal fun systemChanged() = _changes.update { it + 1 }
+    internal fun systemChanged() {
+        _changes.update { it + 1 }
+        DesktopBitPerfect.recomputeReady()
+    }
+
+    /** Direct ALSA `hw:card,dev` endpoints on Linux, for bit-perfect output. */
+    fun alsaDirectDevices(): List<DesktopAudioDevice> =
+        if (DesktopPlatform.isLinux) DesktopLinuxAudio.devices() else emptyList()
+
+    /** Whether the host has at least one device capable of bit-perfect output. */
+    fun hasBitPerfectOutput(): Boolean = when {
+        DesktopPlatform.isWindows -> DesktopWindowsAudio.devices()?.isNotEmpty() == true
+        DesktopPlatform.isLinux -> DesktopLinuxAudio.available && DesktopLinuxAudio.devices().isNotEmpty()
+        else -> available().isNotEmpty()
+    }
 
     /**
      * Every output that can actually play audio, newest enumeration each call.

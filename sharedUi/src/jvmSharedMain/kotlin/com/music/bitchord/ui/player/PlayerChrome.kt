@@ -3,6 +3,7 @@ package com.music.bitchord.ui.player
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.BlendMode
@@ -34,11 +35,24 @@ internal const val CHROME_FULL_ALPHA = 0.73f
 /** How far below its plain strength blended content is drawn, so more of the backdrop comes through. */
 private const val CHROME_ALPHA_DROP = 0.15f
 
-/** White at [alpha], or that less [CHROME_ALPHA_DROP] while the blend is on. */
+/**
+ * Foreground ink for [LyricsPanel], [LandscapeLyricsPane], [InlineQueue], and player controls.
+ * Defaults to [Color.White] for the fullscreen dark player, while Light-mode desktop player
+ * and side panels provide a dark ink via [LocalContentColor].
+ */
+val LocalPlayerSurfaceInk = staticCompositionLocalOf { Color.White }
+
+/**
+ * Whether the expanded player uses a bright pastel backdrop paired with dark ink.
+ * Defaults to `false` so mobile and Dark-theme playback keep their existing palette.
+ */
+val LocalPlayerLightTheme = staticCompositionLocalOf { false }
+
+/** Foreground ink at [alpha], or that less [CHROME_ALPHA_DROP] while additive chrome is on. */
 @Composable
 @ReadOnlyComposable
 internal fun chromeWhite(alpha: Float): Color =
-    Color.White.copy(alpha = if (LocalPlayerChrome.current) alpha - CHROME_ALPHA_DROP else alpha)
+    LocalPlayerSurfaceInk.current.copy(alpha = if (LocalPlayerChrome.current) alpha - CHROME_ALPHA_DROP else alpha)
 
 /**
  * What [vibrantChrome] content is drawn in: a neutral ink, so the hue is all the backdrop's.
@@ -51,7 +65,7 @@ internal val VibrantChromeInk = Color(0xFF999999).copy(alpha = 1f - CHROME_ALPHA
  * Dodge multiplies, and nothing times black is still black. Laid under the dodge
  * so a glyph on a pure black backdrop is lifted with it rather than vanishing.
  */
-private const val VIBRANT_CHROME_FLOOR = 0.12f
+private const val VIBRANT_CHROME_FLOOR = 0.36f
 
 /**
  * Adds the content onto the backdrop, so the artwork's colour comes through the

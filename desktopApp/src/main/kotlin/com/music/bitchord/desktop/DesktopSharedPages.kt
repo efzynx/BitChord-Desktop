@@ -1,11 +1,14 @@
 package com.music.bitchord.desktop
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -238,9 +241,20 @@ internal fun DesktopLibrarySortMenu() {
     var open by remember { mutableStateOf(false) }
     Box {
         DesktopToolbarButton(onClick = { open = true }) {
-            Icon(Icons.AutoMirrored.Rounded.Sort, DesktopStrings["sort_library", "Sort library"], tint = Color.White)
+            Icon(Icons.AutoMirrored.Rounded.Sort, DesktopStrings["sort_library", "Sort library"], tint = DesktopInk)
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        val sortShape = RoundedCornerShape(14.dp)
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            modifier = Modifier
+                .clip(sortShape)
+                .desktopBarGlass(sortShape),
+            containerColor = Color.Transparent,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
+            shape = sortShape,
+        ) {
             LibrarySort.entries.forEach { option ->
                 DropdownMenuItem(
                     text = {
@@ -279,13 +293,24 @@ internal fun DesktopPlayPill(
     iconOnly: Boolean = false,
     size: Dp = 50.dp,
     isPlaying: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val accent = DesktopAccent
+    val onAccent = DesktopOnAccent
     Row(
-        Modifier
+        modifier
             .then(if (iconOnly) Modifier.size(size) else Modifier.height(size))
             .clip(CircleShape)
-            .background(Color.White)
-            .clickable(onClick = onClick)
+            .desktopGlassPress(
+                shape = CircleShape,
+                interactionSource = interactionSource,
+                pressScale = 0.945f,
+                sheenColor = onAccent,
+                rimBoostAlpha = 0.18f,
+            )
+            .background(accent)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
             .then(if (iconOnly) Modifier else Modifier.padding(horizontal = 32.dp)),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -293,19 +318,19 @@ internal fun DesktopPlayPill(
         Icon(
             if (isPlaying) Icons.Rounded.Pause else BitChordIcons.Play,
             contentDescription = if (iconOnly) (if (isPlaying) "Pause" else label) else null,
-            tint = Color.Black,
+            tint = onAccent,
             modifier = Modifier.size(if (iconOnly) size * 0.44f else 18.dp),
         )
         if (!iconOnly) {
             Spacer(Modifier.width(8.dp))
-            Text(if (isPlaying) DesktopStrings["pause", "Pause"] else label, style = MaterialTheme.typography.titleMedium, color = Color.Black)
+            Text(if (isPlaying) DesktopStrings["pause", "Pause"] else label, style = MaterialTheme.typography.titleMedium, color = onAccent)
         }
     }
 }
 
 /**
  * The phone's round icon button beside Play (DetailScreen's `CircleIconButton`): a translucent
- * disc — the phone's is glass over the page's artwork tint — with the glyph in white.
+ * disc over the page with an adaptive ink glyph.
  */
 @Composable
 internal fun DesktopCircleButton(
@@ -314,14 +339,38 @@ internal fun DesktopCircleButton(
     onClick: () -> Unit,
     size: Dp = 50.dp,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
+    val reduceBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
+    val glassSurface = liquidGlass && DesktopPlatform.supportsLiquidGlass && !reduceBlur
+    val ink = DesktopInk
+    val isDark = DesktopIsDark
     Box(
         Modifier
             .size(size)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.12f))
-            .clickable(onClick = onClick),
+            .desktopGlassPress(
+                shape = CircleShape,
+                interactionSource = interactionSource,
+                pressScale = 0.93f,
+            )
+            .background(
+                if (isDark) {
+                    Color.White.copy(alpha = if (glassSurface) 0.14f else 0.12f)
+                } else {
+                    ink.copy(alpha = if (glassSurface) 0.08f else 0.07f)
+                },
+            )
+            .then(
+                if (glassSurface) {
+                    Modifier.border(0.85.dp, ink.copy(alpha = if (isDark) 0.22f else 0.14f), CircleShape)
+                } else {
+                    Modifier
+                },
+            )
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription, tint = Color.White, modifier = Modifier.size(size * 0.44f))
+        Icon(icon, contentDescription, tint = ink, modifier = Modifier.size(size * 0.44f))
     }
 }

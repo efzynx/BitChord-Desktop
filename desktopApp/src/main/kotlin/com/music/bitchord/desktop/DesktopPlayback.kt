@@ -85,6 +85,8 @@ data class DesktopStreamFormat(
     val bitDepth: Int? = null,
     /** How many channels the decoder is being fed; null before anything measured one. */
     val channels: Int? = null,
+    /** Demuxer/container short label when known (e.g. FLAC, M4A, WebM, WAV). */
+    val container: String? = null,
 ) {
     /** The codec's short name, whether it arrived bare or inside a MIME type. */
     private val codecName: String?

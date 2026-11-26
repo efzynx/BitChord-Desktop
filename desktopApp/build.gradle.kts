@@ -45,14 +45,27 @@ val nativeClassifier = when (targetOs) {
     "macos" -> if (isArm64) "macosx-arm64" else "macosx-x86_64"
     else -> error("BitChord desktop supports Linux, Windows, and macOS only")
 }
-private fun localProperty(name: String): String = rootProject.file("local.properties")
+private fun readKeyValueFile(file: File, name: String): String = file
     .takeIf { it.isFile }
     ?.readLines()
-    ?.firstOrNull { it.startsWith("$name=") }
+    ?.asSequence()
+    ?.map { it.trim() }
+    ?.filter { it.isNotEmpty() && !it.startsWith("#") }
+    ?.firstOrNull { line ->
+        val normalized = line.removePrefix("export ").trim()
+        normalized.startsWith("$name=")
+    }
     ?.substringAfter('=')
     ?.trim()
+    ?.removeSurrounding("\"")
+    ?.removeSurrounding("'")
     ?.takeIf { it.isNotBlank() }
-    ?: System.getenv(name).orEmpty().trim()
+    .orEmpty()
+
+private fun localProperty(name: String): String =
+    readKeyValueFile(rootProject.file("local.properties"), name)
+        .ifBlank { readKeyValueFile(rootProject.file(".env"), name) }
+        .ifBlank { System.getenv(name).orEmpty().trim() }
 
 val desktopModuleIndexUrl = localProperty("MODULE_INDEX_URL")
 
@@ -65,6 +78,14 @@ val listenTogetherServer = (
 ).trim().trimEnd('/')
 val lastfmApiKey = localProperty("LASTFM_API_KEY")
 val lastfmSecret = localProperty("LASTFM_SECRET")
+val gdriveClientId = (
+    providers.gradleProperty("gdriveClientId").orNull
+        ?: localProperty("GDRIVE_CLIENT_ID")
+).trim()
+val gdriveClientSecret = (
+    providers.gradleProperty("gdriveClientSecret").orNull
+        ?: localProperty("GDRIVE_CLIENT_SECRET")
+).trim()
 
 plugins {
     id("org.jetbrains.kotlin.jvm")
@@ -180,6 +201,9 @@ val analysisNativeDir = layout.buildDirectory.dir("native/$targetOs")
 
 /** The tiny Windows frame bridge is independent of the optional analyser and SMTC libraries. */
 val windowNativeDir = layout.buildDirectory.dir("native-window/$targetOs")
+
+/** Native ALSA direct audio bridge for Linux bit-perfect playback. */
+val linuxAudioNativeDir = layout.buildDirectory.dir("native-linux-audio/$targetOs")
 
 /**
  * Whether this build is producing the analyser for a platform that is not the one running the
@@ -367,14 +391,57 @@ val buildWindowNative by tasks.registering {
     }
 }
 
+/**
+ * Builds the ALSA direct-output JNI bridge on Linux by dynamically resolving `libasound.so.2`
+ * at runtime so builds have no compile-time dependency on ALSA development headers.
+ */
+val buildLinuxAudioNative by tasks.registering {
+    val cmakeSource = project.file("native/linux_audio")
+    val outputDir = linuxAudioNativeDir.get().asFile
+    inputs.dir(cmakeSource)
+    inputs.property("target", targetOs)
+    outputs.dir(outputDir)
+    onlyIf {
+        if (targetOs != "linux") return@onlyIf false
+        val cmake = findOnPath("cmake")
+        val compiler = findOnPath("g++") ?: findOnPath("clang++")
+        if (cmake == null || compiler == null) {
+            logger.lifecycle(
+                "cmake or C++ compiler unavailable — the Linux build will skip ALSA direct Bit-Perfect output.",
+            )
+        }
+        cmake != null && compiler != null
+    }
+    doLast {
+        val javaHome = System.getProperty("java.home")
+        providers.exec {
+            commandLine(
+                cmakeBinary(),
+                "-S", cmakeSource.absolutePath,
+                "-B", outputDir.absolutePath,
+                "-DCMAKE_BUILD_TYPE=Release",
+            )
+            environment("JAVA_HOME", javaHome)
+        }.result.get().assertNormalExitValue()
+        providers.exec {
+            commandLine(cmakeBinary(), "--build", outputDir.absolutePath, "--config", "Release", "-j", "4")
+            environment("JAVA_HOME", javaHome)
+        }.result.get().assertNormalExitValue()
+    }
+}
+
 tasks.named<ProcessResources>("processResources") {
-    dependsOn(buildAnalysisNative, buildWindowNative)
+    dependsOn(buildAnalysisNative, buildWindowNative, buildLinuxAudioNative)
     from(analysisNativeDir) {
         include("*.so", "*.dll", "*.dylib")
         into("native")
     }
     from(windowNativeDir) {
         include("*.dll")
+        into("native")
+    }
+    from(linuxAudioNativeDir) {
+        include("*.so")
         into("native")
     }
     // The Automix models, taken from the Android module rather than copied into this one.
@@ -408,6 +475,8 @@ val windowsPortableAssemble by tasks.registering {
     val lastfmKey = lastfmApiKey
     val lastfmSharedSecret = lastfmSecret
     val listenTogether = listenTogetherServer
+    val driveClientId = gdriveClientId
+    val driveClientSecret = gdriveClientSecret
     val mainClass = composeMainClass
     // Declared, not implied.
     inputs.file(appJar)
@@ -416,6 +485,7 @@ val windowsPortableAssemble by tasks.registering {
     inputs.property("moduleIndex", moduleIndex)
     inputs.property("lastfm", lastfmKey.isNotBlank())
     inputs.property("listenTogether", listenTogether.isNotBlank())
+    inputs.property("gdrive", driveClientId.isNotBlank())
     inputs.property("mainClass", mainClass)
     outputs.dir(stage)
     doLast {
@@ -450,6 +520,12 @@ val windowsPortableAssemble by tasks.registering {
                 }
                 if (listenTogether.isNotBlank()) {
                     append(" -Dbitchord.listentogether.server=$listenTogether")
+                }
+                if (driveClientId.isNotBlank()) {
+                    append(" -Dbitchord.gdrive.clientId=$driveClientId")
+                    if (driveClientSecret.isNotBlank()) {
+                        append(" -Dbitchord.gdrive.clientSecret=$driveClientSecret")
+                    }
                 }
                 appendLine(" -cp \"%HERE%lib\\*\" $mainClass %*")
                 appendLine("endlocal")
@@ -512,6 +588,75 @@ val windowsPortable by tasks.registering(Zip::class) {
     archiveFileName.set("BitChord-$appVersion-windows-portable.zip")
     destinationDirectory.set(layout.buildDirectory.dir("distributions"))
     doLast { logger.lifecycle("windowsPortable: ${archiveFile.get().asFile.absolutePath}") }
+}
+
+fun findInnoSetupCompiler(): File? {
+    val onPath = findOnPath("iscc") ?: findOnPath("ISCC")
+    if (onPath != null) return onPath
+    val localAppData = System.getenv("LOCALAPPDATA").orEmpty()
+    val progFiles = System.getenv("ProgramFiles").orEmpty()
+    val progFilesX86 = System.getenv("ProgramFiles(x86)").orEmpty()
+    val candidates = buildList {
+        if (progFilesX86.isNotBlank()) add(File(progFilesX86, "Inno Setup 6\\ISCC.exe"))
+        if (progFiles.isNotBlank()) add(File(progFiles, "Inno Setup 6\\ISCC.exe"))
+        if (localAppData.isNotBlank()) add(File(localAppData, "Programs\\Inno Setup 6\\ISCC.exe"))
+        add(File("C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"))
+        add(File("C:\\Program Files\\Inno Setup 6\\ISCC.exe"))
+    }
+    return candidates.firstOrNull { it.isFile }
+}
+
+val packageWindowsInstaller by tasks.registering {
+    group = "distribution"
+    description = "Packages BitChord Windows Setup EXE via Inno Setup (supports custom path, terms agreement, and auto-overwrite)."
+    dependsOn("createDistributable")
+    onlyIf { targetOs == "windows" && hostIsWindows }
+
+    val version = appVersion
+    val numericVersion = "$nativePackageVersion.0"
+    val issFile = project.file("packaging/windows/BitChord.iss")
+    val iconFile = project.file("packaging/icons/AppIcon.ico")
+    val appDir = layout.buildDirectory.dir("compose/binaries/main/app/BitChord")
+    val outDir = layout.buildDirectory.dir("distributions")
+
+    inputs.file(issFile)
+    inputs.file(project.file("packaging/windows/about-install.txt"))
+    inputs.file(project.file("packaging/windows/terms-and-privacy.txt"))
+    inputs.file(iconFile)
+    inputs.property("version", version)
+    inputs.property("numericVersion", numericVersion)
+    outputs.file(outDir.map { it.file("BitChord-$version.exe") })
+
+    doLast {
+        val source = appDir.get().asFile
+        check(File(source, "BitChord.exe").isFile) {
+            "Windows application binary not found in ${source.absolutePath}"
+        }
+        rootProject.file("backend/party-server.exe")
+            .takeIf { it.isFile }
+            ?.copyTo(File(source, "party-server.exe"), overwrite = true)
+
+        val iscc = findInnoSetupCompiler()
+            ?: error("Inno Setup 6 compiler (ISCC.exe) not found. Install Inno Setup 6 or add ISCC.exe to PATH.")
+
+        val output = outDir.get().asFile.apply { mkdirs() }
+        logger.lifecycle("Packaging Windows Setup EXE with ${iscc.absolutePath}...")
+        val proc = ProcessBuilder(
+            iscc.absolutePath,
+            "/DAppVersion=$version",
+            "/DNumericVersion=$numericVersion",
+            "/DSourceDir=${source.absolutePath}",
+            "/DOutputDir=${output.absolutePath}",
+            "/DIconFile=${iconFile.absolutePath}",
+            issFile.absolutePath,
+        ).inheritIO().start()
+
+        val exitCode = proc.waitFor()
+        check(exitCode == 0) { "Inno Setup compilation failed with exit code $exitCode" }
+        val installerFile = File(output, "BitChord-$version.exe")
+        check(installerFile.isFile) { "Expected Windows installer missing: ${installerFile.absolutePath}" }
+        logger.lifecycle("Windows installer created: ${installerFile.absolutePath}")
+    }
 }
 
 val packageAppImage by tasks.registering {
@@ -586,6 +731,12 @@ compose.desktop {
         if (listenTogetherServer.isNotBlank()) {
             jvmArgs("-Dbitchord.listentogether.server=$listenTogetherServer")
         }
+        if (gdriveClientId.isNotBlank()) {
+            jvmArgs("-Dbitchord.gdrive.clientId=$gdriveClientId")
+            if (gdriveClientSecret.isNotBlank()) {
+                jvmArgs("-Dbitchord.gdrive.clientSecret=$gdriveClientSecret")
+            }
+        }
 
         buildTypes.release.proguard {
             isEnabled.set(false)
@@ -659,7 +810,7 @@ compose.desktop {
                 upgradeUuid = "8f3c1d24-6a2b-4f5e-9c17-2b8d54e0a913"
                 menuGroup = "BitChord"
                 shortcut = true
-                dirChooser = false
+                dirChooser = true
                 perUserInstall = true
             }
         }

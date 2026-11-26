@@ -139,6 +139,80 @@ class DesktopAudioDecoderTest {
         decoder.close()
     }
 
+    @Test
+    fun `preserveSourcePcm keeps 16-bit WAV integer samples intact`() {
+        val file = tone(seconds = 0.25, rate = 48_000, hz = 440.0)
+        val decoder = DesktopAudioDecoder()
+
+        decoder.open(
+            file.absolutePath,
+            requested = DesktopPcmFormat(44_100, 2, bytesPerSample = 4, isFloat = true),
+            preserveSourcePcm = true,
+        ).getOrThrow()
+        try {
+            assertEquals(48_000, decoder.outputFormat.sampleRate)
+            assertEquals(2, decoder.outputFormat.channels)
+            assertEquals(2, decoder.outputFormat.bytesPerSample)
+            assertEquals(16, decoder.outputFormat.validBitsPerSample)
+            assertEquals(false, decoder.outputFormat.isFloat)
+
+            var totalSamples = 0
+            var peak = 0
+            while (true) {
+                val samples = decoder.readIntSamples() ?: break
+                val count = decoder.sampleCount
+                totalSamples += count
+                for (i in 0 until count) {
+                    val v = samples[i]
+                    // 16-bit left-aligned into 32-bit int always has the low 16 bits zeroed.
+                    assertEquals(0, v and 0xFFFF, "unexpected non-zero low 16 bits in 16-bit sample")
+                    peak = maxOf(peak, abs(v shr 16))
+                }
+            }
+            assertTrue(totalSamples >= 48_000 / 2, "decoded only $totalSamples samples")
+            assertTrue(peak > 20_000, "16-bit peak $peak looks too quiet")
+        } finally {
+            decoder.close()
+        }
+    }
+
+    @Test
+    fun `preserveSourcePcm keeps 24-bit WAV integer samples at 24-bit precision`() {
+        val file = tone24Bit(seconds = 0.25, rate = 96_000, hz = 440.0)
+        val decoder = DesktopAudioDecoder()
+
+        decoder.open(
+            file.absolutePath,
+            requested = DesktopPcmFormat(44_100, 2, bytesPerSample = 4, isFloat = true),
+            preserveSourcePcm = true,
+        ).getOrThrow()
+        try {
+            assertEquals(96_000, decoder.outputFormat.sampleRate)
+            assertEquals(2, decoder.outputFormat.channels)
+            assertEquals(4, decoder.outputFormat.bytesPerSample)
+            assertEquals(24, decoder.outputFormat.validBitsPerSample)
+            assertEquals(false, decoder.outputFormat.isFloat)
+
+            var has24BitDetail = false
+            var totalSamples = 0
+            while (true) {
+                val samples = decoder.readIntSamples() ?: break
+                val count = decoder.sampleCount
+                totalSamples += count
+                for (i in 0 until count) {
+                    val v = samples[i]
+                    // 24-bit source shifted into the top 24 bits of Int leaves bottom 8 bits zero.
+                    assertEquals(0, v and 0xFF, "unexpected non-zero bottom 8 bits for 24-bit source")
+                    if ((v and 0x0000FF00) != 0) has24BitDetail = true
+                }
+            }
+            assertTrue(totalSamples >= 96_000 / 2, "decoded only $totalSamples 24-bit samples")
+            assertTrue(has24BitDetail, "24-bit precision bits (bits 8..15) were truncated")
+        } finally {
+            decoder.close()
+        }
+    }
+
     private fun DesktopAudioDecoder.readAll(): ByteArray {
         val out = java.io.ByteArrayOutputStream()
         while (true) {
@@ -167,6 +241,27 @@ class DesktopAudioDecoderTest {
         }
         val format = AudioFormat(rate.toFloat(), 16, 2, true, false)
         val file = File.createTempFile("bitchord-tone", ".wav").also { scratch += it }
+        AudioInputStream(ByteArrayInputStream(bytes), format, frames.toLong()).use {
+            AudioSystem.write(it, AudioFileFormat.Type.WAVE, file)
+        }
+        return file
+    }
+
+    private fun tone24Bit(seconds: Double, rate: Int, hz: Double): File {
+        val frames = (rate * seconds).toInt()
+        val bytes = ByteArray(frames * 6)
+        for (frame in 0 until frames) {
+            val value = (sin(2.0 * PI * hz * frame / rate) * 7_000_000.0).toInt()
+            val at = frame * 6
+            bytes[at] = (value and 0xFF).toByte()
+            bytes[at + 1] = ((value ushr 8) and 0xFF).toByte()
+            bytes[at + 2] = ((value ushr 16) and 0xFF).toByte()
+            bytes[at + 3] = bytes[at]
+            bytes[at + 4] = bytes[at + 1]
+            bytes[at + 5] = bytes[at + 2]
+        }
+        val format = AudioFormat(rate.toFloat(), 24, 2, true, false)
+        val file = File.createTempFile("bitchord-tone24", ".wav").also { scratch += it }
         AudioInputStream(ByteArrayInputStream(bytes), format, frames.toLong()).use {
             AudioSystem.write(it, AudioFileFormat.Type.WAVE, file)
         }

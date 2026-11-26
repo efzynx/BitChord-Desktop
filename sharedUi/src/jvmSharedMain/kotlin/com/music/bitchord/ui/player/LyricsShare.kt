@@ -381,17 +381,18 @@ private fun RowScope.PickAction(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val background = if (accent) {
-        Color.White.copy(alpha = if (enabled) 1f else 0.3f)
-    } else {
-        Color.White.copy(alpha = if (enabled) 0.10f else 0.05f)
+    val lightTheme = LocalPlayerLightTheme.current
+    val surfaceInk = LocalPlayerSurfaceInk.current
+    val background = when {
+        accent && lightTheme -> Color(0xFF0A0A0C).copy(alpha = if (enabled) 1f else 0.3f)
+        accent -> Color.White.copy(alpha = if (enabled) 1f else 0.3f)
+        lightTheme -> Color.Black.copy(alpha = if (enabled) 0.08f else 0.04f)
+        else -> Color.White.copy(alpha = if (enabled) 0.10f else 0.05f)
     }
-    // The drawer's own base colour, so the label on the solid button reads as
-    // cut out of it rather than as black paint laid over white.
-    val foreground = if (accent) {
-        Color(0xFF121212).copy(alpha = if (enabled) 1f else 0.4f)
-    } else {
-        Color.White.copy(alpha = if (enabled) 0.85f else 0.4f)
+    val foreground = when {
+        accent && lightTheme -> Color.White.copy(alpha = if (enabled) 1f else 0.55f)
+        accent -> Color(0xFF121212).copy(alpha = if (enabled) 1f else 0.4f)
+        else -> surfaceInk.copy(alpha = if (enabled) 0.88f else 0.4f)
     }
     Row(
         modifier = modifier

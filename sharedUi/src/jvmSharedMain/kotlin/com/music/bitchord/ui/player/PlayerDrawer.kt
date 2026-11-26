@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -30,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -40,8 +42,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -74,7 +78,34 @@ internal val DRAWER_SHAPE = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
  */
 internal val DRAWER_MAX_WIDTH = 640.dp
 internal val ROW_SHAPE = RoundedCornerShape(16.dp)
-internal val SCRIM_COLOR = Color.Black.copy(alpha = 0.5f)
+internal val SCRIM_COLOR = Color.Black.copy(alpha = 0.68f)
+
+fun playerDrawerScrimColor(lightTheme: Boolean): Color =
+    Color.Black.copy(alpha = if (lightTheme) 0.58f else 0.72f)
+
+fun playerDrawerRowFill(lightTheme: Boolean, selected: Boolean): Color =
+    if (lightTheme) Color.Black.copy(alpha = if (selected) 0.11f else 0.055f)
+    else Color.White.copy(alpha = if (selected) 0.12f else 0.06f)
+
+internal fun playerDrawerRowBorder(lightTheme: Boolean, selected: Boolean): Color =
+    if (lightTheme) Color.Black.copy(alpha = if (selected) 0.16f else 0.08f)
+    else Color.White.copy(alpha = if (selected) 0.18f else 0.08f)
+
+internal fun playerDrawerCircleFill(lightTheme: Boolean, selected: Boolean): Color =
+    if (lightTheme) Color.Black.copy(alpha = if (selected) 0.15f else 0.08f)
+    else Color.White.copy(alpha = if (selected) 0.18f else 0.09f)
+
+internal fun Modifier.playerDrawerLiquidGlass(shape: Shape, lightTheme: Boolean): Modifier {
+    val sheenTop = Color.White.copy(alpha = if (lightTheme) 0.30f else 0.11f)
+    val sheenBottom = if (lightTheme) Color.White.copy(alpha = 0.04f) else Color.Black.copy(alpha = 0.10f)
+    val rimBrush = Brush.verticalGradient(
+        0f to Color.White.copy(alpha = if (lightTheme) 0.74f else 0.28f),
+        0.35f to (if (lightTheme) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.11f)),
+        1f to (if (lightTheme) Color.Black.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.06f)),
+    )
+    return background(Brush.verticalGradient(listOf(sheenTop, sheenBottom)), shape)
+        .border(0.75.dp, rimBrush, shape)
+}
 
 /**
  * How much of its own height the drawer has to be dragged before letting go
@@ -179,11 +210,14 @@ fun PlayerDrawer(
         }
     }
 
+    val lightTheme = LocalPlayerLightTheme.current
+    val scrimBase = playerDrawerScrimColor(lightTheme)
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .containSheetGestures()
-            .background(SCRIM_COLOR.copy(alpha = SCRIM_COLOR.alpha * scrimAlpha))
+            .background(scrimBase.copy(alpha = scrimBase.alpha * scrimAlpha))
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() },
@@ -209,9 +243,9 @@ fun PlayerDrawer(
                 .onSizeChanged { height = it.height }
                 .offset { IntOffset(0, offset.roundToInt()) }
                 .clip(DRAWER_SHAPE)
-                // The ⋯ menu's frost, so the drawers and the menu read as one
-                // material over the player — see [playerMenuSurface].
-                .playerMenuSurface(DRAWER_SHAPE, hazeState)
+                // Liquid-glass frosted panel with deeper backdrop dim and top specular rim.
+                .playerMenuSurface(DRAWER_SHAPE, hazeState, slabAlpha = if (lightTheme) 0.54f else 0.62f)
+                .playerDrawerLiquidGlass(DRAWER_SHAPE, lightTheme)
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
@@ -237,12 +271,13 @@ fun PlayerDrawer(
         ) {
             // The grab handle every sheet here has, and the thing that says the
             // drawer can be pulled away before anybody tries it.
+            val drawerInk = LocalPlayerSurfaceInk.current
             Box(
                 Modifier
                     .padding(bottom = 12.dp)
                     .size(width = 36.dp, height = 4.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.25f)),
+                    .background(drawerInk.copy(alpha = 0.25f)),
             )
             Text(
                 text = title,
@@ -250,12 +285,14 @@ fun PlayerDrawer(
                     fontSize = 19.sp,
                     fontWeight = FontWeight.Bold,
                 ),
-                color = Color.White,
+                color = drawerInk,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 4.dp, bottom = titleGap),
             )
-            content()
+            CompositionLocalProvider(LocalPlayerSurfaceInk provides drawerInk) {
+                content()
+            }
         }
         }
     }

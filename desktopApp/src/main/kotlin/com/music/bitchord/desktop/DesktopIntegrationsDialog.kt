@@ -2,13 +2,16 @@ package com.music.bitchord.desktop
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,28 +66,49 @@ internal fun DesktopIntegrationsDialog(
 ) {
     var choosing by remember { mutableStateOf<DiscordChoice?>(null) }
     var editing by remember { mutableStateOf<DiscordField?>(null) }
+    val isPage = LocalDesktopPanelIsPage.current
 
     DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 460) {
-        Column(
-            desktopPanelBody(cardMax = 620.dp).verticalScroll(rememberScrollState()),
-        ) {
-            Text(
-                DesktopStrings["account_integrations", "Account & integrations"],
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White,
-                modifier = Modifier.padding(start = panelInset(20.dp), end = panelInset(20.dp), top = 18.dp, bottom = 12.dp),
-            )
-            SpotifySection(spotify)
-            DiscordSection(song, onOpenDiscordToken, onChoose = { choosing = it }, onEdit = { editing = it })
-            ScrobblingSection(onOpenLastfm, onOpenListenBrainz)
-        }
-        DesktopCardRule()
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = panelInset(16.dp), vertical = 10.dp),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            TextButton(onClick = onDismiss) { Text(DesktopStrings["done", "Done"], color = DesktopAccent) }
+        if (isPage) {
+            Column(Modifier.fillMaxSize()) {
+                DesktopSettingsSubPageHeader(
+                    title = DesktopStrings["account_integrations", "Account & integrations"],
+                    onBack = onDismiss,
+                )
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 32.dp),
+                ) {
+                    SpotifySection(spotify)
+                    DiscordSection(song, onOpenDiscordToken, onChoose = { choosing = it }, onEdit = { editing = it })
+                    ScrobblingSection(onOpenLastfm, onOpenListenBrainz)
+                }
+            }
+        } else {
+            Column(
+                desktopPanelBody(cardMax = 620.dp).verticalScroll(rememberScrollState()),
+            ) {
+                Text(
+                    DesktopStrings["account_integrations", "Account & integrations"],
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DesktopInk,
+                    modifier = Modifier.padding(start = panelInset(20.dp), end = panelInset(20.dp), top = 18.dp, bottom = 12.dp),
+                )
+                SpotifySection(spotify)
+                DiscordSection(song, onOpenDiscordToken, onChoose = { choosing = it }, onEdit = { editing = it })
+                ScrobblingSection(onOpenLastfm, onOpenListenBrainz)
+            }
+            DesktopCardRule()
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = panelInset(16.dp), vertical = 10.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onDismiss) { Text(DesktopStrings["done", "Done"], color = DesktopAccent) }
+            }
         }
     }
 
@@ -148,7 +173,7 @@ private fun SpotifySection(spotify: DesktopSpotifyConnection) {
             },
         )
         if (spotify.connected) {
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
             PanelActionRow(
                 title = DesktopStrings["spotify_disconnect", "Disconnect"],
                 subtitle = "Forgets the sp_dc cookie; Canvas stops until you sign in again",
@@ -156,7 +181,7 @@ private fun SpotifySection(spotify: DesktopSpotifyConnection) {
                 onClick = spotify.onDisconnect,
             )
         } else if (spotify.canSignIn && !spotify.signingIn) {
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
             PanelActionRow(
                 title = "Paste a cookie instead",
                 subtitle = "Copy sp_dc from open.spotify.com yourself",
@@ -210,7 +235,7 @@ private fun DiscordSection(
             enabled = connected,
             onCheckedChange = DesktopDiscordRpc::setEnabled,
         )
-        DesktopCardRule()
+        DesktopCardRule(alwaysVisible = true)
         PanelSwitchRow(
             title = DesktopStrings["lead_with_song", "Lead with the song"],
             subtitle = DesktopStrings["lead_with_song_subtitle", "Puts the title on the bold line instead of the artist"],
@@ -218,7 +243,7 @@ private fun DiscordSection(
             enabled = connected && rpcEnabled,
             onCheckedChange = DesktopDiscordSettings::setUseDetails,
         )
-        DesktopCardRule()
+        DesktopCardRule(alwaysVisible = true)
         PanelSwitchRow(
             title = DesktopStrings["customize_card", "Customize the card"],
             subtitle = DesktopStrings["customize_card_subtitle", "Status, wording and both buttons"],
@@ -226,7 +251,7 @@ private fun DiscordSection(
             enabled = connected && rpcEnabled,
             onCheckedChange = DesktopDiscordSettings::setAdvancedMode,
         )
-        DesktopCardRule()
+        DesktopCardRule(alwaysVisible = true)
         PanelSwitchRow(
             title = DesktopStrings["show_audio_quality", "Show audio quality"],
             subtitle = DesktopStrings["show_audio_quality_subtitle", "Hi-Res, lossless and Dolby specs on the presence card"],
@@ -249,7 +274,7 @@ private fun DiscordSection(
                     ),
                 )
             }
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
             PanelValueRow("Activity", DesktopDiscordSettings.activityLabel(activityType)) {
                 onChoose(
                     DiscordChoice(
@@ -261,7 +286,7 @@ private fun DiscordSection(
                     ),
                 )
             }
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
             PanelValueRow("Name", activityName.ifEmpty { DesktopDiscordSettings.APP_NAME }) {
                 onEdit(
                     DiscordField(
@@ -302,7 +327,7 @@ private fun DiscordSection(
                     )
                 },
             )
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
             PanelSwitchRow(
                 title = DesktopStrings["second_button", "Second button"],
                 subtitle = button2Text.ifEmpty { DesktopDiscordSettings.DEFAULT_BUTTON_2 },
@@ -386,7 +411,7 @@ private fun ScrobblingSection(onOpenLastfm: () -> Unit, onOpenListenBrainz: () -
             onClick = onOpenListenBrainz,
         )
         if (lbEnabled && lbToken.isNotBlank()) {
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
             val primaryOnly by DesktopScrobbleSettings.listenBrainzPrimaryArtistOnly.collectAsState()
             PanelSwitchRow(
                 title = DesktopStrings["scrobble_primary_artist_only", "Only scrobble primary artist"],
@@ -395,7 +420,7 @@ private fun ScrobblingSection(onOpenLastfm: () -> Unit, onOpenListenBrainz: () -
                 onCheckedChange = DesktopScrobbleSettings::setListenBrainzPrimaryArtistOnly,
             )
         }
-        DesktopCardRule()
+        DesktopCardRule(alwaysVisible = true)
         PanelSwitchRow(
             title = "Last.fm",
             // No API-key gate: a build without baked-in credentials asks for the
@@ -414,21 +439,21 @@ private fun ScrobblingSection(onOpenLastfm: () -> Unit, onOpenListenBrainz: () -
             val scrobble by DesktopScrobbleSettings.lastfmScrobble.collectAsState()
             val nowPlaying by DesktopScrobbleSettings.lastfmNowPlaying.collectAsState()
             val primaryOnly by DesktopScrobbleSettings.lastfmPrimaryArtistOnly.collectAsState()
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
             PanelSwitchRow(
                 title = DesktopStrings["scrobble_tracks", "Scrobble tracks"],
                 subtitle = DesktopStrings["scrobble_tracks_subtitle", "Log plays to your Last.fm timeline"],
                 checked = scrobble,
                 onCheckedChange = DesktopScrobbleSettings::setLastfmScrobble,
             )
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
             PanelSwitchRow(
                 title = DesktopStrings["scrobble_primary_artist_only", "Only scrobble primary artist"],
                 subtitle = DesktopStrings["scrobble_primary_artist_only_subtitle", "Use the first artist when a track credits multiple artists"],
                 checked = primaryOnly,
                 onCheckedChange = DesktopScrobbleSettings::setLastfmPrimaryArtistOnly,
             )
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
             PanelSwitchRow(
                 title = DesktopStrings["now_playing", "Now playing"],
                 subtitle = DesktopStrings["lastfm_now_playing_subtitle", "Update Last.fm with what you are listening to"],
@@ -451,7 +476,7 @@ private fun ScrobblingSection(onOpenLastfm: () -> Unit, onOpenListenBrainz: () -
                 15f..120f,
                 20,
             ) { DesktopScrobbleSettings.setMinDuration(it.roundToInt()) }
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
             PanelSliderRow(
                 "Scrobble delay",
                 "How far into a song to scrobble it",
@@ -460,7 +485,7 @@ private fun ScrobblingSection(onOpenLastfm: () -> Unit, onOpenListenBrainz: () -
                 0.1f..1.0f,
                 8,
             ) { DesktopScrobbleSettings.setDelayPercent(it) }
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
             PanelSliderRow(
                 "Maximum delay",
                 "Maximum scrobble delay in seconds",
@@ -493,7 +518,7 @@ private fun RichPresencePreview(
             "$verb $heading".uppercase(Locale.ROOT),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.W700,
-            color = Color.White,
+            color = DesktopInk,
         )
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.Top) {
@@ -511,7 +536,7 @@ private fun RichPresencePreview(
                     title,
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
                     fontWeight = if (useDetails) FontWeight.W700 else FontWeight.W400,
-                    color = Color.White,
+                    color = DesktopInk,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -519,7 +544,7 @@ private fun RichPresencePreview(
                     artist,
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                     fontWeight = if (useDetails) FontWeight.W400 else FontWeight.W700,
-                    color = Color.White,
+                    color = DesktopInk,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -563,13 +588,13 @@ private fun PreviewButton(label: String) {
     Box(
         Modifier
             .clip(RoundedCornerShape(4.dp))
-            .background(Color.White.copy(alpha = 0.12f))
+            .background(DesktopInk.copy(alpha = 0.10f))
             .padding(horizontal = 12.dp, vertical = 7.dp),
     ) {
         Text(
             label,
             style = MaterialTheme.typography.labelMedium,
-            color = Color.White,
+            color = DesktopInk,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -601,25 +626,35 @@ private fun PanelGroup(
     content: @Composable () -> Unit,
 ) {
     val page = LocalDesktopPanelIsPage.current
-    Column(Modifier.fillMaxWidth().padding(horizontal = panelInset(16.dp))) {
-        header?.let {
-            Text(
-                it.uppercase(Locale.ROOT),
-                style = MaterialTheme.typography.labelSmall,
-                color = DesktopSecondary,
-                modifier = Modifier.padding(start = panelInset(6.dp), top = 14.dp, bottom = 6.dp),
-            )
+    if (page) {
+        DesktopGroupedCard(
+            header = header,
+            footer = footer,
+            topSpacing = if (header != null) 20.dp else 14.dp,
+        ) {
+            content()
         }
-        Column(
-            if (page && !boxed) Modifier.fillMaxWidth() else Modifier.fillMaxWidth().desktopCardInset(RoundedCornerShape(12.dp)),
-        ) { content() }
-        footer?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodySmall,
-                color = DesktopSecondary,
-                modifier = Modifier.padding(start = panelInset(6.dp), end = panelInset(6.dp), top = 6.dp),
-            )
+    } else {
+        Column(Modifier.fillMaxWidth().padding(horizontal = panelInset(16.dp))) {
+            header?.let {
+                Text(
+                    it.uppercase(Locale.ROOT),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = DesktopSecondary,
+                    modifier = Modifier.padding(start = panelInset(6.dp), top = 14.dp, bottom = 6.dp),
+                )
+            }
+            Column(
+                if (page && !boxed) Modifier.fillMaxWidth() else Modifier.fillMaxWidth().desktopCardInset(RoundedCornerShape(12.dp)),
+            ) { content() }
+            footer?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DesktopSecondary,
+                    modifier = Modifier.padding(start = panelInset(6.dp), end = panelInset(6.dp), top = 6.dp),
+                )
+            }
         }
     }
 }
@@ -633,43 +668,66 @@ private fun PanelSwitchRow(
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
 ) {
+    val page = LocalDesktopPanelIsPage.current
+    val interaction = remember { MutableInteractionSource() }
     Row(
         Modifier
             .fillMaxWidth()
-            .desktopRowClickable(enabled = enabled) { onClick?.invoke() ?: onCheckedChange(!checked) }
-            .padding(horizontal = panelInset(14.dp), vertical = 11.dp),
+            .then(if (page) Modifier.desktopHoverFill(corner = 0.dp) else Modifier)
+            .desktopGlassPress(RectangleShape, interactionSource = interaction, enabled = enabled, pressScale = 0.992f, hoverScale = 1f)
+            .clickable(interactionSource = interaction, indication = null, enabled = enabled) {
+                onClick?.invoke() ?: onCheckedChange(!checked)
+            }
+            .heightIn(min = if (page) 52.dp else 44.dp)
+            .padding(horizontal = if (page) 16.dp else panelInset(14.dp), vertical = if (page) 12.dp else 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, color = if (enabled) Color.White else DesktopSecondary)
+            Text(title, color = if (enabled) DesktopInk else DesktopSecondary, style = MaterialTheme.typography.bodyLarge)
             subtitle?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = DesktopSecondary)
             }
         }
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(12.dp))
         Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled, colors = desktopSwitchColors())
     }
 }
 
 @Composable
 private fun PanelValueRow(title: String, value: String, onClick: () -> Unit) {
+    val page = LocalDesktopPanelIsPage.current
+    val interaction = remember { MutableInteractionSource() }
     Row(
-        Modifier.fillMaxWidth().desktopRowClickable(onClick = onClick).padding(horizontal = panelInset(14.dp), vertical = 13.dp),
+        Modifier
+            .fillMaxWidth()
+            .then(if (page) Modifier.desktopHoverFill(corner = 0.dp) else Modifier)
+            .desktopGlassPress(RectangleShape, interactionSource = interaction, pressScale = 0.992f, hoverScale = 1f)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .heightIn(min = if (page) 52.dp else 44.dp)
+            .padding(horizontal = if (page) 16.dp else panelInset(14.dp), vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, color = Color.White, modifier = Modifier.weight(1f))
+        Text(title, color = DesktopInk, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Text(value, color = DesktopSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 @Composable
 private fun PanelActionRow(title: String, subtitle: String, destructive: Boolean, onClick: () -> Unit) {
+    val page = LocalDesktopPanelIsPage.current
+    val interaction = remember { MutableInteractionSource() }
     Row(
-        Modifier.fillMaxWidth().desktopRowClickable(onClick = onClick).padding(horizontal = panelInset(14.dp), vertical = 11.dp),
+        Modifier
+            .fillMaxWidth()
+            .then(if (page) Modifier.desktopHoverFill(corner = 0.dp) else Modifier)
+            .desktopGlassPress(RectangleShape, interactionSource = interaction, pressScale = 0.992f, hoverScale = 1f)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .heightIn(min = if (page) 52.dp else 44.dp)
+            .padding(horizontal = if (page) 16.dp else panelInset(14.dp), vertical = if (page) 12.dp else 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, color = if (destructive) DesktopDestructive else Color.White)
+            Text(title, color = if (destructive) DesktopDestructive else DesktopInk, style = MaterialTheme.typography.bodyLarge)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DesktopSecondary)
         }
     }
@@ -685,10 +743,11 @@ private fun PanelSliderRow(
     steps: Int,
     onValueChange: (Float) -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = panelInset(14.dp), vertical = 9.dp)) {
+    val page = LocalDesktopPanelIsPage.current
+    Column(Modifier.fillMaxWidth().padding(horizontal = if (page) 16.dp else panelInset(14.dp), vertical = if (page) 11.dp else 9.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(title, color = Color.White)
+                Text(title, color = DesktopInk, style = MaterialTheme.typography.bodyLarge)
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DesktopSecondary)
             }
             Text(readout, color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
@@ -718,7 +777,7 @@ internal fun DesktopChoiceDialog(
             Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = Color.White)
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = DesktopInk)
             Text(
                 message,
                 modifier = Modifier.padding(top = 5.dp),
@@ -727,16 +786,19 @@ internal fun DesktopChoiceDialog(
             )
         }
         options.forEach { option ->
-            DesktopCardRule()
+            DesktopCardRule(alwaysVisible = true)
+            val rowInteraction = remember(option.id) { MutableInteractionSource() }
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .clickable { onSelect(option.id) }
+                    .desktopHoverFill(corner = 0.dp)
+                    .desktopGlassPress(RectangleShape, interactionSource = rowInteraction, pressScale = 0.99f, hoverScale = 1f)
+                    .clickable(interactionSource = rowInteraction, indication = null) { onSelect(option.id) }
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(option.label, color = Color.White)
+                    Text(option.label, color = DesktopInk)
                     Text(option.detail, style = MaterialTheme.typography.bodySmall, color = DesktopSecondary)
                 }
                 if (option.id == selected) {
@@ -744,9 +806,12 @@ internal fun DesktopChoiceDialog(
                 }
             }
         }
-        DesktopCardRule()
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = onDismiss) { Text(DesktopStrings["cancel", "Cancel"], color = DesktopSecondary) }
+        DesktopCardRule(alwaysVisible = true)
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.End) {
+            DesktopGlassPillButton(
+                text = DesktopStrings["cancel", "Cancel"],
+                onClick = onDismiss,
+            )
         }
     }
 }

@@ -2,7 +2,9 @@ package com.music.bitchord.ui.player
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +71,8 @@ fun LyricsSidePanel(
     val haze = remember { HazeState() }
     var showLyricsProviders by remember { mutableStateOf(false) }
 
+    val surfaceInk = LocalContentColor.current
+    CompositionLocalProvider(LocalPlayerSurfaceInk provides surfaceInk) {
     Box(modifier) {
         Box(Modifier.fillMaxSize().hazeSource(haze)) {
             LandscapeLyricsPane(
@@ -133,6 +137,7 @@ fun LyricsSidePanel(
             )
         }
     }
+    }
 }
 
 /** The live queue — the player's own, rows, drag and all — without the player. */
@@ -147,6 +152,8 @@ fun QueueSidePanel(
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val surfaceInk = LocalContentColor.current
+    CompositionLocalProvider(LocalPlayerSurfaceInk provides surfaceInk) {
     InlineQueue(
         queue = queue,
         currentIndex = queueIndex,
@@ -159,4 +166,5 @@ fun QueueSidePanel(
         onClear = onClear,
         modifier = modifier,
     )
+    }
 }

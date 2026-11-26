@@ -97,7 +97,7 @@ internal object DesktopUpdateChecker {
     const val RELEASES_API_URL =
         "https://api.github.com/repos/efzynx/BitChord-Desktop/releases?per_page=20"
 
-    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.9.2"
+    val currentVersion: String = System.getProperty("bitchord.version") ?: "1.10.0"
 
     private val json = Json { ignoreUnknownKeys = true }
 

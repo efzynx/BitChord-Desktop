@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
@@ -71,6 +73,7 @@ import com.music.bitchord.data.listentogether.JamInvite
 import com.music.bitchord.data.listentogether.PartyActivity
 import com.music.bitchord.data.listentogether.PartyMember
 import com.music.bitchord.data.listentogether.PartyPreview
+import com.music.bitchord.ui.components.PillSegmentedControl
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -104,38 +107,60 @@ internal fun DesktopListenTogetherDialog(autoplayEnabled: Boolean, onDismiss: ()
         if (serverDraft == server || serverDraft.isBlank()) serverDraft = server
     }
 
+    val isPage = LocalDesktopPanelIsPage.current
     DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 920) {
         Column(desktopPanelBody(cardMax = 760.dp, cardMin = 560.dp, fill = true)) {
             Row(
-                Modifier.fillMaxWidth().padding(start = panelInset(28.dp), end = panelInset(18.dp), top = 22.dp, bottom = 16.dp),
+                Modifier.fillMaxWidth().padding(
+                    start = if (isPage) 0.dp else 28.dp,
+                    end = if (isPage) 0.dp else 18.dp,
+                    top = if (isPage) 20.dp else 22.dp,
+                    bottom = 14.dp,
+                ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (isPage) {
+                    DesktopToolbarButton(onClick = onDismiss, size = 36.dp) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = DesktopStrings["back", "Back"],
+                            tint = DesktopInk,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                }
                 Column(Modifier.weight(1f)) {
                     Text(
                         DesktopStrings["listen_together", "Listen together"],
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = if (isPage) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
+                        color = DesktopInk,
                     )
                     Text(
                         if (state.inParty) "Everyone hears the same song at the same moment"
                         else "Start a room or join friends with a six-character code",
                         color = DesktopSecondary,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
-                IconButton(onClick = { showGuide = true }) {
+                DesktopToolbarButton(onClick = { showGuide = true }, size = 36.dp) {
                     Icon(
                         Icons.Rounded.Info,
                         contentDescription = DesktopStrings["d_party_guide_title", "Listen Together Guide"],
                         tint = DesktopSecondary,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
-                // A page is left by the window's back, as every other page is.
-                if (!LocalDesktopPanelIsPage.current) {
-                    IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, "Close") }
+                // A page is left by the back button, as every other page is.
+                if (!isPage) {
+                    Spacer(Modifier.width(4.dp))
+                    DesktopToolbarButton(onClick = onDismiss, size = 36.dp) {
+                        Icon(Icons.Rounded.Close, "Close", tint = DesktopInk, modifier = Modifier.size(20.dp))
+                    }
                 }
             }
-            if (!LocalDesktopPanelIsPage.current) HorizontalDivider(color = DesktopCardEdge)
+            if (!isPage) HorizontalDivider(color = DesktopCardEdge)
 
             when {
                 state.inParty -> PartyRoom(
@@ -289,9 +314,15 @@ private fun PartyLanding(
     }
     val canAct = signedIn && isServerReady
 
+    val isPage = LocalDesktopPanelIsPage.current
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(28.dp),
+        contentPadding = PaddingValues(
+            start = if (isPage) 0.dp else 28.dp,
+            end = if (isPage) 0.dp else 28.dp,
+            top = 6.dp,
+            bottom = 32.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         // 1. Two Main Mode Cards (Quick Party vs Custom Party)
@@ -302,16 +333,25 @@ private fun PartyLanding(
             ) {
                 // QUICK PARTY CARD
                 val isQuick = partyMode == DesktopListenTogether.PartyMode.QUICK
-                val quickBorder = if (isQuick) BorderStroke(1.5.dp, DesktopAccent) else BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
-                val quickBg = if (isQuick) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.03f)
+                val cardShape = RoundedCornerShape(14.dp)
+                val quickInteraction = remember { MutableInteractionSource() }
 
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(quickBg)
-                        .border(quickBorder, RoundedCornerShape(16.dp))
-                        .clickable(enabled = hasBuiltinServer) {
+                        .desktopGlassPress(cardShape, interactionSource = quickInteraction, enabled = hasBuiltinServer, pressScale = 0.985f)
+                        .desktopCardInset(cardShape)
+                        .then(
+                            if (isQuick) {
+                                Modifier
+                                    .background(DesktopAccent.copy(alpha = 0.08f))
+                                    .border(1.25.dp, DesktopAccent.copy(alpha = 0.78f), cardShape)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .desktopHoverFill(corner = 14.dp)
+                        .clickable(interactionSource = quickInteraction, indication = null, enabled = hasBuiltinServer) {
                             onPartyModeChange(DesktopListenTogether.PartyMode.QUICK)
                         }
                         .padding(18.dp),
@@ -326,13 +366,13 @@ private fun PartyLanding(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(if (isQuick) DesktopAccent.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.06f)),
+                                    .background(if (isQuick) DesktopAccent.copy(alpha = 0.2f) else DesktopInk.copy(alpha = 0.06f)),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
                                     Icons.Rounded.Bolt,
                                     contentDescription = null,
-                                    tint = if (isQuick) DesktopAccent else Color.White.copy(alpha = 0.7f),
+                                    tint = if (isQuick) DesktopAccent else DesktopInk.copy(alpha = 0.7f),
                                     modifier = Modifier.size(20.dp),
                                 )
                             }
@@ -361,7 +401,7 @@ private fun PartyLanding(
                                 Icon(
                                     Icons.Rounded.Check,
                                     contentDescription = "Selected",
-                                    tint = Color.Black,
+                                    tint = DesktopOnAccent,
                                     modifier = Modifier.size(14.dp),
                                 )
                             }
@@ -381,7 +421,7 @@ private fun PartyLanding(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(Color.White.copy(alpha = 0.08f))
+                                .background(DesktopInk.copy(alpha = 0.08f))
                                 .padding(horizontal = 8.dp, vertical = 4.dp),
                         ) {
                             Text(
@@ -422,16 +462,24 @@ private fun PartyLanding(
 
                 // CUSTOM PARTY CARD
                 val isCustom = partyMode == DesktopListenTogether.PartyMode.CUSTOM
-                val customBorder = if (isCustom) BorderStroke(1.5.dp, DesktopAccent) else BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
-                val customBg = if (isCustom) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.03f)
+                val customInteraction = remember { MutableInteractionSource() }
 
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(customBg)
-                        .border(customBorder, RoundedCornerShape(16.dp))
-                        .clickable {
+                        .desktopGlassPress(cardShape, interactionSource = customInteraction, pressScale = 0.985f)
+                        .desktopCardInset(cardShape)
+                        .then(
+                            if (isCustom) {
+                                Modifier
+                                    .background(DesktopAccent.copy(alpha = 0.08f))
+                                    .border(1.25.dp, DesktopAccent.copy(alpha = 0.78f), cardShape)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .desktopHoverFill(corner = 14.dp)
+                        .clickable(interactionSource = customInteraction, indication = null) {
                             onPartyModeChange(DesktopListenTogether.PartyMode.CUSTOM)
                         }
                         .padding(18.dp),
@@ -446,13 +494,13 @@ private fun PartyLanding(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(if (isCustom) DesktopAccent.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.06f)),
+                                    .background(if (isCustom) DesktopAccent.copy(alpha = 0.2f) else DesktopInk.copy(alpha = 0.06f)),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
                                     Icons.Rounded.Settings,
                                     contentDescription = null,
-                                    tint = if (isCustom) DesktopAccent else Color.White.copy(alpha = 0.7f),
+                                    tint = if (isCustom) DesktopAccent else DesktopInk.copy(alpha = 0.7f),
                                     modifier = Modifier.size(20.dp),
                                 )
                             }
@@ -481,7 +529,7 @@ private fun PartyLanding(
                                 Icon(
                                     Icons.Rounded.Check,
                                     contentDescription = "Selected",
-                                    tint = Color.Black,
+                                    tint = DesktopOnAccent,
                                     modifier = Modifier.size(14.dp),
                                 )
                             }
@@ -523,68 +571,19 @@ private fun PartyLanding(
                         .desktopCardInset(RoundedCornerShape(14.dp))
                         .padding(18.dp),
                 ) {
-                    // Custom Party view with Sub-mode tabs (Cloud vs Local)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.05f))
-                            .padding(4.dp),
-                    ) {
-                        val isCloud = customSubMode == DesktopListenTogether.CustomSubMode.CLOUD
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (isCloud) DesktopAccent else Color.Transparent)
-                                .clickable { onCustomSubModeChange(DesktopListenTogether.CustomSubMode.CLOUD) }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Rounded.Cloud,
-                                    contentDescription = null,
-                                    tint = if (isCloud) Color.Black else Color.White.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    DesktopStrings["d_party_submode_cloud", "Cloud Server"],
-                                    color = if (isCloud) Color.Black else Color.White,
-                                    fontSize = 12.5.sp,
-                                    fontWeight = if (isCloud) FontWeight.Bold else FontWeight.Medium,
-                                )
-                            }
-                        }
-
-                        val isLocal = customSubMode == DesktopListenTogether.CustomSubMode.LOCAL
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (isLocal) DesktopAccent else Color.Transparent)
-                                .clickable { onCustomSubModeChange(DesktopListenTogether.CustomSubMode.LOCAL) }
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Rounded.Computer,
-                                    contentDescription = null,
-                                    tint = if (isLocal) Color.Black else Color.White.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    DesktopStrings["d_party_submode_local", "Local Host (Tunnel)"],
-                                    color = if (isLocal) Color.Black else Color.White,
-                                    fontSize = 12.5.sp,
-                                    fontWeight = if (isLocal) FontWeight.Bold else FontWeight.Medium,
-                                )
-                            }
-                        }
-                    }
+                    // Custom Party view with Liquid Glass segmented sub-mode selector
+                    PillSegmentedControl(
+                        options = listOf(
+                            DesktopStrings["d_party_submode_cloud", "Cloud Server"],
+                            DesktopStrings["d_party_submode_local", "Local Host (Tunnel)"],
+                        ),
+                        selectedIndex = if (customSubMode == DesktopListenTogether.CustomSubMode.CLOUD) 0 else 1,
+                        onSelect = { index ->
+                            onCustomSubModeChange(
+                                if (index == 0) DesktopListenTogether.CustomSubMode.CLOUD else DesktopListenTogether.CustomSubMode.LOCAL,
+                            )
+                        },
+                    )
 
                     Spacer(Modifier.height(14.dp))
 
@@ -627,22 +626,23 @@ private fun PartyLanding(
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.weight(1f),
                             )
-                            TextButton(onClick = onRefreshServer) {
-                                Text(DesktopStrings["test", "Test"])
-                            }
+                            DesktopGlassPillButton(
+                                text = DesktopStrings["test", "Test"],
+                                onClick = onRefreshServer,
+                            )
                             Spacer(Modifier.width(6.dp))
-                            Button(
+                            DesktopGlassPillButton(
+                                text = DesktopStrings["save", "Save"],
+                                accent = true,
                                 onClick = onSaveServer,
-                                colors = ButtonDefaults.buttonColors(containerColor = DesktopCardInsetFill),
-                            ) {
-                                Text(DesktopStrings["save", "Save"])
-                            }
+                            )
                         }
 
                         // Saved servers list
                         if (savedServers.isNotEmpty()) {
+                            val ink = DesktopInk
                             Spacer(Modifier.height(14.dp))
-                            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+                            HorizontalDivider(color = DesktopCardEdge)
                             Spacer(Modifier.height(12.dp))
                             Text(
                                 DesktopStrings["d_party_saved_servers", "Saved Servers"],
@@ -660,7 +660,7 @@ private fun PartyLanding(
                                             .clip(RoundedCornerShape(8.dp))
                                             .background(
                                                 if (isCurrent) DesktopAccent.copy(alpha = 0.12f)
-                                                else Color.White.copy(alpha = 0.04f),
+                                                else ink.copy(alpha = 0.04f),
                                             )
                                             .border(
                                                 width = 1.dp,
@@ -682,7 +682,7 @@ private fun PartyLanding(
                                         }
                                         Text(
                                             text = itemUrl,
-                                            color = if (isCurrent) DesktopAccent else Color.White,
+                                            color = if (isCurrent) DesktopAccent else ink,
                                             fontSize = 11.5.sp,
                                             fontFamily = FontFamily.Monospace,
                                             maxLines = 1,
@@ -742,11 +742,11 @@ private fun PartyLanding(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         PartyAvatar(avatarUrl, 44)
                         Spacer(Modifier.width(12.dp))
-                        OutlinedTextField(
+                        DesktopGlassTextField(
                             value = nickname,
                             onValueChange = onNicknameChange,
-                            label = { Text("Nickname") },
-                            singleLine = true,
+                            label = "Nickname",
+                            placeholder = "Nickname",
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -769,13 +769,11 @@ private fun PartyLanding(
                     subtitle = "Enter the code first. You’ll see who is inside before joining.",
                     modifier = Modifier.weight(1f),
                 ) {
-                    OutlinedTextField(
+                    DesktopGlassTextField(
                         value = code,
                         onValueChange = onCodeChange,
-                        label = { Text("Party code") },
-                        placeholder = { Text("ABC123") },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.headlineSmall.copy(letterSpacing = 5.sp),
+                        label = "Party code",
+                        placeholder = "ABC123",
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(18.dp))
@@ -809,7 +807,7 @@ private fun CloudflareTunnelSection(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(Color.White.copy(alpha = 0.04f))
+            .background(DesktopInk.copy(alpha = 0.04f))
             .padding(14.dp),
     ) {
         Row(
@@ -902,6 +900,9 @@ private fun CloudflareTunnelSection(
                         Text(DesktopStrings["d_tunnel_stop", "Stop tunnel"], color = DesktopDestructive, fontSize = 12.sp)
                     }
                 } else {
+                    val onAccent = DesktopOnAccent
+                    val ink = DesktopInk
+                    val isDark = DesktopIsDark
                     Button(
                         onClick = {
                             DesktopCloudflareTunnel.start()
@@ -910,9 +911,9 @@ private fun CloudflareTunnelSection(
                         shape = RoundedCornerShape(50),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = DesktopAccent,
-                            contentColor = Color.Black,
+                            contentColor = onAccent,
                             disabledContainerColor = DesktopAccent.copy(alpha = 0.5f),
-                            disabledContentColor = Color.Black.copy(alpha = 0.5f),
+                            disabledContentColor = onAccent.copy(alpha = 0.5f),
                         ),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                         modifier = Modifier.height(32.dp),
@@ -922,12 +923,12 @@ private fun CloudflareTunnelSection(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(13.dp),
                                     strokeWidth = 2.dp,
-                                    color = Color.Black,
+                                    color = onAccent,
                                 )
                                 Spacer(Modifier.width(6.dp))
                                 Text(
                                     DesktopStrings["d_tunnel_connecting", "Connecting…"],
-                                    color = Color.Black,
+                                    color = onAccent,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                 )
@@ -935,7 +936,7 @@ private fun CloudflareTunnelSection(
                         } else {
                             Text(
                                 DesktopStrings["d_tunnel_start", "Start tunnel"],
-                                color = Color.Black,
+                                color = onAccent,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -952,24 +953,27 @@ private fun CloudflareTunnelSection(
                     Icon(
                         Icons.Rounded.Refresh,
                         contentDescription = DesktopStrings["d_tunnel_recheck", "Check again"],
-                        tint = Color.White,
+                        tint = DesktopInk,
                         modifier = Modifier.size(14.dp),
                     )
                     Spacer(Modifier.width(5.dp))
-                    Text(DesktopStrings["d_tunnel_recheck", "Check again"], fontSize = 11.5.sp, color = Color.White)
+                    Text(DesktopStrings["d_tunnel_recheck", "Check again"], fontSize = 11.5.sp, color = DesktopInk)
                 }
             }
         }
 
         // Informational notice when cloudflared is not installed
         if (!isAvailable) {
+            val isDark = DesktopIsDark
+            val ink = DesktopInk
+            val palette = LocalDesktopPalette.current
             Spacer(Modifier.height(12.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFFFB300).copy(alpha = 0.08f))
-                    .border(1.dp, Color(0xFFFFB300).copy(alpha = 0.22f), RoundedCornerShape(8.dp))
+                    .background(Color(0xFFFFB300).copy(alpha = if (isDark) 0.08f else 0.12f))
+                    .border(1.dp, Color(0xFFFFB300).copy(alpha = if (isDark) 0.22f else 0.35f), RoundedCornerShape(8.dp))
                     .padding(12.dp),
             ) {
                 Column {
@@ -977,13 +981,13 @@ private fun CloudflareTunnelSection(
                         Icon(
                             Icons.Rounded.Info,
                             contentDescription = null,
-                            tint = Color(0xFFFFB300),
+                            tint = palette.warningIcon,
                             modifier = Modifier.size(16.dp),
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             DesktopStrings["d_tunnel_notice_title", "Notice: Requires cloudflared CLI"],
-                            color = Color(0xFFFFD54F),
+                            color = palette.warningText,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 12.sp,
                         )
@@ -991,7 +995,7 @@ private fun CloudflareTunnelSection(
                     Spacer(Modifier.height(6.dp))
                     Text(
                         DesktopStrings["d_tunnel_notice_body", "To allow your local party server to be accessed by friends over the internet, your system requires the 'cloudflared' utility. Once installed, click \"Check again\" above."],
-                        color = Color.White.copy(alpha = 0.88f),
+                        color = ink.copy(alpha = 0.88f),
                         fontSize = 11.sp,
                         lineHeight = 15.sp,
                     )
@@ -1018,7 +1022,7 @@ private fun CloudflareTunnelSection(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(6.dp))
-                            .background(Color.Black.copy(alpha = 0.45f))
+                            .background(if (isDark) Color.Black.copy(alpha = 0.45f) else ink.copy(alpha = 0.06f))
                             .padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -1040,7 +1044,7 @@ private fun CloudflareTunnelSection(
                             Icon(
                                 Icons.Rounded.ContentCopy,
                                 contentDescription = DesktopStrings["d_copy_command", "Copy command"],
-                                tint = if (copiedInstallCmd) DesktopAccent else Color.White.copy(alpha = 0.7f),
+                                tint = if (copiedInstallCmd) DesktopAccent else ink.copy(alpha = 0.7f),
                                 modifier = Modifier.size(14.dp),
                             )
                         }
@@ -1085,12 +1089,14 @@ private fun CloudflareTunnelSection(
         }
 
         if (isRunning && !tunnelState.url.isNullOrBlank()) {
+            val isDark = DesktopIsDark
+            val ink = DesktopInk
             Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color.Black.copy(alpha = 0.35f))
+                    .background(if (isDark) Color.Black.copy(alpha = 0.35f) else ink.copy(alpha = 0.06f))
                     .padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1110,7 +1116,7 @@ private fun CloudflareTunnelSection(
                     Icon(
                         Icons.Rounded.ContentCopy,
                         contentDescription = DesktopStrings["d_copy_url", "Copy URL"],
-                        tint = Color.White.copy(alpha = 0.85f),
+                        tint = ink.copy(alpha = 0.85f),
                         modifier = Modifier.size(15.dp),
                     )
                 }
@@ -1180,17 +1186,17 @@ private fun JoinConfirmation(
             preview.members.take(5).forEach { PartyAvatar(it.avatarUrl, 50, it.displayName) }
         }
         Spacer(Modifier.height(24.dp))
-        OutlinedTextField(
+        DesktopGlassTextField(
             value = nickname,
             onValueChange = onNicknameChange,
-            label = { Text("Nickname") },
-            singleLine = true,
+            label = "Nickname",
+            placeholder = "Nickname",
             modifier = Modifier.width(360.dp),
         )
         error?.let { Spacer(Modifier.height(10.dp)); Text(it, color = DesktopDestructive) }
         Spacer(Modifier.height(20.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            TextButton(onClick = onBack, enabled = !busy) { Text("Back") }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            DesktopGlassPillButton(text = "Back", enabled = !busy, onClick = onBack)
             PrimaryButton("Join party", busy, !preview.isFull, onJoin, Modifier.width(190.dp))
         }
     }
@@ -1386,10 +1392,18 @@ private fun PartyAvatar(url: String?, size: Int, fallback: String = "") {
 
 @Composable
 private fun Stepper(label: String, enabled: Boolean, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val ink = DesktopInk
     Box(
-        Modifier.size(32.dp).clip(CircleShape).background(DesktopCardInsetFill).clickable(enabled = enabled, onClick = onClick),
+        Modifier
+            .size(32.dp)
+            .desktopGlassPress(CircleShape, interactionSource = interaction, enabled = enabled, pressScale = 0.90f)
+            .clip(CircleShape)
+            .background(ink.copy(alpha = if (enabled) 0.10f else 0.04f))
+            .border(0.75.dp, DesktopCardEdge, CircleShape)
+            .clickable(interactionSource = interaction, indication = null, enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Text(label, color = if (enabled) Color.White else DesktopSecondary) }
+    ) { Text(label, color = if (enabled) ink else DesktopSecondary) }
 }
 
 @Composable
@@ -1400,14 +1414,37 @@ private fun PrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier.fillMaxWidth(),
 ) {
+    val interaction = remember { MutableInteractionSource() }
+    val onAccent = DesktopOnAccent
+    val isDark = DesktopIsDark
+    val ink = DesktopInk
+    val active = enabled && !busy
     Button(
         onClick = onClick,
-        enabled = enabled && !busy,
+        enabled = active,
+        interactionSource = interaction,
         shape = RoundedCornerShape(50),
-        colors = ButtonDefaults.buttonColors(containerColor = DesktopAccent, contentColor = Color.Black),
-        modifier = modifier.height(46.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = DesktopAccent,
+            contentColor = onAccent,
+            disabledContainerColor = ink.copy(alpha = if (isDark) 0.14f else 0.12f),
+            disabledContentColor = ink.copy(alpha = if (isDark) 0.62f else 0.64f),
+        ),
+        modifier = modifier
+            .height(46.dp)
+            .then(
+                if (!active) Modifier.border(0.75.dp, ink.copy(alpha = if (isDark) 0.16f else 0.14f), RoundedCornerShape(50))
+                else Modifier,
+            )
+            .desktopGlassPress(
+                CircleShape,
+                interactionSource = interaction,
+                enabled = active,
+                pressScale = 0.96f,
+                sheenColor = onAccent,
+            ),
     ) {
-        if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.Black)
+        if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = onAccent)
         else Text(label, fontWeight = FontWeight.SemiBold)
     }
 }
@@ -1469,7 +1506,7 @@ private fun PartyGuideDialog(onDismiss: () -> Unit) {
                 }
             }
 
-            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+            HorizontalDivider(color = DesktopCardEdge)
 
             // 1. Quick Party
             Row(verticalAlignment = Alignment.Top) {
@@ -1497,14 +1534,15 @@ private fun PartyGuideDialog(onDismiss: () -> Unit) {
 
             // 2. Custom Party - Cloud
             Row(verticalAlignment = Alignment.Top) {
+                val ink = DesktopInk
                 Box(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.08f)),
+                        .background(ink.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Rounded.Cloud, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.Cloud, null, tint = ink.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
@@ -1521,14 +1559,15 @@ private fun PartyGuideDialog(onDismiss: () -> Unit) {
 
             // 3. Custom Party - Local
             Row(verticalAlignment = Alignment.Top) {
+                val ink = DesktopInk
                 Box(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.08f)),
+                        .background(ink.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Rounded.Computer, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.Computer, null, tint = ink.copy(alpha = 0.8f), modifier = Modifier.size(18.dp))
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
@@ -1548,7 +1587,7 @@ private fun PartyGuideDialog(onDismiss: () -> Unit) {
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth().height(38.dp),
                 shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = DesktopAccent, contentColor = Color.Black),
+                colors = ButtonDefaults.buttonColors(containerColor = DesktopAccent, contentColor = DesktopOnAccent),
             ) {
                 Text(DesktopStrings["close", "Close"], fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp)
             }

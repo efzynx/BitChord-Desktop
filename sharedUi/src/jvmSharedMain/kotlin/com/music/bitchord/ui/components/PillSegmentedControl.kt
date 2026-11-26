@@ -1,13 +1,21 @@
 package com.music.bitchord.ui.components
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,14 +25,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.layout
@@ -38,7 +54,22 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.music.bitchord.ui.graphics.fadingEdges
 import com.music.bitchord.ui.player.PlayerSettings
 import kotlinx.coroutines.flow.first
+import kotlin.math.PI
 import kotlin.math.roundToInt
+import kotlin.math.sin
+
+/**
+ * Configures Liquid Glass styling and tactile click/slide animations for [PillSegmentedControl].
+ * Desktop hosts provide this via [LocalPillSegmentedGlassStyle] while mobile targets keep the
+ * default flat representation.
+ */
+@Immutable
+data class PillSegmentedGlassStyle(
+    val enabled: Boolean = false,
+    val clickAnimation: Boolean = false,
+)
+
+val LocalPillSegmentedGlassStyle = compositionLocalOf { PillSegmentedGlassStyle() }
 
 /**
  * Apple's segmented control: a squircle track in the tertiary fill, and the
@@ -72,17 +103,68 @@ fun PillSegmentedControl(
     val style = MaterialTheme.typography.labelMedium
     val measurer = rememberTextMeasurer()
     val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
+    val glassStyle = LocalPillSegmentedGlassStyle.current
+    val glassEnabled = glassStyle.enabled
     val trackColor = TRACK_FILL.copy(alpha = if (light) LIGHT_TRACK_ALPHA else DARK_TRACK_ALPHA)
     val pillColor = if (light) Color.White else DARK_PILL
     val labelColor = if (light) Color.Black else Color.White
     val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val animateMotion = !reduceAnimation
+    val glassClickAnim = glassEnabled && glassStyle.clickAnimation && animateMotion
     val selected = selectedIndex.takeIf { it in options.indices }
+    var glassPulseNonce by remember { mutableStateOf(0) }
+    val glassPulse = remember { Animatable(0f) }
+    LaunchedEffect(selected, glassPulseNonce, glassClickAnim) {
+        if (!glassClickAnim || (selected == null && glassPulseNonce == 0)) return@LaunchedEffect
+        glassPulse.snapTo(0f)
+        glassPulse.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 360, easing = FastOutSlowInEasing),
+        )
+    }
+
+    val trackModifier = if (glassEnabled) {
+        val trackBrush = if (light) {
+            Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.48f),
+                    Color.White.copy(alpha = 0.30f),
+                ),
+            )
+        } else {
+            Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.085f),
+                    Color(0xFF0E0E13).copy(alpha = 0.30f),
+                    Color.White.copy(alpha = 0.045f),
+                ),
+            )
+        }
+        val trackRim = if (light) {
+            Brush.linearGradient(listOf(Color.White.copy(alpha = 0.58f), Color.White.copy(alpha = 0.24f)))
+        } else {
+            Brush.linearGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.24f),
+                    Color.White.copy(alpha = 0.055f),
+                    Color.White.copy(alpha = 0.14f),
+                ),
+            )
+        }
+        Modifier
+            .clip(TrackShape)
+            .background(trackBrush)
+            .border(0.85.dp, trackRim, TrackShape)
+    } else {
+        Modifier
+            .clip(TrackShape)
+            .background(trackColor)
+    }
 
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .clip(TrackShape)
-            .background(trackColor),
+            .then(trackModifier),
     ) {
         val inset = with(density) { TRACK_PADDING.toPx() }
         val labelPadding = with(density) { LABEL_PADDING.toPx() }
@@ -145,6 +227,73 @@ fun PillSegmentedControl(
                     .padding(vertical = TRACK_PADDING),
             ) {
                 if (selected != null) {
+                    val pulseValue = if (glassClickAnim) glassPulse.value else 0f
+                    val pulseArc = if (pulseValue in 0.001f..0.999f) sin(pulseValue * PI).toFloat() else 0f
+                    val pillScaleX = if (glassClickAnim) 1f + 0.025f * pulseArc else 1f
+                    val pillScaleY = if (glassClickAnim) 1f + 0.045f * pulseArc else 1f
+                    val pillGlassMod = if (glassEnabled) {
+                        val lensFill = if (light) {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.92f),
+                                    Color.White.copy(alpha = 0.74f),
+                                ),
+                            )
+                        } else {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.25f + 0.06f * pulseArc),
+                                    Color.White.copy(alpha = 0.13f + 0.04f * pulseArc),
+                                    Color.White.copy(alpha = 0.19f + 0.05f * pulseArc),
+                                ),
+                            )
+                        }
+                        val pillRim = if (light) {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.95f),
+                                    Color.White.copy(alpha = 0.45f),
+                                ),
+                            )
+                        } else {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.46f + 0.20f * pulseArc),
+                                    Color.White.copy(alpha = 0.10f),
+                                    Color.White.copy(alpha = 0.26f + 0.10f * pulseArc),
+                                ),
+                            )
+                        }
+                        Modifier
+                            .graphicsLayer {
+                                scaleX = pillScaleX
+                                scaleY = pillScaleY
+                            }
+                            .clip(PillShape)
+                            .background(lensFill)
+                            .drawWithContent {
+                                drawContent()
+                                if (pulseArc > 0.005f) {
+                                    val sweepX = -size.width * 0.2f + size.width * 1.4f * pulseValue
+                                    drawRect(
+                                        brush = Brush.linearGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                Color.White.copy(alpha = 0.28f * pulseArc),
+                                                Color.Transparent,
+                                            ),
+                                            start = Offset(sweepX - size.width * 0.35f, 0f),
+                                            end = Offset(sweepX + size.width * 0.35f, size.height),
+                                        ),
+                                    )
+                                }
+                            }
+                            .border(0.9.dp, pillRim, PillShape)
+                    } else {
+                        Modifier
+                            .clip(PillShape)
+                            .background(pillColor)
+                    }
                     Box(
                         Modifier
                             .matchParentSize()
@@ -157,20 +306,52 @@ fun PillSegmentedControl(
                                     placeable.place(pillStart.roundToInt(), 0)
                                 }
                             }
-                            .clip(PillShape)
-                            .background(pillColor),
+                            .then(pillGlassMod),
                     )
                 }
                 options.forEachIndexed { index, label ->
+                    val segInteraction = remember(index) { MutableInteractionSource() }
+                    val segHovered by segInteraction.collectIsHoveredAsState()
+                    val segPressed by segInteraction.collectIsPressedAsState()
+                    val isDisabled = index in disabled
+                    val isActive = index == selected
+                    val segScale by animateFloatAsState(
+                        targetValue = when {
+                            !glassClickAnim || isDisabled -> 1f
+                            segPressed -> 0.96f
+                            else -> 1f
+                        },
+                        animationSpec = spring(dampingRatio = 0.68f, stiffness = Spring.StiffnessMedium),
+                        label = "segmentScale",
+                    )
+                    val hoverHighlight = glassEnabled && animateMotion && !isDisabled && !isActive && (segHovered || segPressed)
                     Box(
                         modifier = Modifier
                             .atX(starts[index])
                             .width(with(density) { widths[index].toDp() })
+                            .then(if (glassEnabled) Modifier.hoverable(segInteraction) else Modifier)
+                            .graphicsLayer {
+                                scaleX = segScale
+                                scaleY = segScale
+                            }
+                            .clip(PillShape)
+                            .then(
+                                if (hoverHighlight) {
+                                    Modifier.background(
+                                        Color.White.copy(alpha = if (segPressed && glassClickAnim) 0.11f else 0.055f),
+                                    )
+                                } else {
+                                    Modifier
+                                },
+                            )
                             .clickable(
-                                enabled = enabled && index !in disabled,
-                                interactionSource = null,
+                                enabled = enabled && !isDisabled,
+                                interactionSource = segInteraction,
                                 indication = null,
                             ) {
+                                if (glassClickAnim) {
+                                    glassPulseNonce++
+                                }
                                 if (index != selected) {
                                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onSelect(index)
@@ -182,7 +363,11 @@ fun PillSegmentedControl(
                         Text(
                             text = label,
                             style = style,
-                            color = if (index in disabled) labelColor.copy(alpha = DISABLED_LABEL_ALPHA) else labelColor,
+                            color = when {
+                                isDisabled -> labelColor.copy(alpha = DISABLED_LABEL_ALPHA)
+                                glassEnabled && !isActive -> labelColor.copy(alpha = if (segHovered) 0.94f else 0.78f)
+                                else -> labelColor
+                            },
                             maxLines = 1,
                             softWrap = false,
                         )

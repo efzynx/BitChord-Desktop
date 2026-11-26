@@ -2,8 +2,19 @@ package com.music.bitchord.ui.components
 
 import com.music.bitchord.sharedui.resources.*
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,11 +36,26 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,7 +63,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import kotlin.math.hypot
+import kotlin.math.sin
+
+/**
+ * Configures Liquid Glass surface and press-ripple styling for shared [SearchField] widgets on desktop.
+ */
+@Immutable
+data class SearchFieldGlassStyle(
+    val enabled: Boolean = false,
+    val clickAnimation: Boolean = false,
+)
+
+val LocalSearchFieldGlassStyle = compositionLocalOf { SearchFieldGlassStyle() }
 
 /**
  * True where a search field sits on a surface its host draws — the top bar's
@@ -65,6 +105,31 @@ fun SearchField(
 ) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val onSurface = LocalSearchFieldOnSurface.current
+    val glassStyle = LocalSearchFieldGlassStyle.current
+    val glassActive = !onSurface && glassStyle.enabled
+    val glassClickAnim = glassActive && glassStyle.clickAnimation
+    val light = MaterialTheme.colorScheme.surface.luminance() > 0.5f
+    val rippleInk = if (light) Color.Black else Color.White
+    val fieldShape = RoundedCornerShape(11.dp)
+    val interactionSource = remember { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val pressed by interactionSource.collectIsPressedAsState()
+    var focused by remember { mutableStateOf(false) }
+    var pointerPressed by remember { mutableStateOf(false) }
+    var tapOffset by remember { mutableStateOf(Offset.Unspecified) }
+    var pulseNonce by remember { mutableStateOf(0) }
+    val ripple = remember { Animatable(0f) }
+    LaunchedEffect(pulseNonce, glassClickAnim) {
+        if (!glassClickAnim || pulseNonce == 0) return@LaunchedEffect
+        ripple.snapTo(0f)
+        ripple.animateTo(1f, animationSpec = tween(durationMillis = 380, easing = FastOutSlowInEasing))
+    }
+    val scale by animateFloatAsState(
+        targetValue = if (glassClickAnim && (pressed || pointerPressed)) 0.988f else 1f,
+        animationSpec = spring(dampingRatio = 0.68f, stiffness = Spring.StiffnessMedium),
+        label = "searchFieldScale",
+    )
     // Both ways of saying "search this" do the same two things, so they're
     // written once here rather than twice.
     val submit = {
@@ -75,13 +140,106 @@ fun SearchField(
         modifier = modifier
             .fillMaxWidth()
             .then(
-                if (LocalSearchFieldOnSurface.current) {
+                if (onSurface) {
                     Modifier.fillMaxHeight()
+                } else if (glassActive) {
+                    Modifier
+                        .height(46.dp)
+                        .hoverable(interactionSource)
+                        .then(
+                            if (glassClickAnim) {
+                                Modifier.pointerInput(Unit) {
+                                    awaitPointerEventScope {
+                                        while (true) {
+                                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                                            when (event.type) {
+                                                PointerEventType.Press -> {
+                                                    tapOffset = event.changes.firstOrNull()?.position ?: Offset.Unspecified
+                                                    pointerPressed = true
+                                                    pulseNonce++
+                                                }
+                                                PointerEventType.Release, PointerEventType.Exit -> {
+                                                    pointerPressed = false
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                        .clip(fieldShape)
+                        .background(
+                            if (light) {
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = if (focused || hovered) 0.90f else 0.76f),
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.80f),
+                                    ),
+                                )
+                            } else {
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = if (focused || hovered) 0.13f else 0.095f),
+                                        Color(0xFF0E0E13).copy(alpha = 0.36f),
+                                    ),
+                                )
+                            },
+                        )
+                        .drawWithContent {
+                            drawContent()
+                            val t = if (glassClickAnim) ripple.value else 0f
+                            val wave = if (t > 0.001f && t < 0.999f) sin(t * Math.PI).toFloat() else 0f
+                            if (wave > 0.004f) {
+                                val center = if (tapOffset == Offset.Unspecified) {
+                                    Offset(size.width * 0.5f, size.height * 0.5f)
+                                } else {
+                                    tapOffset
+                                }
+                                val maxR = hypot(size.width, size.height).coerceAtLeast(24f)
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            rippleInk.copy(alpha = 0.16f * wave),
+                                            Color.Transparent,
+                                        ),
+                                        center = center,
+                                        radius = maxR * (0.25f + 0.8f * t),
+                                    ),
+                                    center = center,
+                                    radius = maxR * (0.25f + 0.8f * t),
+                                )
+                            }
+                        }
+                        .border(
+                            width = if (focused) 1.dp else 0.85.dp,
+                            brush = if (light) {
+                                Brush.linearGradient(
+                                    listOf(
+                                        Color.Black.copy(alpha = if (focused) 0.28f else if (hovered) 0.20f else 0.14f),
+                                        Color.Black.copy(alpha = if (focused) 0.14f else 0.06f),
+                                    ),
+                                )
+                            } else {
+                                Brush.linearGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = if (focused) 0.34f else if (hovered) 0.26f else 0.19f),
+                                        Color.White.copy(alpha = if (focused) 0.14f else 0.06f),
+                                    ),
+                                )
+                            },
+                            shape = fieldShape,
+                        )
                 } else {
                     // Fixed height prevents the row from growing when text is entered
                     Modifier
                         .height(46.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(11.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant, fieldShape)
                 },
             )
             // Asymmetric: the magnifier is a button now and wants a real touch
@@ -129,7 +287,8 @@ fun SearchField(
                 keyboardActions = KeyboardActions(onSearch = { submit() }),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(focusRequester),
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { focused = it.isFocused },
             )
         }
         // Emptying the field is also how the recent searches are got back to,

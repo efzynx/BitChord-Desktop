@@ -344,7 +344,17 @@ private fun PlayerMeshBackdrop(
     val mix = ambient.mixFor(seed != null)
     val url = imageUrl ?: ambient.incoming?.resolvedUrl
     val frame = canvasFrame()
-    val mesh = key(entry ?: trackKey, snapKey) { rememberArtworkMesh(url, frame, ART_PX, seed, canvasKey) }
+    val lightTheme = LocalPlayerLightTheme.current
+    val mesh = key(entry ?: trackKey, snapKey, lightTheme) {
+        rememberArtworkMesh(
+            url,
+            frame,
+            ART_PX,
+            seed?.takeIf { it.lightTheme == lightTheme },
+            canvasKey,
+            lightTheme = lightTheme,
+        )
+    }
     val currentSeamTarget by rememberUpdatedState(seamTarget)
     val seam = remember { Animatable(Snapshot.withoutReadObservation { seamTarget() }, Dp.VectorConverter) }
     // Glides to a clip's edge as the clip fades in, and is put straight where
@@ -2254,13 +2264,17 @@ fun NowPlayingScreen(
     DisposableEffect(Unit) { onDispose { reportLiveCanvas(false) } }
     val frostOff by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val frost = if (frostOff) null else PlayerPlatform.host.rememberPlayerFrost()
+    val playerLightTheme = LocalPlayerLightTheme.current && !spotifyCanvasPresentation && !videoFullscreen
+    val playerInk = if (playerLightTheme) Color(0xFF0A0A0C) else Color.White
+    CompositionLocalProvider(
+        LocalPlayerLightTheme provides playerLightTheme,
+        LocalPlayerSurfaceInk provides playerInk,
+        androidx.compose.material3.LocalContentColor provides playerInk,
+    ) {
     FrostedPlayerFrame(
         modifier = modifier,
-        // Off where a music video is the backdrop: it can go bright under the
-        // controls. On over a Canvas: the controls only show with its dim and
-        // glass deck up, so the glyphs blend into the blurred, darkened clip.
-        // And off everywhere with "Disable blend effects".
-        chrome = !disableBlendEffects && !videoFullscreen,
+        // Off in Light mode (dark ink doesn't blend additively), off over video, and off with "Disable blend effects".
+        chrome = !playerLightTheme && !disableBlendEffects && !videoFullscreen,
         softened = !spotifyCanvasPresentation &&
             (playerTheme == PlayerTheme.DEFAULT || playerTheme == PlayerTheme.LEGACY),
         frost = frost,
@@ -2559,6 +2573,7 @@ fun NowPlayingScreen(
                                         lyricsUnavailable = lyricsUnavailable,
                                         loadingText = lyricsLoadingText,
                                         onClick = openLyrics,
+                                        onHide = { PlayerSettings.setHideLyricsPreview(true) },
                                     )
                                 }
                             } else {
@@ -2652,6 +2667,7 @@ fun NowPlayingScreen(
                                     onClick = lyricsTranslation.toggleTranslation,
                                 )
                             },
+                            onHideLyrics = closeLyrics,
                         ) { panelModifier ->
                             LyricsTranslationMotion(
                                 trigger = lyricsTranslation.transition,
@@ -2718,7 +2734,7 @@ fun NowPlayingScreen(
                     .fillMaxSize()
                     .onSizeChanged { playerBounds = it }
                     .then(dockHost)
-                    .background(Color.Black),
+                    .background(if (playerLightTheme) Color(0xFFF6F6F9) else Color.Black),
             ) {
                 // Three themes, one rule between them: a full-screen Spotify Canvas
                 // is its own backdrop until a panel opens.
@@ -3798,6 +3814,11 @@ fun NowPlayingScreen(
                             // card or it is nothing, and blown out to the banner it
                             // would only tint the top third of the screen. Under the
                             // cover, which hides it the moment there is one.
+                            val emptyArtWash = if (LocalPlayerLightTheme.current) {
+                                Color.Black.copy(alpha = 0.06f)
+                            } else {
+                                Color.Black.copy(alpha = 0.18f)
+                            }
                             Box(
                                 modifier = Modifier
                                     // As wide as the sleeve, for the same reason the
@@ -3840,7 +3861,7 @@ fun NowPlayingScreen(
                                         // sleeve visible again for the incoming still, not its
                                         // square empty-state tile over the outgoing video.
                                         if (!heroMode || pair?.liveOutgoing != true || stillTakesOver() || gesturePair != null) {
-                                            drawRect(Color.Black.copy(alpha = 0.18f))
+                                            drawRect(emptyArtWash)
                                             drawContent()
                                         }
                                     },
@@ -3850,7 +3871,7 @@ fun NowPlayingScreen(
                                     Icon(
                                         imageVector = BitChordIcons.MusicNote,
                                         contentDescription = null,
-                                        tint = Color.White.copy(alpha = 0.35f),
+                                        tint = LocalPlayerSurfaceInk.current.copy(alpha = 0.35f),
                                         modifier = Modifier
                                             .size(40.dp)
                                             .graphicsLayer {
@@ -4223,7 +4244,7 @@ fun NowPlayingScreen(
                                             style = MaterialTheme.typography.titleLarge.copy(
                                                 fontSize = 20.sp,
                                             ),
-                                            color = Color.White,
+                                            color = LocalPlayerSurfaceInk.current,
                                             enabled = scrolling,
                                             // Before the title, in the artist line's
                                             // colour.
@@ -4598,6 +4619,7 @@ fun NowPlayingScreen(
                             // the queue behind it the same way the "Up next" glyph
                             // closes lyrics behind the queue.
                             onClick = openLyrics,
+                            onHide = { PlayerSettings.setHideLyricsPreview(true) },
                         )
                     }
                     if (!lyricsOpen && !syncedLyricsEnabled) {
@@ -4710,6 +4732,7 @@ fun NowPlayingScreen(
                 }
             }
         }
+    }
     }
 }
 

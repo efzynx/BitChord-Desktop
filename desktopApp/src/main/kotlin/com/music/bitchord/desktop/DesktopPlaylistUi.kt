@@ -199,7 +199,7 @@ private fun NewPlaylistForm(
     ) {
         onBack?.let {
             IconButton(onClick = it) {
-                Icon(Icons.Rounded.ArrowBack, DesktopStrings["back", "Back"], tint = Color.White)
+                Icon(Icons.Rounded.ArrowBack, DesktopStrings["back", "Back"], tint = DesktopInk)
             }
         }
         Column(Modifier.weight(1f)) {
@@ -207,7 +207,7 @@ private fun NewPlaylistForm(
                 DesktopStrings["new_playlist", "New playlist"],
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White,
+                color = DesktopInk,
             )
             Text(
                 if (signedIn) "Saved to your YouTube Music account" else "Saved on this computer",
@@ -223,7 +223,7 @@ private fun NewPlaylistForm(
             .fillMaxWidth()
             .padding(horizontal = 22.dp, vertical = 16.dp)
             .clip(RoundedCornerShape(11.dp))
-            .background(Color.White.copy(alpha = 0.08f))
+            .background(DesktopInk.copy(alpha = 0.08f))
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -235,7 +235,7 @@ private fun NewPlaylistForm(
                 value = name,
                 onValueChange = { name = it },
                 singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = DesktopInk),
                 cursorBrush = SolidColor(DesktopAccent),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { submit() }),
@@ -301,14 +301,14 @@ internal fun DesktopRenamePlaylistDialog(
                 .fillMaxWidth()
                 .padding(horizontal = 22.dp, vertical = 14.dp)
                 .clip(RoundedCornerShape(11.dp))
-                .background(Color.White.copy(alpha = 0.08f))
+                .background(DesktopInk.copy(alpha = 0.08f))
                 .padding(horizontal = 12.dp, vertical = 12.dp),
         ) {
             BasicTextField(
                 value = name,
                 onValueChange = { name = it },
                 singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = DesktopInk),
                 cursorBrush = SolidColor(DesktopAccent),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { submit() }),
@@ -487,7 +487,7 @@ private fun ReorderableSongList(
                                 0f
                             }
                         }
-                        .background(if (dragging) Color.White.copy(alpha = 0.08f) else Color.Transparent),
+                        .background(if (dragging) DesktopInk.copy(alpha = 0.08f) else Color.Transparent),
                 ) {
                     if (slot > 0) DesktopCardRule()
                     ReorderSongRow(
@@ -578,7 +578,7 @@ private fun ReorderSongRow(
         Column(Modifier.weight(1f)) {
             Text(
                 song.title,
-                color = Color.White,
+                color = DesktopInk,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -600,11 +600,12 @@ private fun ReorderSongRow(
  */
 @Composable
 private fun DesktopDialogFrame(onDismiss: () -> Unit, content: @Composable () -> Unit) {
+    val isDark = DesktopIsDark
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Box(
             Modifier
                 .fillMaxSize()
-                .background(DesktopScrim)
+                .background(Color.Black.copy(alpha = if (isDark) 0.72f else 0.62f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -616,9 +617,14 @@ private fun DesktopDialogFrame(onDismiss: () -> Unit, content: @Composable () ->
             Modifier
                 .widthIn(max = 480.dp)
                 .fillMaxWidth()
+                .desktopPopupMotion(pivotX = 0.5f, pivotY = 0.5f, slideYDp = 10.dp)
                 .shadow(24.dp, shape)
                 .clip(shape)
-                .desktopBarGlass(shape),
+                .desktopBarGlass(
+                    shape = shape,
+                    surfaceTint = desktopModalSurfaceTint(isDark),
+                    borderAlpha = if (isDark) 0.22f else 0.30f,
+                ),
         ) {
             // Swallows clicks that land on the panel's own background so they do not reach the
             // scrim behind it and dismiss what was just clicked.
@@ -642,7 +648,7 @@ private fun DialogHeading(title: String, subtitle: String) {
         title,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.SemiBold,
-        color = Color.White,
+        color = DesktopInk,
         modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp),
     )
     if (subtitle.isNotBlank()) {
@@ -692,10 +698,10 @@ private fun DialogAction(
             .padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(18.dp))
+        Icon(icon, null, tint = DesktopInk.copy(alpha = 0.85f), modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text(label, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(label, color = DesktopInk, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (subtitle.isNotBlank()) {
                 Text(
                     subtitle,
@@ -735,10 +741,11 @@ private fun DialogButtons(
 
 @Composable
 private fun PrivacyPill(icon: ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
+    val ink = DesktopInk
     Row(
         Modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) DesktopAccent.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f))
+            .background(if (selected) DesktopAccent.copy(alpha = 0.22f) else ink.copy(alpha = 0.08f))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -753,7 +760,7 @@ private fun PrivacyPill(icon: ImageVector, label: String, selected: Boolean, onC
         Text(
             label,
             style = MaterialTheme.typography.bodySmall,
-            color = if (selected) Color.White else DesktopSecondary,
+            color = if (selected) ink else DesktopSecondary,
         )
     }
 }

@@ -191,47 +191,118 @@ internal fun DesktopSpotifyCanvasDialog(onDismiss: () -> Unit, onSaved: (String)
         onDismiss()
     }
 
+    val isPage = LocalDesktopPanelIsPage.current
     DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 420) {
-        DialogHeading(
-            title = DesktopStrings["spotify_canvas_setup", "Spotify Canvas setup"],
-            message = DesktopStrings["spotify_canvas_setup_description", "To use Spotify Canvas, provide your Spotify sp_dc cookie."],
-        )
-        Text(
-            DesktopStrings[
-                "spotify_canvas_setup_steps",
-                "1. Sign in at open.spotify.com in a browser.\n" +
-                    "2. Open Developer Tools, then Application and Cookies.\n" +
-                    "3. Copy the value of the sp_dc cookie.\n" +
-                    "4. Paste it below.",
-            ],
-            modifier = Modifier.fillMaxWidth().padding(horizontal = panelInset(22.dp), vertical = 4.dp),
-            style = MaterialTheme.typography.bodySmall,
-            color = DesktopSecondary,
-        )
-        Spacer(Modifier.height(12.dp))
-        DialogField(
-            value = token,
-            onValueChange = { token = it },
-            placeholder = DesktopStrings["spdc_token", "sp_dc token"],
-            isPassword = true,
-            onSubmit = ::save,
-            modifier = Modifier.focusRequester(focus),
-        )
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = panelInset(22.dp)),
-            horizontalArrangement = Arrangement.Start,
-        ) {
-            TextButton(onClick = { DesktopExternalLinks.open("https://open.spotify.com/") }) {
-                Text(DesktopStrings["d_open_spotify", "Open Spotify"], color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
+        if (isPage) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 32.dp),
+            ) {
+                DesktopSettingsSubPageHeader(
+                    title = DesktopStrings["spotify_canvas_setup", "Spotify Canvas setup"],
+                    subtitle = DesktopStrings["spotify_canvas_setup_description", "To use Spotify Canvas, provide your Spotify sp_dc cookie."],
+                    onBack = onDismiss,
+                )
+                DesktopGroupedCard(
+                    header = DesktopStrings["d_how_to_connect", "How to connect"],
+                    topSpacing = 4.dp,
+                ) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text(
+                            DesktopStrings[
+                                "spotify_canvas_setup_steps",
+                                "1. Sign in at open.spotify.com in a browser.\n" +
+                                    "2. Open Developer Tools, then Application and Cookies.\n" +
+                                    "3. Copy the value of the sp_dc cookie.\n" +
+                                    "4. Paste it below.",
+                            ],
+                            style = MaterialTheme.typography.bodySmall,
+                            color = DesktopSecondary,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        DesktopGlassPillButton(
+                            text = DesktopStrings["d_open_spotify", "Open Spotify"],
+                            onClick = { DesktopExternalLinks.open("https://open.spotify.com/") },
+                        )
+                    }
+                }
+                DesktopGroupedCard(
+                    header = DesktopStrings["spdc_token", "sp_dc token"],
+                    topSpacing = 18.dp,
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        DesktopGlassTextField(
+                            value = token,
+                            onValueChange = { token = it },
+                            placeholder = DesktopStrings["spdc_token", "sp_dc token"],
+                            isPassword = true,
+                            onSubmit = ::save,
+                            modifier = Modifier.focusRequester(focus),
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                        ) {
+                            DesktopGlassPillButton(
+                                text = DesktopStrings["cancel", "Cancel"],
+                                onClick = onDismiss,
+                            )
+                            DesktopGlassPillButton(
+                                text = DesktopStrings["save", "Save"],
+                                accent = true,
+                                onClick = ::save,
+                            )
+                        }
+                    }
+                }
             }
+        } else {
+            DialogHeading(
+                title = DesktopStrings["spotify_canvas_setup", "Spotify Canvas setup"],
+                message = DesktopStrings["spotify_canvas_setup_description", "To use Spotify Canvas, provide your Spotify sp_dc cookie."],
+            )
+            Text(
+                DesktopStrings[
+                    "spotify_canvas_setup_steps",
+                    "1. Sign in at open.spotify.com in a browser.\n" +
+                        "2. Open Developer Tools, then Application and Cookies.\n" +
+                        "3. Copy the value of the sp_dc cookie.\n" +
+                        "4. Paste it below.",
+                ],
+                modifier = Modifier.fillMaxWidth().padding(horizontal = panelInset(22.dp), vertical = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = DesktopSecondary,
+            )
+            Spacer(Modifier.height(12.dp))
+            DialogField(
+                value = token,
+                onValueChange = { token = it },
+                placeholder = DesktopStrings["spdc_token", "sp_dc token"],
+                isPassword = true,
+                onSubmit = ::save,
+                modifier = Modifier.focusRequester(focus),
+            )
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = panelInset(22.dp)),
+                horizontalArrangement = Arrangement.Start,
+            ) {
+                TextButton(onClick = { DesktopExternalLinks.open("https://open.spotify.com/") }) {
+                    Text(DesktopStrings["d_open_spotify", "Open Spotify"], color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            DialogActions(
+                confirm = DesktopStrings["save", "Save"],
+                confirmEnabled = true,
+                busy = false,
+                onConfirm = ::save,
+                onDismiss = onDismiss,
+            )
         }
-        DialogActions(
-            confirm = DesktopStrings["save", "Save"],
-            confirmEnabled = true,
-            busy = false,
-            onConfirm = ::save,
-            onDismiss = onDismiss,
-        )
     }
 }
 
@@ -294,7 +365,7 @@ private fun DialogHeading(title: String, message: String, isError: Boolean = fal
             title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = Color.White,
+            color = DesktopInk,
         )
         Text(
             message,
@@ -431,7 +502,7 @@ internal fun DesktopSpotifyImportDialog(
                         .padding(horizontal = panelInset(22.dp))
                         .heightIn(max = 200.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Color.White.copy(alpha = 0.06f))
+                        .background(DesktopInk.copy(alpha = 0.06f))
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -455,7 +526,7 @@ internal fun DesktopSpotifyImportDialog(
     }
 }
 
-/** The same filled field the playlist dialogs use. */
+/** The frosted glass text field used across dialogs and panels. */
 @Composable
 private fun DialogField(
     value: String,
@@ -467,41 +538,16 @@ private fun DialogField(
     imeAction: ImeAction = ImeAction.Done,
     onSubmit: () -> Unit = {},
 ) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = panelInset(22.dp))
-            .clip(RoundedCornerShape(11.dp))
-            .background(Color.White.copy(alpha = if (enabled) 0.08f else 0.04f))
-            .padding(horizontal = 12.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(Modifier.weight(1f)) {
-            if (value.isEmpty()) {
-                Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = DesktopSecondary)
-            }
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                enabled = enabled,
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.White),
-                cursorBrush = SolidColor(DesktopAccent),
-                visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
-                keyboardOptions = KeyboardOptions(imeAction = imeAction),
-                keyboardActions = KeyboardActions(onDone = { onSubmit() }),
-                modifier = modifier.fillMaxWidth(),
-            )
-        }
-        if (value.isNotEmpty() && enabled) {
-            Box(
-                Modifier.size(26.dp).clip(CircleShape).clickable { onValueChange("") },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Rounded.Close, DesktopStrings["clear", "Clear"], tint = DesktopSecondary, modifier = Modifier.size(16.dp))
-            }
-        }
-    }
+    DesktopGlassTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = placeholder,
+        modifier = Modifier.padding(horizontal = panelInset(22.dp)).then(modifier),
+        enabled = enabled,
+        isPassword = isPassword,
+        imeAction = imeAction,
+        onSubmit = onSubmit,
+    )
 }
 
 @Composable
@@ -513,24 +559,29 @@ private fun DialogActions(
     onDismiss: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = panelInset(16.dp), vertical = 12.dp),
-        horizontalArrangement = Arrangement.End,
+        Modifier.fillMaxWidth().padding(horizontal = panelInset(16.dp), vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (busy) {
             CircularProgressIndicator(
                 color = DesktopAccent,
                 strokeWidth = 2.dp,
-                modifier = Modifier.size(16.dp).padding(end = 0.dp),
+                modifier = Modifier.size(16.dp),
             )
-            Spacer(Modifier.size(12.dp))
+            Spacer(Modifier.size(4.dp))
         }
-        TextButton(onClick = onDismiss, enabled = !busy) {
-            Text(DesktopStrings["cancel", "Cancel"], color = DesktopSecondary)
-        }
-        TextButton(onClick = onConfirm, enabled = confirmEnabled) {
-            Text(confirm, color = if (confirmEnabled) DesktopAccent else DesktopSecondary)
-        }
+        DesktopGlassPillButton(
+            text = DesktopStrings["cancel", "Cancel"],
+            enabled = !busy,
+            onClick = onDismiss,
+        )
+        DesktopGlassPillButton(
+            text = confirm,
+            accent = true,
+            enabled = confirmEnabled,
+            onClick = onConfirm,
+        )
     }
 }
 

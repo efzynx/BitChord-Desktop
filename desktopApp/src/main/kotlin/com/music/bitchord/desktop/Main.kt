@@ -24,12 +24,17 @@ import java.awt.Dimension
 import java.awt.Rectangle
 import java.awt.Toolkit
 import kotlin.math.roundToInt
+import kotlin.system.exitProcess
 import org.jetbrains.compose.resources.painterResource
 
-fun main() {
+fun main(args: Array<String> = emptyArray()) {
     // Prefer IPv4 stack to prevent hanging on unreachable IPv6 routes on desktop
     System.setProperty("java.net.preferIPv4Stack", "true")
     System.setProperty("java.net.preferIPv6Addresses", "false")
+    // Enforce a single running instance per user session before creating any UI or tray icon.
+    if (!DesktopSingleInstance.acquireOrForward(args)) {
+        exitProcess(0)
+    }
     // Before any WebView exists, so the sign-in window can start over with an empty jar.
     DesktopWebCookies.install()
     DesktopWindowVisibility.install()
@@ -66,6 +71,8 @@ fun main() {
     )
     // The public "apps open right now" count; see Presence.
     DesktopPresence.install()
+    // Scheduled Google Drive automatic backups, running silently in the background when enabled.
+    DesktopDriveBackup.startScheduler()
     desktopMain()
 }
 
@@ -96,7 +103,12 @@ private fun desktopMain() = application {
         }
     }
     Window(
-        onCloseRequest = { if (DesktopWindowVisibility.onCloseRequest()) exitApplication() },
+        onCloseRequest = {
+            if (DesktopWindowVisibility.onCloseRequest()) {
+                DesktopSingleInstance.release()
+                exitApplication()
+            }
+        },
         visible = visible,
         title = "BitChord Desktop",
         icon = painterResource(Res.drawable.logo),
@@ -176,7 +188,12 @@ private fun desktopMain() = application {
                 },
                 // The same door the system's close button went through, so the tray keeps the
                 // process alive exactly as it did before.
-                close = { if (DesktopWindowVisibility.onCloseRequest()) exitApplication() },
+                close = {
+                    if (DesktopWindowVisibility.onCloseRequest()) {
+                        DesktopSingleInstance.release()
+                        exitApplication()
+                    }
+                },
             )
         }
         CompositionLocalProvider(

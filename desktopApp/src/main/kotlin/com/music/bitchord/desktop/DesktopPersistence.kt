@@ -1,6 +1,8 @@
 package com.music.bitchord.desktop
 
 import com.music.bitchord.data.lyrics.LyricsSource
+import com.music.bitchord.data.model.PlaybackSourceType
+import com.music.bitchord.data.model.QueueTier
 import com.music.bitchord.data.model.Song
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -11,8 +13,9 @@ import java.util.UUID
 import java.util.prefs.Preferences
 
 /** Small OS-backed store for desktop state; no Android Context is required. */
-class DesktopPersistence {
-    internal val preferences = Preferences.userRoot().node("com.music.bitchord.desktop")
+class DesktopPersistence(
+    internal val preferences: Preferences = Preferences.userRoot().node("com.music.bitchord.desktop"),
+) {
     private val sourceJson = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -235,52 +238,9 @@ class DesktopPersistence {
     internal fun writeLines(key: String, lines: List<String>) =
         DesktopPreferenceChunks.write(preferences, key, lines.joinToString("\n"))
 
-    private fun encodeSong(song: Song): String = listOf(
-        song.videoId,
-        song.title,
-        song.artist,
-        song.thumbnailUrl.orEmpty(),
-        song.durationText.orEmpty(),
-        song.artistId.orEmpty(),
-        song.albumId.orEmpty(),
-        song.albumName.orEmpty(),
-        song.localUri.orEmpty(),
-        song.localPath.orEmpty(),
-        song.isVideo.toString(),
-        song.isVideoOrigin.toString(),
-        song.setVideoId.orEmpty(),
-        song.fromAutoplay.toString(),
-        song.localDateAddedSeconds?.toString().orEmpty(),
-        song.localDateModifiedSeconds?.toString().orEmpty(),
-        song.sourceQuality.orEmpty(),
-        song.isExplicit?.toString().orEmpty(),
-    ).joinToString(DELIMITER, transform = ::encode)
+    private fun encodeSong(song: Song): String = Companion.encodeSongFields(song)
 
-    private fun decodeSong(value: String): Song? {
-        val fields = value.split(DELIMITER).map(::decode)
-        if (fields.size < 10 || fields[0].isBlank()) return null
-        val isVideo = fields.getOrNull(10)?.toBooleanStrictOrNull() ?: false
-        return Song(
-            videoId = fields[0],
-            title = fields[1],
-            artist = fields[2],
-            thumbnailUrl = fields[3].ifBlank { null },
-            durationText = fields[4].ifBlank { null },
-            artistId = fields[5].ifBlank { null },
-            albumId = fields[6].ifBlank { null },
-            albumName = fields[7].ifBlank { null },
-            localUri = fields[8].ifBlank { null },
-            localPath = fields[9].ifBlank { null },
-            isVideo = isVideo,
-            isVideoOrigin = fields.getOrNull(11)?.toBooleanStrictOrNull() ?: isVideo,
-            setVideoId = fields.getOrNull(12)?.ifBlank { null },
-            fromAutoplay = fields.getOrNull(13)?.toBooleanStrictOrNull() ?: false,
-            localDateAddedSeconds = fields.getOrNull(14)?.toLongOrNull(),
-            localDateModifiedSeconds = fields.getOrNull(15)?.toLongOrNull(),
-            sourceQuality = fields.getOrNull(16)?.ifBlank { null },
-            isExplicit = fields.getOrNull(17)?.toBooleanStrictOrNull(),
-        )
-    }
+    private fun decodeSong(value: String): Song? = Companion.decodeSongFields(value)
 
     private fun decodePlaylist(value: String): DesktopPlaylist? {
         val fields = value.split(PLAYLIST_DELIMITER)
@@ -291,13 +251,79 @@ class DesktopPersistence {
         return DesktopPlaylist(id, title, songs)
     }
 
-    private fun encode(value: String): String =
-        Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray(StandardCharsets.UTF_8))
+    internal companion object {
+        fun encode(value: String): String =
+            Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray(StandardCharsets.UTF_8))
 
-    private fun decode(value: String): String =
-        runCatching { String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8) }.getOrDefault("")
+        fun decode(value: String): String =
+            runCatching { String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8) }.getOrDefault("")
 
-    private companion object {
+        fun decodeSongFields(value: String): Song? {
+            val fields = value.split(DELIMITER).map(::decode)
+            if (fields.size < 10 || fields[0].isBlank()) return null
+            val isVideo = fields.getOrNull(10)?.toBooleanStrictOrNull() ?: false
+            val sourceType = fields.getOrNull(19)?.takeIf(String::isNotBlank)?.let { raw ->
+                PlaybackSourceType.entries.firstOrNull { it.name == raw }
+            }
+            return Song(
+                videoId = fields[0],
+                title = fields[1],
+                artist = fields[2],
+                thumbnailUrl = fields[3].ifBlank { null },
+                durationText = fields[4].ifBlank { null },
+                artistId = fields[5].ifBlank { null },
+                albumId = fields[6].ifBlank { null },
+                albumName = fields[7].ifBlank { null },
+                localUri = fields[8].ifBlank { null },
+                localPath = fields[9].ifBlank { null },
+                isVideo = isVideo,
+                isVideoOrigin = fields.getOrNull(11)?.toBooleanStrictOrNull() ?: isVideo,
+                setVideoId = fields.getOrNull(12)?.ifBlank { null },
+                queueTier = if (fields.getOrNull(13)?.toBooleanStrictOrNull() == true) QueueTier.AUTOPLAY else QueueTier.CONTEXT,
+                localDateAddedSeconds = fields.getOrNull(14)?.toLongOrNull(),
+                localDateModifiedSeconds = fields.getOrNull(15)?.toLongOrNull(),
+                sourceQuality = fields.getOrNull(16)?.ifBlank { null },
+                isExplicit = fields.getOrNull(17)?.toBooleanStrictOrNull(),
+                playbackSource = fields.getOrNull(18)?.ifBlank { null },
+                playbackSourceType = sourceType,
+                playbackSourceId = fields.getOrNull(20)?.ifBlank { null },
+                trackNumber = fields.getOrNull(21)?.toIntOrNull(),
+                sourceHiRes = fields.getOrNull(22)?.toBooleanStrictOrNull() ?: false,
+            )
+        }
+
+        fun encodeSongFields(song: Song): String = listOf(
+            song.videoId,
+            song.title,
+            song.artist,
+            song.thumbnailUrl.orEmpty(),
+            song.durationText.orEmpty(),
+            song.artistId.orEmpty(),
+            song.albumId.orEmpty(),
+            song.albumName.orEmpty(),
+            song.localUri.orEmpty(),
+            song.localPath.orEmpty(),
+            song.isVideo.toString(),
+            song.isVideoOrigin.toString(),
+            song.setVideoId.orEmpty(),
+            song.fromAutoplay.toString(),
+            song.localDateAddedSeconds?.toString().orEmpty(),
+            song.localDateModifiedSeconds?.toString().orEmpty(),
+            song.sourceQuality.orEmpty(),
+            song.isExplicit?.toString().orEmpty(),
+            song.playbackSource.orEmpty(),
+            song.playbackSourceType?.name.orEmpty(),
+            song.playbackSourceId.orEmpty(),
+            song.trackNumber?.toString().orEmpty(),
+            song.sourceHiRes.toString(),
+        ).joinToString(DELIMITER, transform = ::encode)
+
+        fun encodePlaylistLine(playlist: DesktopPlaylist): String = listOf(
+            encode(playlist.id),
+            encode(playlist.title),
+            playlist.songs.joinToString(SONG_DELIMITER, transform = ::encodeSongFields),
+        ).joinToString(PLAYLIST_DELIMITER)
+
         const val KEY_LIKED_IDS = "liked_ids"
         const val KEY_DISLIKED_IDS = "disliked_ids"
         const val KEY_HISTORY = "history"
@@ -325,31 +351,4 @@ data class DesktopPlaylist(
     val songs: List<Song> = emptyList(),
 )
 
-private fun DesktopPlaylist.toPreferenceLine(): String = listOf(
-    Base64.getUrlEncoder().withoutPadding().encodeToString(id.toByteArray(StandardCharsets.UTF_8)),
-    Base64.getUrlEncoder().withoutPadding().encodeToString(title.toByteArray(StandardCharsets.UTF_8)),
-    songs.joinToString(";") { song ->
-        listOf(
-            song.videoId,
-            song.title,
-            song.artist,
-            song.thumbnailUrl.orEmpty(),
-            song.durationText.orEmpty(),
-            song.artistId.orEmpty(),
-            song.albumId.orEmpty(),
-            song.albumName.orEmpty(),
-            song.localUri.orEmpty(),
-            song.localPath.orEmpty(),
-            song.isVideo.toString(),
-            song.isVideoOrigin.toString(),
-            song.setVideoId.orEmpty(),
-            song.fromAutoplay.toString(),
-            song.localDateAddedSeconds?.toString().orEmpty(),
-            song.localDateModifiedSeconds?.toString().orEmpty(),
-            song.sourceQuality.orEmpty(),
-            song.isExplicit?.toString().orEmpty(),
-        ).joinToString("|", transform = { field ->
-            Base64.getUrlEncoder().withoutPadding().encodeToString(field.toByteArray(StandardCharsets.UTF_8))
-        })
-    },
-).joinToString("#")
+private fun DesktopPlaylist.toPreferenceLine(): String = DesktopPersistence.encodePlaylistLine(this)

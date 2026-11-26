@@ -1,6 +1,7 @@
 package com.music.bitchord.ui.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -81,11 +82,14 @@ internal fun ListenTogetherMembersSheet(
 /** One member. The playing style mirrors [OutputRow] — a lit row for the one that's you. */
 @Composable
 private fun MemberDrawerRow(member: PartyMember, isYou: Boolean) {
+    val ink = LocalPlayerSurfaceInk.current
+    val lightTheme = LocalPlayerLightTheme.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(Color.White.copy(alpha = if (isYou) 0.10f else 0.05f))
+            .background(playerDrawerRowFill(lightTheme, selected = isYou))
+            .border(0.5.dp, playerDrawerRowBorder(lightTheme, selected = isYou), ROW_SHAPE)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -93,7 +97,7 @@ private fun MemberDrawerRow(member: PartyMember, isYou: Boolean) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.08f)),
+                .background(playerDrawerCircleFill(lightTheme, selected = false)),
             contentAlignment = Alignment.Center,
         ) {
             if (member.avatarUrl != null) {
@@ -106,7 +110,7 @@ private fun MemberDrawerRow(member: PartyMember, isYou: Boolean) {
                 Text(
                     text = member.displayName.take(1).uppercase(),
                     style = MaterialTheme.typography.labelLarge,
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = ink.copy(alpha = 0.88f),
                 )
             }
         }
@@ -117,7 +121,7 @@ private fun MemberDrawerRow(member: PartyMember, isYou: Boolean) {
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = if (isYou) FontWeight.SemiBold else FontWeight.Normal,
                 ),
-                color = Color.White.copy(alpha = if (isYou) 1f else 0.85f),
+                color = ink.copy(alpha = if (isYou) 1f else 0.88f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -136,7 +140,7 @@ private fun MemberDrawerRow(member: PartyMember, isYou: Boolean) {
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = ink.copy(alpha = 0.62f),
                 )
             }
         }
@@ -147,11 +151,14 @@ private fun MemberDrawerRow(member: PartyMember, isYou: Boolean) {
 @Composable
 private fun ManageRow(code: String?, onClick: () -> Unit) {
     val haptics = rememberHaptics()
+    val ink = LocalPlayerSurfaceInk.current
+    val lightTheme = LocalPlayerLightTheme.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(Color.White.copy(alpha = 0.05f))
+            .background(playerDrawerRowFill(lightTheme, selected = false))
+            .border(0.5.dp, playerDrawerRowBorder(lightTheme, selected = false), ROW_SHAPE)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -166,13 +173,13 @@ private fun ManageRow(code: String?, onClick: () -> Unit) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.08f)),
+                .background(playerDrawerCircleFill(lightTheme, selected = false)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Rounded.Settings,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = ink.copy(alpha = 0.72f),
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -181,7 +188,7 @@ private fun ManageRow(code: String?, onClick: () -> Unit) {
             Text(
                 text = stringResource(Res.string.listen_together_manage),
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.85f),
+                color = ink.copy(alpha = 0.88f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -190,7 +197,7 @@ private fun ManageRow(code: String?, onClick: () -> Unit) {
                 Text(
                     text = stringResource(Res.string.listen_together_in_party, code),
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = ink.copy(alpha = 0.62f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -199,7 +206,7 @@ private fun ManageRow(code: String?, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.35f),
+            tint = ink.copy(alpha = 0.42f),
             modifier = Modifier.size(20.dp),
         )
     }

@@ -128,20 +128,23 @@ private const val FROST_RELEASE_DELAY_MS = 400L
  * blurred live off [hazeState] — which is what a bar inside the player gets,
  * since a still would freeze the list scrolling under it.
  */
+internal val MenuFrostLight = Color(0xFFF6F6F9)
+
 @Composable
 fun Modifier.playerMenuSurface(
     shape: Shape,
     hazeState: HazeState?,
-    /** How much of the charcoal slab covers the frost. */
+    /** How much of the frost slab covers the backdrop. */
     slabAlpha: Float = MENU_FROST_ALPHA,
 ): Modifier {
     val reduceDynamicBlur by PlayerSettings.reduceDynamicBlur.collectAsStateWithLifecycle()
     val frost = LocalPlayerFrost.current
+    val baseFill = if (LocalPlayerLightTheme.current) MenuFrostLight else MenuFrostDark
     return clip(shape).then(
         when {
-            reduceDynamicBlur || (frost == null && hazeState == null) -> Modifier.background(MenuFrostDark)
-            frost != null -> with(frost) { Modifier.frostPanel(shape, MenuFrostDark.copy(alpha = slabAlpha)) }
-            else -> Modifier.liveMenuFrost(hazeState!!, MenuFrostDark, slabAlpha)
+            reduceDynamicBlur || (frost == null && hazeState == null) -> Modifier.background(baseFill)
+            frost != null -> with(frost) { Modifier.frostPanel(shape, baseFill.copy(alpha = slabAlpha)) }
+            else -> Modifier.liveMenuFrost(hazeState!!, baseFill, slabAlpha)
         },
     )
 }
@@ -155,8 +158,13 @@ fun Modifier.playerMenuSurface(
 @Composable
 fun Modifier.playerBarSurface(shape: Shape, hazeState: HazeState?): Modifier {
     val plain by PlayerSettings.disableBlendEffects.collectAsStateWithLifecycle()
+    val rimColor = if (LocalPlayerLightTheme.current) {
+        Color.Black.copy(alpha = 0.08f)
+    } else {
+        Color.White.copy(alpha = 0.10f)
+    }
     // Thinner than the menu's 60%: the menu's frost also draws the colour up 1.8×,
     // which haze can't, so the same slab here reads as near-solid charcoal.
     return playerMenuSurface(shape, hazeState, slabAlpha = if (plain) 0.70f else 0.45f)
-        .border(0.5.dp, Color.White.copy(alpha = 0.10f), shape)
+        .border(0.5.dp, rimColor, shape)
 }

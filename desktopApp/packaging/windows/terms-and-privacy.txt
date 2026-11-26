@@ -1,0 +1,26 @@
+BITCHORD DESKTOP - PRIVACY POLICY, TERMS OF SERVICE & GPLv3 LICENSE
+
+By installing and using BitChord Desktop, you acknowledge and agree to the following terms and open-source license:
+
+1. PRIVACY POLICY SUMMARY
+Full Privacy Policy: https://bitchord-desktop.efzyn.my.id/privacy.html
+
+- Local-First Architecture: BitChord Desktop runs directly on your device without a centralized developer tracking backend. Listening history, playlists, preferences, lyrics cache, and Replay statistics stay locally on your computer.
+- Third-Party Services You Enable:
+  * YouTube Music / InnerTube APIs: Used for streaming audio, search, and synchronized account library features when signed in.
+  * Google Drive Backup (Optional): If you connect Google Drive, BitChord Desktop uses the restricted "drive.appdata" scope solely to store and restore your backup files inside your private hidden App Data folder. No developer server stores your Google Drive tokens.
+  * Lyrics & Integrations (Optional): Requests sent to LRCLIB, Musixmatch, Last.fm, Discord RPC (local IPC), or Listen Together party servers only occur when used or enabled.
+- No Ads & No Sale of Data: BitChord Desktop contains zero advertisements and never sells or monetizes personal data.
+
+2. TERMS OF SERVICE SUMMARY
+Full Terms of Service: https://bitchord-desktop.efzyn.my.id/terms.html
+
+- Independent Community Port: BitChord Desktop (maintained by efzynx) is an independent desktop port of BitChord by Kushagra Singh and is not affiliated with Google LLC, YouTube, Spotify, or Apple Inc.
+- Acceptable Use: You are responsible for complying with applicable laws and the terms of third-party streaming services you access through the client.
+- As-Is Software: Provided "AS IS" without warranties of any kind under the GNU General Public License v3.0.
+
+3. GNU GENERAL PUBLIC LICENSE (GPLv3)
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for full details:
+https://www.gnu.org/licenses/gpl-3.0.html

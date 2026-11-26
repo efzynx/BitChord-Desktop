@@ -38,7 +38,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
@@ -72,17 +72,48 @@ internal object DesktopPlayerHost : PlayerHost {
     override suspend fun bestPartMs(song: Song): Long? =
         DesktopBestParts.startFor(song).takeIf { it.source != BestPartStart.Source.FALLBACK }?.startMs
 
-    /** The player's volume, 0..1, as the window holds it. */
-    val volumeLevel = MutableStateFlow(1f)
+    /** The player's software volume, 0..1, as the window holds it. */
+    private val softwareVolumeLevel = MutableStateFlow(1f)
 
-    /** Where a drag on the player's volume bar goes — set by the window. */
+    fun setSoftwareVolume(level: Float) {
+        softwareVolumeLevel.value = level.coerceIn(0f, 1f)
+    }
+
+    /** Where a drag on the shared player's volume bar goes when not in Bit-Perfect hardware mode. */
     @Volatile
-    var onVolumeChange: (Float) -> Unit = { volumeLevel.value = it }
+    var onSoftwareVolumeChange: (Float) -> Unit = { softwareVolumeLevel.value = it }
+
+    /** Effective volume exposed to shared player & output sheet: hardware DAC level when Bit-Perfect is active. */
+    val volumeLevel: StateFlow<Float> = combine(
+        softwareVolumeLevel,
+        DesktopBitPerfect.status,
+        DesktopDacVolume.level,
+    ) { sw, bp, hw ->
+        when {
+            bp.active && hw != null -> hw
+            bp.active -> 1f
+            else -> sw
+        }
+    }.stateIn(scope, SharingStarted.Eagerly, 1f)
 
     override val volume: SystemVolume = object : SystemVolume {
-        override val level: StateFlow<Float> = volumeLevel.asStateFlow()
-        override fun set(level: Float) = onVolumeChange(level.coerceIn(0f, 1f))
-        override fun refresh() = Unit
+        override val level: StateFlow<Float> = volumeLevel
+        override fun set(level: Float) {
+            val next = level.coerceIn(0f, 1f)
+            if (DesktopBitPerfect.status.value.active) {
+                if (DesktopDacVolume.level.value != null) {
+                    DesktopDacVolume.set(next)
+                }
+            } else {
+                softwareVolumeLevel.value = next
+                onSoftwareVolumeChange(next)
+            }
+        }
+        override fun refresh() {
+            if (DesktopBitPerfect.status.value.active) {
+                DesktopDacVolume.refresh()
+            }
+        }
     }
 
     /** The last list handed to the drawer, for turning a row's id back into a mixer. */
@@ -171,11 +202,11 @@ internal object DesktopPlayerHost : PlayerHost {
 
     /** The desktop's signal-chain readout, supplied by the window that has the engine. */
     @Volatile
-    var pipelineDialog: (@Composable (onDismiss: () -> Unit) -> Unit)? = null
+    var pipelineDialog: (@Composable (hazeState: HazeState, isPlaying: Boolean, onDismiss: () -> Unit) -> Unit)? = null
 
     @Composable
     override fun AudioPipelineDialog(hazeState: HazeState, isPlaying: Boolean, onDismiss: () -> Unit) {
-        pipelineDialog?.invoke(onDismiss)
+        pipelineDialog?.invoke(hazeState, isPlaying, onDismiss)
     }
 }
 
@@ -193,7 +224,7 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     override val fullBleedArtwork = MutableStateFlow(false)
     override val showTotalDuration = MutableStateFlow(persistence.boolean(KEY_SHOW_TOTAL_DURATION, false))
     override val hideSongStatus = MutableStateFlow(false)
-    override val hideLyricsPreview = MutableStateFlow(false)
+    override val hideLyricsPreview = DesktopAppearanceSettings.hideLyricsPreview
     override val showQueueHistory = MutableStateFlow(false)
     override val hideVolumeBar = DesktopAppearanceSettings.hideVolumeBar
     // A desktop window has no status bar to hide.
@@ -218,7 +249,7 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     override val prioritizeSpotifyCanvas = MutableStateFlow(false)
     override val reduceAnimation = DesktopAppearanceSettings.reduceAnimation
     override val reduceDynamicBlur = DesktopAppearanceSettings.reduceDynamicBlur
-    override val disableBlendEffects = MutableStateFlow(false)
+    override val disableBlendEffects = DesktopAppearanceSettings.disableBlendEffects
     override val showNerdStats = MutableStateFlow(false)
     override val showBestPart = MutableStateFlow(persistence.boolean(KEY_SHOW_BEST_PART, true))
     override val showListenTogetherButton = MutableStateFlow(true)
@@ -254,6 +285,8 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     }
 
     override fun setMixViewOpen(open: Boolean) {}
+
+    override fun setHideLyricsPreview(value: Boolean) = DesktopAppearanceSettings.setHideLyricsPreview(value)
 
     fun setShowTotalDuration(value: Boolean) {
         showTotalDuration.value = value
@@ -296,6 +329,14 @@ private fun kindOf(name: String): AudioOutputKind {
 }
 
 private fun DesktopAudioPipeline.toOutputFormat(): OutputFormatUi {
+    val bp = bitPerfect
+    if (bp.active && bp.sampleRateHz > 0 && bp.outputBits > 0) {
+        return OutputFormatUi(
+            summary = bp.label.orEmpty(),
+            bitPerfect = bp.exact,
+            dacLimited = bp.dacLimited,
+        )
+    }
     val depth = when {
         outputIsFloat == true -> "32-bit float"
         outputBytesPerSample != null -> "${outputBytesPerSample * 8}-bit PCM"

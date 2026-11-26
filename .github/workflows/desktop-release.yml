@@ -182,26 +182,44 @@ jobs:
         run: |
           echo "Building BitChord Windows Desktop version ${{ env.VERSION }}"
 
+      - name: Ensure Inno Setup 6 is Available
+        shell: powershell
+        run: |
+          $isccPaths = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+            "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+          )
+          $found = $isccPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $found) {
+            $cmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+            if ($cmd) { $found = $cmd.Source }
+          }
+          if (-not $found) {
+            Write-Host "Installing Inno Setup via Chocolatey..."
+            choco install innosetup -y --no-progress
+          } else {
+            Write-Host "Found Inno Setup compiler at $found"
+          }
+
       - name: Build Windows Portable Zip
         shell: cmd
         run: |
           call gradlew.bat :desktopApp:windowsPortable -Pbitchord.target=windows -Pbitchord.version="%VERSION%" --no-daemon
 
-      - name: Build Windows MSI and EXE Installers
+      - name: Build Windows Setup EXE (Inno Setup) and MSI
         shell: cmd
         run: |
-          call gradlew.bat :desktopApp:packageReleaseMsi :desktopApp:packageReleaseExe -Pbitchord.target=windows -Pbitchord.version="%VERSION%" --no-daemon
+          call gradlew.bat :desktopApp:packageWindowsInstaller :desktopApp:packageReleaseMsi -Pbitchord.target=windows -Pbitchord.version="%VERSION%" --no-daemon
 
       - name: Collect Windows Packages
         shell: bash
         run: |
           mkdir -p dist/windows
           find desktopApp/build/distributions -name "*windows-portable.zip" -exec cp {} dist/windows/ \;
+          cp "desktopApp/build/distributions/BitChord-${{ env.VERSION }}.exe" "dist/windows/BitChord-${{ env.VERSION }}.exe"
           for f in $(find desktopApp/build/compose/binaries -name "*.msi"); do
             cp "$f" "dist/windows/BitChord-${{ env.VERSION }}.msi"
-          done
-          for f in $(find desktopApp/build/compose/binaries -name "*.exe"); do
-            cp "$f" "dist/windows/BitChord-${{ env.VERSION }}.exe"
           done
           ls -lh dist/windows/
 

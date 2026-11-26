@@ -33,7 +33,10 @@ import org.bytedeco.ffmpeg.global.avutil.AVERROR_EOF
 import org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO
 import org.bytedeco.ffmpeg.global.avutil.AV_LOG_ERROR
 import org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE
+import org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_DBL
+import org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_DBLP
 import org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLT
+import org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP
 import org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_S16
 import org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_S32
 import org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default
@@ -69,6 +72,7 @@ internal data class DesktopPcmFormat(
     val channels: Int,
     val bytesPerSample: Int,
     val isFloat: Boolean = false,
+    val validBitsPerSample: Int = bytesPerSample * 8,
 ) {
     val frameBytes: Int get() = channels * bytesPerSample
 
@@ -95,6 +99,7 @@ internal class DesktopAudioDecoder : DesktopSampleSource {
     private var outputPlanes: PointerPointer<BytePointer>? = null
     private var scratch = ByteArray(0)
     private var samples = FloatArray(0)
+    private var intSamples = IntArray(0)
 
     /** Set once the container is exhausted, so the drain runs exactly once. */
     private var drained = false
@@ -139,6 +144,8 @@ internal class DesktopAudioDecoder : DesktopSampleSource {
         windowed: Boolean = false,
         /** Explicit demuxer for an extensionless add-on manifest. */
         transport: String? = null,
+        /** Preserve native integer PCM format for lossless bit-perfect output when eligible. */
+        preserveSourcePcm: Boolean = false,
     ): Result<Unit> = runCatching {
         av_log_set_level(AV_LOG_ERROR)
         ensureNetwork()
@@ -203,8 +210,28 @@ internal class DesktopAudioDecoder : DesktopSampleSource {
             else -> null
         }
 
-        outputFormat = requested.copy(sampleRate = context.sample_rate())
-        measuredFormat = measure(decoder.name()?.string, context, opened)
+        val measured = measure(decoder.name()?.string, context, opened)
+        measuredFormat = measured
+        val rawDepth = measured.bitDepth ?: 16
+        val integerSource = !isFloatSampleFormat(context.sample_fmt())
+        outputFormat = if (preserveSourcePcm && measured.isLossless && integerSource) {
+            val channels = measured.channels?.takeIf { it in 1..8 } ?: requested.channels
+            val validBits = when {
+                rawDepth <= 16 -> 16
+                rawDepth <= 24 -> 24
+                else -> 32
+            }
+            val containerBytes = if (validBits == 16) 2 else 4
+            DesktopPcmFormat(
+                sampleRate = context.sample_rate(),
+                channels = channels,
+                bytesPerSample = containerBytes,
+                isFloat = false,
+                validBitsPerSample = validBits,
+            )
+        } else {
+            requested.copy(sampleRate = context.sample_rate())
+        }
         resampler = buildResampler(context, outputFormat)
         packet = av_packet_alloc()
         frame = av_frame_alloc()
@@ -254,12 +281,27 @@ internal class DesktopAudioDecoder : DesktopSampleSource {
             .takeIf { it > 0 }
             ?: av_get_bytes_per_sample(context.sample_fmt()).takeIf { it > 0 }?.times(8)
         val bits = context.bit_rate().takeIf { it > 0 } ?: container.bit_rate().takeIf { it > 0 }
+        val rawFormat = container.iformat()?.name()?.string?.lowercase().orEmpty()
+        val containerLabel = when {
+            "flac" in rawFormat -> "FLAC"
+            "wav" in rawFormat -> "WAV"
+            "mp4" in rawFormat || "m4a" in rawFormat -> "M4A"
+            "webm" in rawFormat || "matroska" in rawFormat -> "WebM"
+            "ogg" in rawFormat -> "OGG"
+            "mp3" in rawFormat -> "MP3"
+            "aiff" in rawFormat -> "AIFF"
+            "hls" in rawFormat -> "HLS"
+            "dash" in rawFormat -> "DASH"
+            rawFormat.isNotBlank() -> rawFormat.substringBefore(',').uppercase()
+            else -> null
+        }
         return DesktopStreamFormat(
             codec = codecName,
             kbps = bits?.let { (it / 1_000).toInt() }?.takeIf { it > 0 },
             sampleRateHz = context.sample_rate().takeIf { it > 0 },
             bitDepth = depth?.takeIf { lossless },
             channels = channels,
+            container = containerLabel,
         )
     }
 
@@ -358,20 +400,68 @@ internal class DesktopAudioDecoder : DesktopSampleSource {
     /** The next block as interleaved floats, or null at the end of the stream. */
     override fun readSamples(): FloatArray? {
         val block = read() ?: return null
-        val count = block.size / 4
+        val bytesPerSample = outputFormat.bytesPerSample
+        val count = block.size / bytesPerSample
         if (samples.size < count) samples = FloatArray(count)
-        for (index in 0 until count) {
-            val at = index * 4
-            samples[index] = Float.fromBits(
-                (block[at].toInt() and 0xFF) or
+        when {
+            outputFormat.isFloat -> for (index in 0 until count) {
+                val at = index * 4
+                samples[index] = Float.fromBits(
+                    (block[at].toInt() and 0xFF) or
+                        ((block[at + 1].toInt() and 0xFF) shl 8) or
+                        ((block[at + 2].toInt() and 0xFF) shl 16) or
+                        (block[at + 3].toInt() shl 24),
+                )
+            }
+            bytesPerSample == 2 -> for (index in 0 until count) {
+                val at = index * 2
+                val raw = ((block[at].toInt() and 0xFF) or (block[at + 1].toInt() shl 8))
+                samples[index] = raw / 32_768f
+            }
+            else -> for (index in 0 until count) {
+                val at = index * 4
+                val raw = (block[at].toInt() and 0xFF) or
                     ((block[at + 1].toInt() and 0xFF) shl 8) or
                     ((block[at + 2].toInt() and 0xFF) shl 16) or
-                    (block[at + 3].toInt() shl 24),
-            )
+                    (block[at + 3].toInt() shl 24)
+                samples[index] = (raw / 2_147_483_648.0).toFloat()
+            }
         }
         sampleCount = count
         return samples
     }
+
+    /** The next block as left-aligned 32-bit signed integers for lossless bit-perfect output. */
+    override fun readIntSamples(): IntArray? {
+        if (outputFormat.isFloat) return null
+        val block = read() ?: return null
+        val bytesPerSample = outputFormat.bytesPerSample
+        val count = block.size / bytesPerSample
+        if (intSamples.size < count) intSamples = IntArray(count)
+        if (bytesPerSample == 2) {
+            for (index in 0 until count) {
+                val at = index * 2
+                val s16 = (block[at].toInt() and 0xFF) or (block[at + 1].toInt() shl 8)
+                intSamples[index] = s16 shl 16
+            }
+        } else {
+            for (index in 0 until count) {
+                val at = index * 4
+                intSamples[index] = (block[at].toInt() and 0xFF) or
+                    ((block[at + 1].toInt() and 0xFF) shl 8) or
+                    ((block[at + 2].toInt() and 0xFF) shl 16) or
+                    (block[at + 3].toInt() shl 24)
+            }
+        }
+        sampleCount = count
+        return intSamples
+    }
+
+    private fun isFloatSampleFormat(fmt: Int): Boolean =
+        fmt == AV_SAMPLE_FMT_FLT ||
+            fmt == AV_SAMPLE_FMT_FLTP ||
+            fmt == AV_SAMPLE_FMT_DBL ||
+            fmt == AV_SAMPLE_FMT_DBLP
 
     /** How much of the array [readSamples] returned is actually this block. */
     override var sampleCount: Int = 0

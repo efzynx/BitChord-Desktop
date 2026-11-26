@@ -31,10 +31,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Undo
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.ui.draw.clip
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -330,14 +336,14 @@ internal fun LandscapeArtwork(
                     shape = sleeveShape()
                     clip = true
                 }
-                .background(Color.Black.copy(alpha = 0.18f)),
+                .background(if (LocalPlayerLightTheme.current) Color.Black.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.18f)),
             contentAlignment = Alignment.Center,
         ) {
             if (!artLoaded && !canvasRendered) {
                 Icon(
                     imageVector = BitChordIcons.MusicNote,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.35f),
+                    tint = LocalPlayerSurfaceInk.current.copy(alpha = 0.35f),
                     modifier = Modifier.fillMaxSize(0.36f),
                 )
             }
@@ -483,7 +489,7 @@ internal fun LandscapeCredits(
                 MarqueeText(
                     text = song.title,
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
+                    color = LocalPlayerSurfaceInk.current,
                     onOverflowChange = { titleOverflowing = it },
                     // Before the title, in the artist line's colour.
                     leading = if (song.isExplicit == true) {
@@ -558,9 +564,12 @@ internal fun LandscapeLyricsPane(
     pickBar: @Composable () -> Unit = {},
     romanizationToggle: @Composable () -> Unit,
     translationToggle: @Composable () -> Unit,
+    onHideLyrics: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     panel: @Composable (Modifier) -> Unit,
 ) {
+    val surfaceInk = LocalPlayerSurfaceInk.current
+    val lightTheme = LocalPlayerLightTheme.current
     Column(modifier = modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -577,10 +586,39 @@ internal fun LandscapeLyricsPane(
                 Text(
                     text = placeholder,
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = surfaceInk.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.Center),
                 )
+            }
+            if (onHideLyrics != null && !picking) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 6.dp, end = 6.dp)
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (lightTheme) {
+                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.08f)
+                            } else {
+                                androidx.compose.ui.graphics.Color.White.copy(alpha = 0.12f)
+                            },
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onHideLyrics,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = stringResource(Res.string.close_lyrics),
+                        tint = surfaceInk.copy(alpha = 0.85f),
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
         }
         // While a pick is open the row below gives way to the bar: the two

@@ -190,6 +190,7 @@ internal fun QueueSelectionBar(
 @Composable
 private fun RowScope.BulkActionButton(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
     val labelStyle = MaterialTheme.typography.labelMedium
+    val ink = LocalPlayerSurfaceInk.current
     Column(
         modifier = Modifier
             .weight(1f)
@@ -200,11 +201,11 @@ private fun RowScope.BulkActionButton(icon: ImageVector, label: String, enabled:
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+        Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.size(22.dp))
         // One line on every width and font scale: shrinks a little before it ever ellipsizes.
         BasicText(
             text = label,
-            style = labelStyle.copy(color = Color.White, textAlign = TextAlign.Center),
+            style = labelStyle.copy(color = ink, textAlign = TextAlign.Center),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = labelStyle.fontSize),

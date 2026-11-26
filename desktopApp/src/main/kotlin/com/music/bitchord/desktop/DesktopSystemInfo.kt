@@ -63,7 +63,7 @@ internal object DesktopSystemInfo {
     val javaVersion: String = System.getProperty("java.version").orEmpty()
     val javaVendor: String = System.getProperty("java.vendor").orEmpty()
     val appVersion: String = DesktopUpdateChecker.currentVersion
-    const val BASE_UPSTREAM_VERSION = "1.9.1"
+    const val BASE_UPSTREAM_VERSION = "1.10.0"
 
     val repoUrl: String = "https://github.com/efzynx/BitChord-Desktop"
 
@@ -215,10 +215,16 @@ internal object DesktopSystemInfo {
             val progFiles = System.getenv("ProgramFiles").orEmpty()
             val progFilesX86 = System.getenv("ProgramFiles(x86)").orEmpty()
             val localAppData = System.getenv("LOCALAPPDATA").orEmpty()
+            val appRootDir = File(appPath).parentFile?.parentFile
+            val hasCustomInstallerLayout = appRootDir != null && (
+                File(appRootDir, "unins000.exe").isFile ||
+                    (File(appRootDir, "BitChord.exe").isFile && File(appRootDir, "runtime").isDirectory)
+                )
             when {
                 (progFiles.isNotBlank() && appPath.contains(progFiles, ignoreCase = true)) ||
                     (progFilesX86.isNotBlank() && appPath.contains(progFilesX86, ignoreCase = true)) ||
-                    (localAppData.isNotBlank() && appPath.contains("$localAppData\\Programs", ignoreCase = true)) -> {
+                    (localAppData.isNotBlank() && appPath.contains("$localAppData\\Programs", ignoreCase = true)) ||
+                    hasCustomInstallerLayout -> {
                     InstallType.WINDOWS_INSTALLED
                 }
                 appPath.contains("build\\classes") || appPath.contains("build\\libs") -> {

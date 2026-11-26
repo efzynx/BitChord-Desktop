@@ -1557,18 +1557,30 @@ private fun spiral(path: Path, f: Frame) {
  * the grid [MoodGridPage] lays out. A tile plays that mood's station, the same
  * queue a Mood for You card starts.
  */
+fun resolveHomeMoods(availableWidth: Dp): List<TopPickMood> {
+    val coreMoods = TopPickMood.entries.filter { it.isCoreMood }
+    val gap = 14.dp
+    val fitCount = ((availableWidth + gap) / (SHELF_CARD_WIDTH + gap)).toInt().coerceAtLeast(1)
+    return if (fitCount >= coreMoods.size - 1) TopPickMood.entries else coreMoods
+}
+
 @Composable
 internal fun FindYourMoodShelf(onClick: (TopPickMood, String) -> Unit, onShowAll: () -> Unit) {
     val rowState = rememberLazyListState()
-    Column(Modifier.padding(bottom = 26.dp)) {
-        SectionHeader(stringResource(Res.string.find_your_mood), onShowAll = onShowAll)
-        ShelfRow(
-            contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            state = rowState,
-        ) {
-            items(TopPickMood.entries.filter { it.isCoreMood }, key = { it.name }) { mood ->
-                MoodTile(mood, onClick, Modifier.width(SHELF_CARD_WIDTH))
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(bottom = 26.dp)) {
+        val moods = remember(maxWidth) {
+            resolveHomeMoods((maxWidth - PAGE_GUTTER * 2).coerceAtLeast(0.dp))
+        }
+        Column(Modifier.fillMaxWidth()) {
+            SectionHeader(stringResource(Res.string.find_your_mood), onShowAll = onShowAll)
+            ShelfRow(
+                contentPadding = PaddingValues(horizontal = PAGE_GUTTER),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                state = rowState,
+            ) {
+                items(moods, key = { it.name }) { mood ->
+                    MoodTile(mood, onClick, Modifier.width(SHELF_CARD_WIDTH))
+                }
             }
         }
     }

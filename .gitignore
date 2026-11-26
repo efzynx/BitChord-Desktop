@@ -10,6 +10,8 @@ gradle-app.setting
 
 # Local configuration file (SDK path, etc.)
 local.properties
+.env
+.env.*
 
 # Kotlin
 .kotlin/

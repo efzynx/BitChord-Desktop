@@ -40,6 +40,9 @@ internal object DesktopWindowsFrame {
 
     fun minimize(): Boolean = installed && runCatching { nativeMinimize() }.getOrDefault(false)
 
+    /** Restores and brings the existing Win32 window to the foreground. */
+    fun activate(): Boolean = installed && runCatching { nativeActivate() }.getOrDefault(false)
+
     fun toggleMaximize(): Boolean =
         installed && runCatching { nativeToggleMaximize() }.getOrDefault(false)
 
@@ -77,6 +80,9 @@ internal object DesktopWindowsFrame {
 
     @JvmStatic
     private external fun nativeMinimize(): Boolean
+
+    @JvmStatic
+    private external fun nativeActivate(): Boolean
 
     @JvmStatic
     private external fun nativeToggleMaximize(): Boolean

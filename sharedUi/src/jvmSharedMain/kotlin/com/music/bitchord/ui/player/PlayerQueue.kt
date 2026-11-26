@@ -502,6 +502,7 @@ internal fun InlineQueue(
         }
     }
 
+    val ink = LocalPlayerSurfaceInk.current
     Column(modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -512,7 +513,7 @@ internal fun InlineQueue(
                     stringResource(Res.string.queue_selected_count, selectionState.selected(allTracks).size)
                 } else stringResource(Res.string.queue),
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
+                color = ink,
                 modifier = Modifier.weight(1f),
             )
             if (selectionState.active) {
@@ -520,16 +521,16 @@ internal fun InlineQueue(
                     onClick = { selectionState.selectAll(allTracks) },
                     enabled = !selectionState.busy && allTracks.isNotEmpty(),
                 ) {
-                    Text(stringResource(Res.string.queue_select_all), color = Color.White)
+                    Text(stringResource(Res.string.queue_select_all), color = ink)
                 }
                 IconButton(onClick = selectionState::clear) {
-                    Icon(Icons.Rounded.Close, contentDescription = stringResource(Res.string.queue_close_selection), tint = Color.White)
+                    Icon(Icons.Rounded.Close, contentDescription = stringResource(Res.string.queue_close_selection), tint = ink)
                 }
             } else if (selection != null) {
                 Text(
                     text = stringResource(Res.string.queue_select),
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White.copy(alpha = if (controlsLocked) 0.25f else 0.75f),
+                    color = ink.copy(alpha = if (controlsLocked) 0.25f else 0.75f),
                     modifier = Modifier
                         .clip(RoundedCornerShape(percent = 50))
                         .clickable(enabled = !controlsLocked, onClick = selectionState::start)
@@ -816,7 +817,7 @@ private fun QueueHeading(
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = Color.White.copy(alpha = 0.75f),
+            color = LocalPlayerSurfaceInk.current.copy(alpha = 0.75f),
             modifier = Modifier.weight(1f),
         )
         QueueHeadingActions(hasClearAction = hasClearAction, content = trailing)
@@ -871,7 +872,7 @@ private fun QueueAddAllButton(locked: Boolean, onClick: () -> Unit) {
             Icon(
                 Icons.AutoMirrored.Rounded.PlaylistAdd,
                 contentDescription = label,
-                tint = Color.White.copy(alpha = if (locked) 0.25f else 0.75f),
+                tint = LocalPlayerSurfaceInk.current.copy(alpha = if (locked) 0.25f else 0.75f),
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -883,7 +884,7 @@ private fun QueueClearButton(style: TextStyle, locked: Boolean, onClear: () -> U
     Text(
         text = stringResource(Res.string.clear),
         style = style,
-        color = Color.White.copy(alpha = if (locked) 0.25f else 0.75f),
+        color = LocalPlayerSurfaceInk.current.copy(alpha = if (locked) 0.25f else 0.75f),
         modifier = Modifier
             .clip(RoundedCornerShape(percent = 50))
             .clickable(enabled = !locked, onClick = onClear)
@@ -897,6 +898,7 @@ private fun AutoplayHeading(
     modifier: Modifier = Modifier,
     trailing: @Composable () -> Unit = {},
 ) {
+    val ink = LocalPlayerSurfaceInk.current
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -906,7 +908,7 @@ private fun AutoplayHeading(
         Icon(
             BitChordIcons.Infinity,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.75f),
+            tint = ink.copy(alpha = 0.75f),
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(8.dp))
@@ -914,14 +916,14 @@ private fun AutoplayHeading(
             Text(
                 text = stringResource(Res.string.autoplay),
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
+                color = ink,
             )
             Text(
                 text = stringResource(
                     if (hasTracks) Res.string.autoplay_queue_description else Res.string.autoplay_empty_description,
                 ),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.55f),
+                color = ink.copy(alpha = 0.55f),
             )
         }
         QueueHeadingActions(content = trailing)
@@ -1185,13 +1187,14 @@ private fun InlineQueueRow(
     onDragEnd: () -> Unit = {},
 ) {
     val ltr = LocalLayoutDirection.current == LayoutDirection.Ltr
+    val ink = LocalPlayerSurfaceInk.current
 
     val handle: @Composable () -> Unit = {
         if (draggable) {
             Icon(
                 Icons.Rounded.DragHandle,
                 contentDescription = stringResource(Res.string.drag_to_reorder),
-                tint = Color.White.copy(alpha = 0.4f),
+                tint = ink.copy(alpha = 0.4f),
                 modifier = Modifier
                     .size(20.dp)
                     .alpha(if (controlsVisible) 1f else 0f)
@@ -1219,7 +1222,7 @@ private fun InlineQueueRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(if (lifted || selectionChecked == true) Color.White.copy(alpha = 0.06f) else Color.Transparent)
+            .background(if (lifted || selectionChecked == true) ink.copy(alpha = 0.06f) else Color.Transparent)
             // Disabled rather than ignored: a tap that ripples and then does
             // nothing reads as the app having missed it.
             .then(
@@ -1247,19 +1250,19 @@ private fun InlineQueueRow(
                 .trackArtSize(44.dp, song.isVideo)
                 .clip(RoundedCornerShape(6.dp))
                 .thumbnailBorder(RoundedCornerShape(6.dp))
-                .background(Color.White.copy(alpha = 0.08f)),
+                .background(ink.copy(alpha = 0.08f)),
         )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             ExplicitSongTitle(
                 song = song,
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White.copy(alpha = 0.92f),
+                color = ink.copy(alpha = 0.92f),
             )
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.55f),
+                color = ink.copy(alpha = 0.55f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

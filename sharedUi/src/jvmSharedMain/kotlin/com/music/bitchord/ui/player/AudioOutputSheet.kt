@@ -1,6 +1,7 @@
 package com.music.bitchord.ui.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -146,12 +147,15 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
     val haptics = rememberHaptics()
     val outputFormat by PlayerPlatform.host.outputFormat.collectAsStateWithLifecycle()
     val subtitle = outputFormat.summary
+    val ink = LocalPlayerSurfaceInk.current
+    val lightTheme = LocalPlayerLightTheme.current
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(Color.White.copy(alpha = 0.05f))
+            .background(playerDrawerRowFill(lightTheme, selected = false))
+            .border(0.5.dp, playerDrawerRowBorder(lightTheme, selected = false), ROW_SHAPE)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -166,13 +170,13 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.08f)),
+                .background(playerDrawerCircleFill(lightTheme, selected = false)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Rounded.GraphicEq,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.7f),
+                tint = ink.copy(alpha = 0.72f),
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -181,7 +185,7 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
             Text(
                 text = stringResource(Res.string.audio_pipeline),
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.85f),
+                color = ink.copy(alpha = 0.88f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -189,7 +193,7 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.55f),
+                color = ink.copy(alpha = 0.62f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -197,7 +201,7 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.35f),
+            tint = ink.copy(alpha = 0.42f),
             modifier = Modifier.size(20.dp),
         )
     }
@@ -212,11 +216,14 @@ private fun AudioPipelineRow(onClick: () -> Unit) {
 private fun CastRow(cast: CastUi, onClick: () -> Unit) {
     val haptics = rememberHaptics()
     val casting = cast.connectedName != null
+    val ink = LocalPlayerSurfaceInk.current
+    val lightTheme = LocalPlayerLightTheme.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(Color.White.copy(alpha = if (casting) 0.10f else 0.05f))
+            .background(playerDrawerRowFill(lightTheme, selected = casting))
+            .border(0.5.dp, playerDrawerRowBorder(lightTheme, selected = casting), ROW_SHAPE)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -231,13 +238,13 @@ private fun CastRow(cast: CastUi, onClick: () -> Unit) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = if (casting) 0.16f else 0.08f)),
+                .background(playerDrawerCircleFill(lightTheme, selected = casting)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = if (casting) Icons.Rounded.CastConnected else Icons.Rounded.Cast,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = if (casting) 1f else 0.7f),
+                tint = ink.copy(alpha = if (casting) 1f else 0.72f),
                 modifier = Modifier.size(21.dp),
             )
         }
@@ -248,7 +255,7 @@ private fun CastRow(cast: CastUi, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = if (casting) FontWeight.SemiBold else FontWeight.Normal,
                 ),
-                color = Color.White.copy(alpha = if (casting) 1f else 0.85f),
+                color = ink.copy(alpha = if (casting) 1f else 0.88f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -262,7 +269,7 @@ private fun CastRow(cast: CastUi, onClick: () -> Unit) {
                     },
                 ),
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.55f),
+                color = ink.copy(alpha = 0.62f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -270,7 +277,7 @@ private fun CastRow(cast: CastUi, onClick: () -> Unit) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.35f),
+            tint = ink.copy(alpha = 0.42f),
             modifier = Modifier.size(20.dp),
         )
     }
@@ -285,11 +292,14 @@ private fun CastRow(cast: CastUi, onClick: () -> Unit) {
 private fun WatchRow(watch: WatchOutputUi, onClick: () -> Unit) {
     val haptics = rememberHaptics()
     val active = watch.active
+    val ink = LocalPlayerSurfaceInk.current
+    val lightTheme = LocalPlayerLightTheme.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(Color.White.copy(alpha = if (active) 0.10f else 0.05f))
+            .background(playerDrawerRowFill(lightTheme, selected = active))
+            .border(0.5.dp, playerDrawerRowBorder(lightTheme, selected = active), ROW_SHAPE)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -305,13 +315,13 @@ private fun WatchRow(watch: WatchOutputUi, onClick: () -> Unit) {
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = if (active) 0.16f else 0.08f)),
+                .background(playerDrawerCircleFill(lightTheme, selected = active)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Rounded.Watch,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = if (active) 1f else 0.7f),
+                tint = ink.copy(alpha = if (active) 1f else 0.72f),
                 modifier = Modifier.size(21.dp),
             )
         }
@@ -322,7 +332,7 @@ private fun WatchRow(watch: WatchOutputUi, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
                 ),
-                color = Color.White.copy(alpha = if (active) 1f else 0.85f),
+                color = ink.copy(alpha = if (active) 1f else 0.88f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -330,7 +340,7 @@ private fun WatchRow(watch: WatchOutputUi, onClick: () -> Unit) {
             Text(
                 text = stringResource(if (active) Res.string.audio_output_playing else Res.string.watch_output_subtitle),
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.55f),
+                color = ink.copy(alpha = 0.62f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -339,7 +349,7 @@ private fun WatchRow(watch: WatchOutputUi, onClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = null,
-                tint = Color.White,
+                tint = ink,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -358,11 +368,14 @@ private fun OutputRow(
 ) {
     val haptics = rememberHaptics()
     val active = device.isActive
+    val ink = LocalPlayerSurfaceInk.current
+    val lightTheme = LocalPlayerLightTheme.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(Color.White.copy(alpha = if (active) 0.10f else 0.05f))
+            .background(playerDrawerRowFill(lightTheme, selected = active))
+            .border(0.5.dp, playerDrawerRowBorder(lightTheme, selected = active), ROW_SHAPE)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -378,13 +391,13 @@ private fun OutputRow(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = if (active) 0.16f else 0.08f)),
+                .background(playerDrawerCircleFill(lightTheme, selected = active)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = iconFor(device),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = if (active) 1f else 0.7f),
+                tint = ink.copy(alpha = if (active) 1f else 0.72f),
                 modifier = Modifier.size(21.dp),
             )
         }
@@ -395,7 +408,7 @@ private fun OutputRow(
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
                 ),
-                color = Color.White.copy(alpha = if (active) 1f else 0.85f),
+                color = ink.copy(alpha = if (active) 1f else 0.88f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -404,7 +417,7 @@ private fun OutputRow(
                 Text(
                     text = stringResource(Res.string.audio_output_playing),
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = ink.copy(alpha = 0.62f),
                 )
             }
         }
@@ -412,7 +425,7 @@ private fun OutputRow(
             Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = null,
-                tint = Color.White,
+                tint = ink,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -439,6 +452,8 @@ private fun VolumeRow(routeKey: Any) {
     val systemLevel by system.level.collectAsStateWithLifecycle()
     var level by remember(system) { mutableFloatStateOf(systemLevel) }
     var dragging by remember { mutableStateOf(false) }
+    val ink = LocalPlayerSurfaceInk.current
+    val lightTheme = LocalPlayerLightTheme.current
 
     // The hardware keys move the system level; follow it, but never over a
     // finger: the listener's own drag is the one source of truth this must
@@ -458,14 +473,15 @@ private fun VolumeRow(routeKey: Any) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(ROW_SHAPE)
-            .background(Color.White.copy(alpha = 0.05f))
+            .background(playerDrawerRowFill(lightTheme, selected = false))
+            .border(0.5.dp, playerDrawerRowBorder(lightTheme, selected = false), ROW_SHAPE)
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = if (level > 0f) Icons.AutoMirrored.Rounded.VolumeUp else Icons.AutoMirrored.Rounded.VolumeOff,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.6f),
+            tint = ink.copy(alpha = 0.68f),
             modifier = Modifier.size(20.dp),
         )
         Spacer(Modifier.width(12.dp))
@@ -479,6 +495,9 @@ private fun VolumeRow(routeKey: Any) {
             onValueChangeFinished = { dragging = false },
             idleHeight = 6.dp,
             activeHeight = 10.dp,
+            activeColor = ink.copy(alpha = 0.90f),
+            inactiveColor = ink.copy(alpha = 0.22f),
+            markerColor = ink.copy(alpha = 0.45f),
             modifier = Modifier.weight(1f),
         )
     }

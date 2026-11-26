@@ -5,15 +5,37 @@ import javax.sound.sampled.AudioSystem
 import javax.sound.sampled.DataLine
 import javax.sound.sampled.SourceDataLine
 
+/** How a bit-perfect exclusive stream opened on hardware. */
+internal data class DesktopExclusiveOpenResult(
+    val driver: String,
+    val deviceName: String,
+    val sampleRateHz: Int,
+    val outputBits: Int,
+    val containerBits: Int,
+    val alsaLsb24: Boolean,
+    val exact: Boolean,
+    val dacLimited: Boolean,
+)
+
 /** The speakers, and the negotiation to reach them. */
 internal class DesktopAudioSink {
 
     private var line: SourceDataLine? = null
 
-    /** True while the Windows shared-mode sink owns the output instead of Java Sound. */
+    /** True while the Windows shared-mode or exclusive-mode WASAPI sink owns the output. */
     private var windowsOutput = false
+    private var windowsExclusive = false
+
+    /** True while Linux ALSA direct (`hw:X,Y`) owns the output. */
+    private var linuxExclusive = false
 
     private var windowsBufferBytes = 0
+    private var exclusiveBufferBytes = 0
+
+    var exclusiveDriver: String? = null
+        private set
+    var alsaLsb24: Boolean = false
+        private set
 
     /** The selection for which [line] was opened, including the blank system-default choice. */
     private var openedForSelection: String? = null
@@ -24,7 +46,7 @@ internal class DesktopAudioSink {
     /** Kept short: enough to distinguish real samples from a pipeline producing silence. */
     private var diagnosticBlocks = 0
 
-    /** The format the mixer accepted, valid once [open] has succeeded. */
+    /** The format the mixer accepted, valid once [open] or [openExclusive] has succeeded. */
     var format: DesktopPcmFormat = DesktopPcmFormat(44_100, 2, 2)
         private set
 
@@ -32,13 +54,23 @@ internal class DesktopAudioSink {
     @Volatile
     var gain: Float = 1f
 
-    val isOpen: Boolean get() = windowsOutput || line != null
+    val isExclusive: Boolean get() = windowsExclusive || linuxExclusive
+    val isOpen: Boolean get() = windowsOutput || linuxExclusive || line != null
 
     /** Whether the live line already belongs to the choice currently shown in the player. */
     fun isUsingSelection(id: String): Boolean = isOpen && openedForSelection == id
 
     /** Opens the best line the mixer will give for [requested]. */
     fun open(requested: DesktopPcmFormat): Result<DesktopPcmFormat> = runCatching {
+        DesktopDacVolume.onClosed()
+        if (linuxExclusive) {
+            DesktopLinuxAudio.close()
+            linuxExclusive = false
+            exclusiveBufferBytes = 0
+            exclusiveDriver = null
+            alsaLsb24 = false
+        }
+        windowsExclusive = false
         val selectedDevice = DesktopAudioDevices.selected.value
         if (DesktopPlatform.isWindows) {
             val native = DesktopWindowsAudio.open(selectedDevice, requested)
@@ -46,6 +78,9 @@ internal class DesktopAudioSink {
                 val previous = line
                 line = null
                 windowsOutput = true
+                windowsExclusive = false
+                exclusiveDriver = null
+                alsaLsb24 = false
                 windowsBufferBytes = native.getOrThrow()
                 // Read live from the native side instead: it moves the stream itself when the
                 // Windows default changes or a chosen device is unplugged.
@@ -66,6 +101,7 @@ internal class DesktopAudioSink {
         if (windowsOutput) {
             DesktopWindowsAudio.close()
             windowsOutput = false
+            windowsExclusive = false
             windowsBufferBytes = 0
         }
         val ladder = buildList {
@@ -127,6 +163,194 @@ internal class DesktopAudioSink {
         accepted
     }
 
+    /** Opens an exclusive bit-perfect hardware path on Windows (WASAPI) or Linux (ALSA Direct). */
+    fun openExclusive(
+        requested: DesktopPcmFormat,
+        validBits: Int,
+        convertForLimitedDac: Boolean,
+    ): Result<DesktopExclusiveOpenResult> = runCatching {
+        val selectedDevice = DesktopAudioDevices.selected.value
+        val bitCandidates = exclusiveBitCandidates(validBits, convertForLimitedDac)
+
+        if (DesktopPlatform.isWindows) {
+            val candidateRates = (listOf(requested.sampleRate) + DesktopBitPerfectPcm.STANDARD_RATES).distinct().toIntArray()
+            val probeBits = if (validBits <= 16) 16 else validBits.coerceAtMost(32)
+            val probeContainer = if (probeBits == 16) 16 else 32
+            val probed = DesktopWindowsAudio.probeExclusiveRates(
+                selectedDevice,
+                requested.channels,
+                probeBits,
+                probeContainer,
+                candidateRates,
+            ).toList()
+            val offered = probed.ifEmpty {
+                if (convertForLimitedDac) DesktopBitPerfectPcm.STANDARD_RATES else listOf(requested.sampleRate)
+            }
+            val rankedRates = if (convertForLimitedDac) {
+                DesktopBitPerfectPcm.rankRates(requested.sampleRate, offered)
+                    .ifEmpty { listOf(requested.sampleRate) }
+            } else {
+                listOf(requested.sampleRate)
+            }
+
+            var lastError: Throwable? = null
+            for (rate in rankedRates) {
+                for ((vb, cb, _) in bitCandidates) {
+                    val attempt = DesktopWindowsAudio.openExclusive(
+                        device = selectedDevice,
+                        sampleRate = rate,
+                        channels = requested.channels,
+                        validBits = vb,
+                        containerBits = cb,
+                    )
+                    if (attempt.isSuccess) {
+                        val previous = line
+                        line = null
+                        if (linuxExclusive) {
+                            DesktopLinuxAudio.close()
+                            linuxExclusive = false
+                        }
+                        windowsOutput = true
+                        windowsExclusive = true
+                        val buf = attempt.getOrThrow()
+                        windowsBufferBytes = buf
+                        exclusiveBufferBytes = buf
+                        exclusiveDriver = "WASAPI Exclusive"
+                        alsaLsb24 = false
+                        openedOn = DesktopWindowsAudio.deviceName() ?: "Windows Audio"
+                        openedForSelection = selectedDevice
+                        format = DesktopPcmFormat(rate, requested.channels, cb / 8, isFloat = false, validBitsPerSample = vb)
+                        diagnosticBlocks = 0
+                        closeLine(previous)
+                        val exact = rate == requested.sampleRate && vb >= validBits
+                        val name = openedOn ?: "Windows Audio"
+                        DesktopDacVolume.onOpened(
+                            DesktopWindowsAudio.hardwareVolumeInfo(),
+                            DesktopWindowsAudio::setHardwareVolumeDb,
+                            DesktopWindowsAudio::hardwareVolumeInfo,
+                        )
+                        DesktopTrackLog.log(
+                            "bit-perfect opened: $name · $rate Hz · $vb-bit ($cb-bit container) · WASAPI Exclusive",
+                        )
+                        return@runCatching DesktopExclusiveOpenResult(
+                            driver = "WASAPI Exclusive",
+                            deviceName = name,
+                            sampleRateHz = rate,
+                            outputBits = vb,
+                            containerBits = cb,
+                            alsaLsb24 = false,
+                            exact = exact,
+                            dacLimited = !exact,
+                        )
+                    } else {
+                        lastError = attempt.exceptionOrNull()
+                    }
+                }
+            }
+            error(lastError?.message ?: "WASAPI exclusive could not open $validBits-bit/${requested.sampleRate}Hz")
+        }
+
+        if (DesktopPlatform.isLinux) {
+            check(DesktopLinuxAudio.available) { "ALSA direct library is unavailable" }
+            val hwDevices = DesktopLinuxAudio.devices()
+            val hwTarget = DesktopLinuxAudio.resolveHwTarget(selectedDevice, hwDevices)
+                ?: error("Selected output is not an ALSA hardware device")
+            // Close any open shared PipeWire/JavaSound line before requesting D-Bus card ownership.
+            close()
+
+            val probeList = (listOf(requested.sampleRate) + DesktopBitPerfectPcm.STANDARD_RATES).distinct().toIntArray()
+            val probed = DesktopLinuxAudio.probeSupportedRates(hwTarget.id, requested.channels, probeList).toList()
+            val offered = probed.ifEmpty {
+                if (convertForLimitedDac) DesktopBitPerfectPcm.STANDARD_RATES else listOf(requested.sampleRate)
+            }
+            val rankedRates = if (convertForLimitedDac) {
+                DesktopBitPerfectPcm.rankRates(requested.sampleRate, offered)
+                    .ifEmpty { listOf(requested.sampleRate) }
+            } else {
+                listOf(requested.sampleRate)
+            }
+
+            var lastError: Throwable? = null
+            for (rate in rankedRates) {
+                for ((vb, cb, msbS32) in bitCandidates) {
+                    val attempt = DesktopLinuxAudio.openExclusive(
+                        hwDevice = hwTarget.id,
+                        friendlyName = hwTarget.name,
+                        sampleRate = rate,
+                        channels = requested.channels,
+                        validBits = vb,
+                        containerBits = cb,
+                        tryMsbS32For24 = msbS32,
+                    )
+                    if (attempt.isSuccess) {
+                        val openRes = attempt.getOrThrow()
+                        linuxExclusive = true
+                        windowsOutput = false
+                        windowsExclusive = false
+                        exclusiveBufferBytes = openRes.bufferBytes
+                        exclusiveDriver = "ALSA Direct (${hwTarget.id})"
+                        alsaLsb24 = vb == 24 && cb == 32 && !openRes.msbInS32
+                        openedOn = openRes.deviceName
+                        openedForSelection = selectedDevice
+                        format = DesktopPcmFormat(rate, requested.channels, cb / 8, isFloat = false, validBitsPerSample = vb)
+                        diagnosticBlocks = 0
+                        val exact = rate == requested.sampleRate && vb >= validBits
+                        DesktopDacVolume.onOpened(
+                            DesktopLinuxAudio.hardwareVolumeInfo(),
+                            DesktopLinuxAudio::setHardwareVolumeDb,
+                            DesktopLinuxAudio::hardwareVolumeInfo,
+                        )
+                        DesktopTrackLog.log(
+                            "bit-perfect opened: ${openRes.deviceName} (${hwTarget.id}) · $rate Hz · " +
+                                "$vb-bit ($cb-bit ${if (openRes.msbInS32) "S32_LE" else "ALSA"})",
+                        )
+                        return@runCatching DesktopExclusiveOpenResult(
+                            driver = "ALSA Direct (${hwTarget.id})",
+                            deviceName = openRes.deviceName,
+                            sampleRateHz = rate,
+                            outputBits = vb,
+                            containerBits = cb,
+                            alsaLsb24 = alsaLsb24,
+                            exact = exact,
+                            dacLimited = !exact,
+                        )
+                    } else {
+                        lastError = attempt.exceptionOrNull()
+                    }
+                }
+            }
+            error(lastError?.message ?: "ALSA ${hwTarget.id} rejected $validBits-bit / ${requested.sampleRate} Hz")
+        }
+
+        error("Bit-Perfect exclusive output requires Windows WASAPI or Linux ALSA Direct")
+    }
+
+    /** Ordered `(validBits, containerBits, tryMsbS32For24)` candidates from most exact downward. */
+    private fun exclusiveBitCandidates(validBits: Int, allowLimited: Boolean): List<Triple<Int, Int, Boolean>> =
+        when {
+            validBits <= 16 -> listOf(
+                Triple(16, 16, false),
+                Triple(24, 32, true),
+                Triple(24, 32, false),
+                Triple(32, 32, false),
+            )
+            validBits <= 24 -> buildList {
+                add(Triple(24, 32, true))
+                add(Triple(24, 32, false))
+                add(Triple(24, 24, false))
+                add(Triple(32, 32, false))
+                if (allowLimited) add(Triple(16, 16, false))
+            }
+            else -> buildList {
+                add(Triple(32, 32, false))
+                if (allowLimited) {
+                    add(Triple(24, 32, true))
+                    add(Triple(24, 32, false))
+                    add(Triple(16, 16, false))
+                }
+            }
+        }
+
     /**
      * What the samples are actually being written to.
      *
@@ -135,10 +359,10 @@ internal class DesktopAudioSink {
      */
     val deviceName: String?
         get() = runCatching {
-            if (windowsOutput) {
-                DesktopWindowsAudio.deviceName()
-            } else {
-                line?.let { openedOn ?: AudioSystem.getMixer(null).mixerInfo?.name?.takeIf(String::isNotBlank) }
+            when {
+                linuxExclusive -> openedOn
+                windowsOutput -> DesktopWindowsAudio.deviceName()
+                else -> line?.let { openedOn ?: AudioSystem.getMixer(null).mixerInfo?.name?.takeIf(String::isNotBlank) }
             }
         }.getOrNull()
 
@@ -147,7 +371,11 @@ internal class DesktopAudioSink {
 
     /** How much audio the device is holding, in bytes; 0 before the line is open. */
     val bufferBytes: Int
-        get() = if (windowsOutput) windowsBufferBytes else runCatching { line?.bufferSize ?: 0 }.getOrDefault(0)
+        get() = when {
+            linuxExclusive -> exclusiveBufferBytes
+            windowsOutput -> windowsBufferBytes
+            else -> runCatching { line?.bufferSize ?: 0 }.getOrDefault(0)
+        }
 
     /** Writes [count] interleaved samples, blocking until the device takes them. */
     fun write(samples: FloatArray, count: Int): Int {
@@ -162,6 +390,16 @@ internal class DesktopAudioSink {
         val written = target.write(bytes, 0, count * format.bytesPerSample)
         diagnose(samples, count, written)
         return written
+    }
+
+    /** Writes [byteCount] pre-packed little-endian PCM bytes with zero scaling or DSP. */
+    fun writePcmBytes(bytes: ByteArray, byteCount: Int): Int {
+        if (byteCount <= 0) return 0
+        return when {
+            windowsExclusive -> DesktopWindowsAudio.writePcm(bytes, byteCount)
+            linuxExclusive -> DesktopLinuxAudio.writePcm(bytes, byteCount)
+            else -> line?.write(bytes, 0, byteCount) ?: -1
+        }
     }
 
     private fun diagnose(samples: FloatArray, count: Int, written: Int) {
@@ -213,32 +451,67 @@ internal class DesktopAudioSink {
     }
 
     /** Frames the device has actually rendered — the honest playback position. */
-    fun framesPlayed(): Long =
-        if (windowsOutput) DesktopWindowsAudio.framesPlayed() else line?.longFramePosition ?: 0L
+    fun framesPlayed(): Long = when {
+        linuxExclusive -> DesktopLinuxAudio.framesPlayed()
+        windowsOutput -> DesktopWindowsAudio.framesPlayed()
+        else -> line?.longFramePosition ?: 0L
+    }
 
     fun pause() {
-        if (windowsOutput) DesktopWindowsAudio.pause() else line?.stop()
+        when {
+            linuxExclusive -> DesktopLinuxAudio.pause()
+            windowsOutput -> DesktopWindowsAudio.pause()
+            else -> line?.stop()
+        }
     }
 
     fun resume() {
-        if (windowsOutput) DesktopWindowsAudio.resume() else line?.start()
+        when {
+            linuxExclusive -> DesktopLinuxAudio.resume()
+            windowsOutput -> DesktopWindowsAudio.resume()
+            else -> line?.start()
+        }
     }
 
     /** Throws away what is queued, so a seek is heard at once. */
     fun flush() {
-        if (windowsOutput) DesktopWindowsAudio.flush() else line?.flush()
+        when {
+            linuxExclusive -> DesktopLinuxAudio.flush()
+            windowsOutput -> DesktopWindowsAudio.flush()
+            else -> line?.flush()
+        }
     }
 
     /** Waits for the queue to finish, so the end of a track is not clipped. */
     fun drain() {
-        if (windowsOutput) DesktopWindowsAudio.drain() else runCatching { line?.drain() }
+        when {
+            linuxExclusive -> DesktopLinuxAudio.drain()
+            windowsOutput -> DesktopWindowsAudio.drain()
+            else -> runCatching { line?.drain() }
+        }
     }
 
     fun close() {
+        DesktopDacVolume.onClosed()
+        if (linuxExclusive) {
+            DesktopLinuxAudio.close()
+            linuxExclusive = false
+            exclusiveBufferBytes = 0
+            exclusiveDriver = null
+            alsaLsb24 = false
+            openedOn = null
+            openedForSelection = null
+            diagnosticBlocks = 0
+            return
+        }
         if (windowsOutput) {
             DesktopWindowsAudio.close()
             windowsOutput = false
+            windowsExclusive = false
             windowsBufferBytes = 0
+            exclusiveBufferBytes = 0
+            exclusiveDriver = null
+            alsaLsb24 = false
             openedOn = null
             openedForSelection = null
             diagnosticBlocks = 0

@@ -1,0 +1,19 @@
+BitChord Desktop
+================
+
+BitChord Desktop is an independent, community-driven desktop music client for YouTube Music built with Compose Multiplatform and native FFmpeg 7.1 audio decoding.
+
+Key Features Included:
+- Native FFmpeg 7.1 decoding pipeline with 32-bit float precision, exclusive DAC / WASAPI output, and lossless FLAC / Hi-Res streaming support.
+- Synchronized word-by-word and line-by-line lyrics (YouTube Music, LRCLIB, Musixmatch) with frosted glass visual design and dynamic artwork palette extraction.
+- Listen Together (Party Mode) for real-time synchronized playback via built-in cloud server, custom VPS, or one-click Cloudflare Quick Tunnel.
+- DJ Automix transitions powered by Aubio and ONNX neural beat analysis models.
+- Local Music library indexing, offline caching, MPRIS / Windows SMTC media controls, Discord Rich Presence, Replay listening stats, and optional Google Drive backup.
+
+Upgrade & Data Notice:
+- Installing over an existing BitChord Desktop installation automatically replaces application binaries while preserving your playlists, listening history, local settings, and cache stored in your user profile directory (%LOCALAPPDATA%\BitChord and Windows User Preferences).
+- You can customize the installation directory in the upcoming step.
+
+Homepage: https://bitchord-desktop.efzyn.my.id
+Repository: https://github.com/efzynx/BitChord-Desktop
+License: GNU General Public License v3.0 (GPLv3)

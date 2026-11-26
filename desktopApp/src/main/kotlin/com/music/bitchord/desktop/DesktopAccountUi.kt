@@ -74,11 +74,13 @@ internal fun DesktopAccountButton(
     avatar: String?,
     onClick: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         // Rests at the toolbar buttons' hover wash and brightens a step when pointed at.
         Modifier.size(36.dp).clip(CircleShape)
             .desktopHoverWash(restAlpha = 0.12f, hoverAlpha = 0.2f)
-            .clickable(onClick = onClick),
+            .desktopGlassPress(CircleShape, interactionSource = interactionSource, pressScale = 0.93f)
+            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         if (avatar != null) {
@@ -87,7 +89,7 @@ internal fun DesktopAccountButton(
                 Modifier
                     .size(26.dp)
                     .clip(CircleShape)
-                    .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape),
+                    .border(1.dp, DesktopCardEdge, CircleShape),
                 contentScale = ContentScale.Crop,
                 px = 96,
             )
@@ -96,14 +98,14 @@ internal fun DesktopAccountButton(
                 Modifier
                     .size(26.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.14f))
-                    .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape),
+                    .background(DesktopInk.copy(alpha = 0.14f))
+                    .border(1.dp, DesktopCardEdge, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Rounded.Person,
                     DesktopStrings["accounts", "Accounts"],
-                    tint = Color.White.copy(alpha = 0.85f),
+                    tint = DesktopInk.copy(alpha = 0.85f),
                     modifier = Modifier.size(16.dp),
                 )
             }
@@ -135,7 +137,7 @@ internal fun DesktopAccountSelector(
         Box(
             Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
+                .background(DesktopScrim)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -150,9 +152,9 @@ internal fun DesktopAccountSelector(
                 .width(340.dp)
                 .shadow(20.dp, shape)
                 .clip(shape)
-                // The same frosted pane the floating bars are made of, sampling the page underneath
-                // rather than sitting on a flat fill.
-                .desktopBarGlass(shape),
+                // Real-time refracting Liquid Glass (or frosted fallback) sampling the sidebar
+                // and page content underneath.
+                .desktopBarGlass(shape, tintAlpha = 0.44f, borderAlpha = 0.15f),
         ) {
             Row(
                 Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 8.dp),
@@ -162,7 +164,7 @@ internal fun DesktopAccountSelector(
                     if (accounts.isEmpty()) DesktopStrings["accounts", "Accounts"] else DesktopStrings["switch_account", "Switch account"],
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color = DesktopInk,
                 )
                 Spacer(Modifier.weight(1f))
                 if (busy) CircularProgressIndicator(color = DesktopAccent, modifier = Modifier.size(16.dp))
@@ -259,7 +261,11 @@ internal fun DesktopConfirmSignOutDialog(
                 .padding(24.dp)
                 .shadow(20.dp, shape)
                 .clip(shape)
-                .desktopBarGlass(shape)
+                .desktopBarGlass(
+                    shape = shape,
+                    surfaceTint = desktopModalSurfaceTint(DesktopIsDark),
+                    borderAlpha = if (DesktopIsDark) 0.22f else 0.30f,
+                )
                 .padding(24.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -282,7 +288,7 @@ internal fun DesktopConfirmSignOutDialog(
                     text = DesktopStrings["d_sign_out_confirm_title", "Sign out of account?"],
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color = DesktopInk,
                 )
             }
 
@@ -351,7 +357,7 @@ private fun DesktopProfileRow(
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(profile.name, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(profile.name, color = DesktopInk, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 profile.handle.ifBlank { if (profile.isBrandAccount) "Brand account" else "Personal" },
                 style = MaterialTheme.typography.bodySmall,
@@ -392,9 +398,9 @@ private fun DesktopSelectorAction(
             .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, tint = Color.White.copy(alpha = 0.85f), modifier = Modifier.size(20.dp))
+        Icon(icon, null, tint = DesktopInk.copy(alpha = 0.85f), modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(16.dp))
-        Text(label, color = Color.White)
+        Text(label, color = DesktopInk)
     }
 }
 
@@ -453,7 +459,11 @@ internal fun DesktopSignInDialog(
                 .fillMaxWidth()
                 .shadow(20.dp, shape)
                 .clip(shape)
-                .desktopBarGlass(shape)
+                .desktopBarGlass(
+                    shape = shape,
+                    surfaceTint = desktopModalSurfaceTint(DesktopIsDark),
+                    borderAlpha = if (DesktopIsDark) 0.22f else 0.30f,
+                )
                 .padding(bottom = 12.dp),
         ) {
             Row(
@@ -464,7 +474,7 @@ internal fun DesktopSignInDialog(
                     DesktopStrings["sign_in_youtube_music", "Sign in to YouTube Music"],
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color = DesktopInk,
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onDismiss) {
@@ -513,15 +523,15 @@ internal fun DesktopSignInDialog(
                             .padding(horizontal = 20.dp, vertical = 6.dp)
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.05f))
-                            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
+                            .background(DesktopInk.copy(alpha = 0.05f))
+                            .border(1.dp, DesktopCardEdge, RoundedCornerShape(12.dp))
                             .padding(14.dp),
                     ) {
                         Text(
                             text = DesktopStrings["d_copy_cookie_guide_title", "How to copy session cookie:"],
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.White,
+                            color = DesktopInk,
                         )
                         Spacer(Modifier.height(8.dp))
                         listOf(
@@ -551,14 +561,14 @@ internal fun DesktopSignInDialog(
                         value = pasted,
                         onValueChange = { pasted = it },
                         singleLine = false,
-                        textStyle = MaterialTheme.typography.bodySmall.copy(color = Color.White),
+                        textStyle = MaterialTheme.typography.bodySmall.copy(color = DesktopInk),
                         cursorBrush = SolidColor(DesktopAccent),
                         modifier = Modifier
                             .padding(horizontal = 20.dp, vertical = 8.dp)
                             .fillMaxWidth()
                             .heightIn(min = 72.dp, max = 130.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color.White.copy(alpha = 0.08f))
+                            .background(DesktopInk.copy(alpha = 0.08f))
                             .padding(12.dp),
                     )
                     Row(
@@ -621,7 +631,7 @@ internal fun DesktopSignInDialog(
                                         text = DesktopStrings["d_open_youtube_music_browser", "Open YouTube Music in Default Browser"],
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color.White,
+                                        color = DesktopInk,
                                     )
                                     Spacer(Modifier.height(2.dp))
                                     Text(
@@ -692,7 +702,7 @@ internal fun DesktopSignInDialog(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.08f)),
+                                        .background(DesktopInk.copy(alpha = 0.08f)),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
@@ -704,7 +714,7 @@ internal fun DesktopSignInDialog(
                                 }
                                 Spacer(Modifier.width(14.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(profile.label, color = Color.White, fontWeight = FontWeight.Medium)
+                                    Text(profile.label, color = DesktopInk, fontWeight = FontWeight.Medium)
                                     Text(
                                         DesktopStrings.format("d_use_session_from", profile.browser, "Use session from %s without password"),
                                         style = MaterialTheme.typography.bodySmall,
@@ -743,12 +753,12 @@ internal fun DesktopSignInDialog(
                                 Icon(
                                     Icons.Rounded.Person,
                                     null,
-                                    tint = Color.White.copy(alpha = 0.75f),
+                                    tint = DesktopInk.copy(alpha = 0.75f),
                                     modifier = Modifier.size(20.dp),
                                 )
                                 Spacer(Modifier.width(14.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(DesktopStrings["d_web_sign_in_title", "Sign in via App Window (WebView)"], color = Color.White)
+                                    Text(DesktopStrings["d_web_sign_in_title", "Sign in via App Window (WebView)"], color = DesktopInk)
                                     Text(
                                         if (busy == WEB_SIGN_IN) {
                                             DesktopStrings["d_web_sign_in_busy", "Finish in the sign-in window, then click \"Use this profile\""]
@@ -779,7 +789,7 @@ internal fun DesktopSignInDialog(
                             Icon(
                                 Icons.Rounded.ContentPaste,
                                 null,
-                                tint = Color.White.copy(alpha = 0.75f),
+                                tint = DesktopInk.copy(alpha = 0.75f),
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(Modifier.width(14.dp))

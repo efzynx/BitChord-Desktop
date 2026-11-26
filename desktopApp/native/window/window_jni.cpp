@@ -5,9 +5,11 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <audioclient.h>
+#include <mmreg.h>
 #include <dwmapi.h>
 #include <functiondiscoverykeys_devpkey.h>
 #include <mmdeviceapi.h>
+#include <endpointvolume.h>
 #include <propvarutil.h>
 #include <windowsx.h>
 
@@ -18,6 +20,7 @@
 #include <cwchar>
 #include <cwctype>
 #include <cstring>
+#include <limits>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -234,6 +237,31 @@ bool send_system_command(UINT command) {
         PostMessageW(window, WM_SYSCOMMAND, command, 0) != 0;
 }
 
+bool activate_window(HWND window) {
+    if (window == nullptr || !IsWindow(window)) return false;
+    if (IsIconic(window)) {
+        ShowWindow(window, SW_RESTORE);
+    } else {
+        ShowWindow(window, SW_SHOW);
+    }
+    const HWND foreground = GetForegroundWindow();
+    const DWORD foreground_thread = foreground != nullptr
+        ? GetWindowThreadProcessId(foreground, nullptr)
+        : 0;
+    const DWORD current_thread = GetCurrentThreadId();
+    bool attached = false;
+    if (foreground_thread != 0 && foreground_thread != current_thread) {
+        attached = AttachThreadInput(current_thread, foreground_thread, TRUE) != 0;
+    }
+    BringWindowToTop(window);
+    SetForegroundWindow(window);
+    SetActiveWindow(window);
+    if (attached) {
+        AttachThreadInput(current_thread, foreground_thread, FALSE);
+    }
+    return true;
+}
+
 /**
  * Fills the whole monitor — taskbar included — with a frameless window above it. A maximized window
  * can never cover a taskbar told to stay on top, so this is what the player's full-screen button
@@ -322,7 +350,14 @@ UINT32 g_audio_buffer_frames = 0;
 int g_audio_rate = 0;
 UINT32 g_audio_channels = 0;
 UINT32 g_audio_bytes_per_sample = 0;
+UINT32 g_audio_valid_bits = 0;
 bool g_audio_float = false;
+bool g_audio_exclusive = false;
+std::mutex g_volume_mutex;
+IAudioEndpointVolume* g_audio_endpoint_volume = nullptr;
+float g_volume_min_db = 0.0f;
+float g_volume_max_db = 0.0f;
+std::wstring g_volume_name;
 // Whether playback wants the stream running — independent of there being a client right now.
 bool g_audio_started = false;
 uint64_t g_audio_submitted_frames = 0;
@@ -436,8 +471,20 @@ IMMDeviceEnumerator* enumerator_locked() {
     return g_audio_enumerator;
 }
 
+void release_volume_locked() {
+    std::lock_guard<std::mutex> vol_guard(g_volume_mutex);
+    if (g_audio_endpoint_volume != nullptr) {
+        g_audio_endpoint_volume->Release();
+        g_audio_endpoint_volume = nullptr;
+    }
+    g_volume_min_db = 0.0f;
+    g_volume_max_db = 0.0f;
+    g_volume_name.clear();
+}
+
 /** Drops the stream itself; the format, request and running state survive for a rebuild. */
 void release_client_locked() {
+    release_volume_locked();
     if (g_audio_client != nullptr) g_audio_client->Stop();
     if (g_audio_render != nullptr) {
         g_audio_render->Release();
@@ -457,7 +504,9 @@ void release_audio_locked() {
     g_audio_rate = 0;
     g_audio_channels = 0;
     g_audio_bytes_per_sample = 0;
+    g_audio_valid_bits = 0;
     g_audio_float = false;
+    g_audio_exclusive = false;
     g_audio_started = false;
     g_audio_submitted_frames = 0;
     g_audio_played_offset = 0;
@@ -557,8 +606,160 @@ IMMDevice* resolve_device_locked(const std::wstring& wanted) {
     return default_device(enumerator);
 }
 
+#ifndef AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED
+#define AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED ((HRESULT)0x88890019L)
+#endif
+#ifndef AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED
+#define AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED ((HRESULT)0x8889000EL)
+#endif
+#ifndef AUDCLNT_E_DEVICE_IN_USE
+#define AUDCLNT_E_DEVICE_IN_USE ((HRESULT)0x8889000AL)
+#endif
+
+constexpr GUID kSubTypePcm = {
+    0x00000001, 0x0000, 0x0010, {0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71},
+};
+
+void build_exclusive_extensible(
+    int rate, UINT32 channels, UINT32 bytes_per_sample, UINT32 valid_bits, WAVEFORMATEXTENSIBLE* out) {
+    std::memset(out, 0, sizeof(*out));
+    out->Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
+    out->Format.nChannels = static_cast<WORD>(channels);
+    out->Format.nSamplesPerSec = static_cast<DWORD>(rate);
+    out->Format.wBitsPerSample = static_cast<WORD>(bytes_per_sample * 8);
+    out->Format.nBlockAlign = static_cast<WORD>(channels * bytes_per_sample);
+    out->Format.nAvgBytesPerSec = out->Format.nSamplesPerSec * out->Format.nBlockAlign;
+    out->Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
+    out->Samples.wValidBitsPerSample = static_cast<WORD>(valid_bits);
+    out->dwChannelMask = channels == 1 ? 0x4u : 0x3u;
+    out->SubFormat = kSubTypePcm;
+}
+
+void build_exclusive_pcm(int rate, UINT32 channels, UINT32 bytes_per_sample, WAVEFORMATEX* out) {
+    std::memset(out, 0, sizeof(*out));
+    out->wFormatTag = WAVE_FORMAT_PCM;
+    out->nChannels = static_cast<WORD>(channels);
+    out->nSamplesPerSec = static_cast<DWORD>(rate);
+    out->wBitsPerSample = static_cast<WORD>(bytes_per_sample * 8);
+    out->nBlockAlign = static_cast<WORD>(channels * bytes_per_sample);
+    out->nAvgBytesPerSec = out->nSamplesPerSec * out->nBlockAlign;
+    out->cbSize = 0;
+}
+
+bool supports_exclusive_format(
+    IAudioClient* probe, int rate, UINT32 channels, UINT32 bytes_per_sample, UINT32 valid_bits) {
+    if (probe == nullptr) return false;
+    WAVEFORMATEXTENSIBLE wfx{};
+    build_exclusive_extensible(rate, channels, bytes_per_sample, valid_bits, &wfx);
+    if (probe->IsFormatSupported(AUDCLNT_SHAREMODE_EXCLUSIVE, &wfx.Format, nullptr) == S_OK) {
+        return true;
+    }
+    if (valid_bits == 16 && bytes_per_sample == 2) {
+        WAVEFORMATEX pcm{};
+        build_exclusive_pcm(rate, channels, bytes_per_sample, &pcm);
+        if (probe->IsFormatSupported(AUDCLNT_SHAREMODE_EXCLUSIVE, &pcm, nullptr) == S_OK) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool try_init_exclusive(IMMDevice* device, const WAVEFORMATEX* fmt) {
+    IAudioClient* client = nullptr;
+    HRESULT status = device->Activate(
+        __uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client));
+    if (FAILED(status) || client == nullptr) {
+        set_audio_error(L"Opening WASAPI exclusive endpoint", status);
+        return false;
+    }
+
+    REFERENCE_TIME default_period = 0;
+    REFERENCE_TIME min_period = 0;
+    client->GetDevicePeriod(&default_period, &min_period);
+    const REFERENCE_TIME requested_hns = std::max<REFERENCE_TIME>(default_period, 400'000);
+
+    status = client->Initialize(AUDCLNT_SHAREMODE_EXCLUSIVE, 0, requested_hns, 0, fmt, nullptr);
+    if (status == AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED) {
+        UINT32 aligned_frames = 0;
+        if (SUCCEEDED(client->GetBufferSize(&aligned_frames)) && aligned_frames > 0 && fmt->nSamplesPerSec > 0) {
+            client->Release();
+            client = nullptr;
+            status = device->Activate(
+                __uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&client));
+            if (SUCCEEDED(status) && client != nullptr) {
+                const REFERENCE_TIME aligned_hns = static_cast<REFERENCE_TIME>(
+                    (10'000'000.0 * static_cast<double>(aligned_frames) / static_cast<double>(fmt->nSamplesPerSec)) + 0.5);
+                status = client->Initialize(
+                    AUDCLNT_SHAREMODE_EXCLUSIVE, 0, aligned_hns, 0, fmt, nullptr);
+            }
+        }
+    }
+
+    if (FAILED(status) || client == nullptr) {
+        if (status == AUDCLNT_E_EXCLUSIVE_MODE_NOT_ALLOWED) {
+            g_audio_error = L"Windows exclusive mode is disabled for this audio device";
+        } else if (status == AUDCLNT_E_DEVICE_IN_USE) {
+            g_audio_error = L"Audio device is held exclusively by another application";
+        } else {
+            set_audio_error(L"Starting WASAPI exclusive mode", status);
+        }
+        if (client != nullptr) client->Release();
+        return false;
+    }
+
+    g_audio_client = client;
+    status = g_audio_client->GetBufferSize(&g_audio_buffer_frames);
+    if (SUCCEEDED(status)) {
+        status = g_audio_client->GetService(
+            __uuidof(IAudioRenderClient), reinterpret_cast<void**>(&g_audio_render));
+    }
+    if (SUCCEEDED(status) && g_audio_started) {
+        status = g_audio_client->Start();
+    }
+    if (FAILED(status) || g_audio_render == nullptr) {
+        set_audio_error(L"Starting WASAPI exclusive render stream", status);
+        release_client_locked();
+        return false;
+    }
+    g_audio_endpoint_id = endpoint_id(device);
+    g_audio_device_name = property_string(device, PKEY_Device_FriendlyName);
+    {
+        std::lock_guard<std::mutex> vol_guard(g_volume_mutex);
+        IAudioEndpointVolume* ep_vol = nullptr;
+        if (SUCCEEDED(device->Activate(
+                __uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&ep_vol))) &&
+            ep_vol != nullptr) {
+            float min_db = 0.0f;
+            float max_db = 0.0f;
+            float inc_db = 0.0f;
+            if (SUCCEEDED(ep_vol->GetVolumeRange(&min_db, &max_db, &inc_db)) && max_db > min_db) {
+                g_audio_endpoint_volume = ep_vol;
+                g_volume_min_db = min_db;
+                g_volume_max_db = max_db;
+                g_volume_name = L"WASAPI Hardware";
+            } else {
+                ep_vol->Release();
+            }
+        }
+    }
+    return true;
+}
+
+bool start_exclusive_client_locked(IMMDevice* device) {
+    if (g_audio_valid_bits == 16 && g_audio_bytes_per_sample == 2) {
+        WAVEFORMATEX pcm{};
+        build_exclusive_pcm(g_audio_rate, g_audio_channels, g_audio_bytes_per_sample, &pcm);
+        if (try_init_exclusive(device, &pcm)) return true;
+    }
+    WAVEFORMATEXTENSIBLE wfx{};
+    build_exclusive_extensible(
+        g_audio_rate, g_audio_channels, g_audio_bytes_per_sample, g_audio_valid_bits, &wfx);
+    return try_init_exclusive(device, &wfx.Format);
+}
+
 /** Builds the render stream on [device] in the stored format; starts it if playback is running. */
 bool start_client_locked(IMMDevice* device) {
+    if (g_audio_exclusive) return start_exclusive_client_locked(device);
     HRESULT status = device->Activate(
         __uuidof(IAudioClient), CLSCTX_ALL, nullptr,
         reinterpret_cast<void**>(&g_audio_client));
@@ -628,6 +829,12 @@ void remember_played_and_reset_locked() {
 void reroute_locked() {
     g_audio_reroute = false;
     if (g_audio_channels == 0) return;
+    if (g_audio_exclusive) {
+        remember_played_and_reset_locked();
+        release_client_locked();
+        g_audio_error = L"Exclusive WASAPI stream lost the audio endpoint";
+        return;
+    }
     IMMDevice* device = resolve_device_locked(g_audio_wanted);
     if (device != nullptr && g_audio_client != nullptr && endpoint_id(device) == g_audio_endpoint_id) {
         device->Release();
@@ -757,6 +964,136 @@ int write_audio(const float* samples, int sample_count, float gain) {
     return static_cast<int>(frame_at * g_audio_channels * g_audio_bytes_per_sample);
 }
 
+std::vector<int> probe_exclusive_rates(
+    const std::wstring& wanted,
+    int channels,
+    int valid_bits,
+    int container_bits,
+    const std::vector<int>& candidates) {
+    std::vector<int> supported;
+    std::lock_guard<std::mutex> guard(g_audio_mutex);
+    ComScope com;
+    if (!com.ready() || channels <= 0 || container_bits <= 0) return supported;
+    IMMDevice* device = resolve_device_locked(wanted);
+    if (device == nullptr) return supported;
+    IAudioClient* probe = nullptr;
+    if (SUCCEEDED(device->Activate(
+            __uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&probe))) &&
+        probe != nullptr) {
+        const UINT32 ch = static_cast<UINT32>(channels);
+        const UINT32 bps = static_cast<UINT32>(container_bits / 8);
+        const UINT32 vb = static_cast<UINT32>(valid_bits);
+        for (int rate : candidates) {
+            if (rate > 0 && supports_exclusive_format(probe, rate, ch, bps, vb)) {
+                supported.push_back(rate);
+            }
+        }
+        probe->Release();
+    }
+    device->Release();
+    return supported;
+}
+
+int open_audio_exclusive(
+    const std::wstring& wanted,
+    int sample_rate,
+    int channels,
+    int valid_bits,
+    int container_bits) {
+    std::lock_guard<std::mutex> guard(g_audio_mutex);
+    release_audio_locked();
+    g_audio_error.clear();
+
+    if (sample_rate <= 0 || channels <= 0 || (container_bits != 16 && container_bits != 24 && container_bits != 32)) {
+        g_audio_error = L"Unsupported PCM format for WASAPI exclusive mode";
+        return 0;
+    }
+
+    ComScope com;
+    if (!com.ready()) {
+        set_audio_error(L"COM initialization", com.result);
+        return 0;
+    }
+    IMMDevice* device = resolve_device_locked(wanted);
+    if (device == nullptr) {
+        if (g_audio_error.empty()) g_audio_error = L"Windows has no audio endpoint to play on";
+        return 0;
+    }
+    g_audio_wanted = wanted;
+    g_audio_rate = sample_rate;
+    g_audio_channels = static_cast<UINT32>(channels);
+    g_audio_bytes_per_sample = static_cast<UINT32>(container_bits / 8);
+    g_audio_valid_bits = static_cast<UINT32>(valid_bits);
+    g_audio_float = false;
+    g_audio_exclusive = true;
+    g_audio_started = true;
+    const bool opened = start_exclusive_client_locked(device);
+    device->Release();
+    if (!opened) {
+        release_audio_locked();
+        return 0;
+    }
+    g_audio_reroute = false;
+    return static_cast<int>(g_audio_buffer_frames * g_audio_channels * g_audio_bytes_per_sample);
+}
+
+int write_audio_pcm(const uint8_t* bytes, int length) {
+    if (bytes == nullptr || length <= 0) return 0;
+    std::unique_lock<std::mutex> guard(g_audio_mutex);
+    ComScope com;
+    if (!com.ready() || g_audio_channels == 0 || g_audio_bytes_per_sample == 0) return -1;
+
+    const UINT32 frame_bytes = g_audio_channels * g_audio_bytes_per_sample;
+    const UINT32 total_frames = static_cast<UINT32>(length) / frame_bytes;
+    UINT32 frame_at = 0;
+
+    while (frame_at < total_frames) {
+        if (g_audio_reroute || g_audio_client == nullptr) {
+            reroute_locked();
+            return -1;
+        }
+        UINT32 padding = 0;
+        HRESULT status = g_audio_client->GetCurrentPadding(&padding);
+        if (status == AUDCLNT_E_DEVICE_INVALIDATED) {
+            reroute_locked();
+            return -1;
+        }
+        if (FAILED(status)) {
+            set_audio_error(L"Reading WASAPI exclusive buffer state", status);
+            return -1;
+        }
+        const UINT32 available = padding < g_audio_buffer_frames ? g_audio_buffer_frames - padding : 0;
+        if (available == 0) {
+            guard.unlock();
+            Sleep(2);
+            guard.lock();
+            continue;
+        }
+        const UINT32 frames = std::min(available, total_frames - frame_at);
+        BYTE* target = nullptr;
+        status = g_audio_render->GetBuffer(frames, &target);
+        if (status == AUDCLNT_E_DEVICE_INVALIDATED) {
+            reroute_locked();
+            return -1;
+        }
+        if (FAILED(status) || target == nullptr) {
+            set_audio_error(L"Acquiring WASAPI exclusive buffer", status);
+            return -1;
+        }
+        const size_t offset_bytes = static_cast<size_t>(frame_at) * frame_bytes;
+        const size_t copy_bytes = static_cast<size_t>(frames) * frame_bytes;
+        std::memcpy(target, bytes + offset_bytes, copy_bytes);
+        status = g_audio_render->ReleaseBuffer(frames, 0);
+        if (FAILED(status)) {
+            set_audio_error(L"Submitting WASAPI exclusive buffer", status);
+            return -1;
+        }
+        frame_at += frames;
+        g_audio_submitted_frames += frames;
+    }
+    return static_cast<int>(frame_at * frame_bytes);
+}
+
 jobjectArray list_devices(JNIEnv* env) {
     std::vector<std::wstring> values;
     {
@@ -806,6 +1143,11 @@ Java_com_music_bitchord_desktop_DesktopWindowsFrame_nativeMinimize(JNIEnv*, jcla
 }
 
 JNIEXPORT jboolean JNICALL
+Java_com_music_bitchord_desktop_DesktopWindowsFrame_nativeActivate(JNIEnv*, jclass) {
+    return activate_window(g_window) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
 Java_com_music_bitchord_desktop_DesktopWindowsFrame_nativeSetBackdrop(JNIEnv*, jclass, jint kind) {
     return set_backdrop(g_window, static_cast<int>(kind)) ? JNI_TRUE : JNI_FALSE;
 }
@@ -851,6 +1193,76 @@ Java_com_music_bitchord_desktop_DesktopWindowsAudio_nativeOpen(
         static_cast<int>(channels),
         static_cast<int>(bytes_per_sample),
         floating == JNI_TRUE));
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_music_bitchord_desktop_DesktopWindowsAudio_nativeProbeExclusiveRates(
+    JNIEnv* env,
+    jclass,
+    jstring device,
+    jint channels,
+    jint valid_bits,
+    jint container_bits,
+    jintArray candidate_rates) {
+    if (g_vm == nullptr) env->GetJavaVM(&g_vm);
+    const jchar* chars = env->GetStringChars(device, nullptr);
+    const jsize length = env->GetStringLength(device);
+    std::wstring wanted(reinterpret_cast<const wchar_t*>(chars), static_cast<size_t>(length));
+    env->ReleaseStringChars(device, chars);
+
+    jsize count = env->GetArrayLength(candidate_rates);
+    std::vector<int> candidates(static_cast<size_t>(std::max<jsize>(0, count)));
+    if (count > 0) {
+        jint* raw = env->GetIntArrayElements(candidate_rates, nullptr);
+        if (raw != nullptr) {
+            for (jsize i = 0; i < count; ++i) candidates[static_cast<size_t>(i)] = static_cast<int>(raw[i]);
+            env->ReleaseIntArrayElements(candidate_rates, raw, JNI_ABORT);
+        }
+    }
+    const std::vector<int> supported = probe_exclusive_rates(
+        wanted, static_cast<int>(channels), static_cast<int>(valid_bits), static_cast<int>(container_bits), candidates);
+    jintArray result = env->NewIntArray(static_cast<jsize>(supported.size()));
+    if (!supported.empty()) {
+        std::vector<jint> out(supported.begin(), supported.end());
+        env->SetIntArrayRegion(result, 0, static_cast<jsize>(out.size()), out.data());
+    }
+    return result;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_music_bitchord_desktop_DesktopWindowsAudio_nativeOpenExclusive(
+    JNIEnv* env,
+    jclass,
+    jstring device,
+    jint sample_rate,
+    jint channels,
+    jint valid_bits,
+    jint container_bits) {
+    if (g_vm == nullptr) env->GetJavaVM(&g_vm);
+    const jchar* chars = env->GetStringChars(device, nullptr);
+    const jsize length = env->GetStringLength(device);
+    std::wstring wanted(reinterpret_cast<const wchar_t*>(chars), static_cast<size_t>(length));
+    env->ReleaseStringChars(device, chars);
+    return static_cast<jint>(open_audio_exclusive(
+        wanted,
+        static_cast<int>(sample_rate),
+        static_cast<int>(channels),
+        static_cast<int>(valid_bits),
+        static_cast<int>(container_bits)));
+}
+
+JNIEXPORT jint JNICALL
+Java_com_music_bitchord_desktop_DesktopWindowsAudio_nativeWritePcm(
+    JNIEnv* env, jclass, jbyteArray bytes, jint length) {
+    if (bytes == nullptr || length <= 0) return 0;
+    const jsize available = env->GetArrayLength(bytes);
+    const jint safe_len = std::min(length, available);
+    jboolean copied = JNI_FALSE;
+    jbyte* raw = env->GetByteArrayElements(bytes, &copied);
+    if (raw == nullptr) return -1;
+    const int written = write_audio_pcm(reinterpret_cast<const uint8_t*>(raw), static_cast<int>(safe_len));
+    env->ReleaseByteArrayElements(bytes, raw, JNI_ABORT);
+    return static_cast<jint>(written);
 }
 
 JNIEXPORT jobjectArray JNICALL
@@ -948,6 +1360,63 @@ Java_com_music_bitchord_desktop_DesktopWindowsAudio_nativeLastError(JNIEnv* env,
     return env->NewString(
         reinterpret_cast<const jchar*>(g_audio_error.c_str()),
         static_cast<jsize>(g_audio_error.size()));
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_music_bitchord_desktop_DesktopWindowsAudio_nativeHardwareVolumeName(JNIEnv* env, jclass) {
+    std::lock_guard<std::mutex> vol_guard(g_volume_mutex);
+    return env->NewString(
+        reinterpret_cast<const jchar*>(g_volume_name.c_str()),
+        static_cast<jsize>(g_volume_name.size()));
+}
+
+JNIEXPORT jdoubleArray JNICALL
+Java_com_music_bitchord_desktop_DesktopWindowsAudio_nativeHardwareVolumeRange(JNIEnv* env, jclass) {
+    std::lock_guard<std::mutex> vol_guard(g_volume_mutex);
+    ComScope com;
+    if (!com.ready() || g_audio_endpoint_volume == nullptr || g_volume_max_db <= g_volume_min_db) {
+        return env->NewDoubleArray(0);
+    }
+    float cur_db = 0.0f;
+    BOOL muted = FALSE;
+    if (FAILED(g_audio_endpoint_volume->GetMasterVolumeLevel(&cur_db))) {
+        return env->NewDoubleArray(0);
+    }
+    g_audio_endpoint_volume->GetMute(&muted);
+    const jdouble values[4] = {
+        static_cast<double>(g_volume_min_db),
+        static_cast<double>(g_volume_max_db),
+        static_cast<double>(cur_db),
+        muted == TRUE ? 1.0 : 0.0,
+    };
+    jdoubleArray out = env->NewDoubleArray(4);
+    env->SetDoubleArrayRegion(out, 0, 4, values);
+    return out;
+}
+
+JNIEXPORT jdouble JNICALL
+Java_com_music_bitchord_desktop_DesktopWindowsAudio_nativeSetHardwareVolumeDb(
+    JNIEnv*,
+    jclass,
+    jdouble db,
+    jboolean mute) {
+    std::lock_guard<std::mutex> vol_guard(g_volume_mutex);
+    ComScope com;
+    if (!com.ready() || g_audio_endpoint_volume == nullptr) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    g_audio_endpoint_volume->SetMute(mute == JNI_TRUE ? TRUE : FALSE, nullptr);
+    if (mute != JNI_TRUE) {
+        const float clamped = std::clamp(static_cast<float>(db), g_volume_min_db, g_volume_max_db);
+        if (FAILED(g_audio_endpoint_volume->SetMasterVolumeLevel(clamped, nullptr))) {
+            return std::numeric_limits<double>::quiet_NaN();
+        }
+    }
+    float actual_db = 0.0f;
+    if (FAILED(g_audio_endpoint_volume->GetMasterVolumeLevel(&actual_db))) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    return static_cast<jdouble>(actual_db);
 }
 
 }  // extern "C"

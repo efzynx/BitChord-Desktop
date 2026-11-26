@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -62,55 +64,116 @@ internal fun DesktopLyricsSourcesDialog(
     onReset: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val isPage = LocalDesktopPanelIsPage.current
     DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 420) {
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = panelInset(20.dp), vertical = 18.dp),
-            // A card centres its heading; a page starts it on the gutter its rows start on.
-            horizontalAlignment = if (LocalDesktopPanelIsPage.current) Alignment.Start else Alignment.CenterHorizontally,
-        ) {
-            Text(
-                DesktopStrings["lyrics_sources", "Lyrics sources"],
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White,
+        if (isPage) {
+            Column(Modifier.fillMaxSize()) {
+                DesktopSettingsSubPageHeader(
+                    title = DesktopStrings["lyrics_sources", "Lyrics sources"],
+                    subtitle = DesktopStrings[
+                        "d_sources_are_tried_in_this_order",
+                        "Sources are tried in this order. Drag to reorder them. The first source " +
+                            "with lyrics wins unless syllable lyrics are prioritized.",
+                    ],
+                    onBack = onDismiss,
+                    trailing = {
+                        Spacer(Modifier.width(12.dp))
+                        DesktopGlassPillButton(
+                            text = DesktopStrings["reset_to_default", "Reset to default"],
+                            onClick = onReset,
+                        )
+                    },
+                )
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 32.dp),
+                ) {
+                    DesktopGroupedCard(topSpacing = 4.dp) {
+                        ReorderableSourceList(order, enabled, onReorder, onToggle)
+                    }
+                    DesktopGroupedCard(topSpacing = 16.dp) {
+                        val interaction = remember { MutableInteractionSource() }
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .desktopHoverFill(corner = 0.dp)
+                                .desktopGlassPress(RectangleShape, interactionSource = interaction, pressScale = 0.99f, hoverScale = 1f)
+                                .clickable(interactionSource = interaction, indication = null) {
+                                    onPrioritizeSyllables(!prioritizeSyllables)
+                                }
+                                .heightIn(min = 52.dp)
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = DesktopStrings["prioritize_syllable_lyrics", "Prioritize syllable lyrics"],
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = DesktopInk,
+                                )
+                                Text(
+                                    text = DesktopStrings["prioritize_syllable_lyrics_subtitle", "Keep searching past a line-synced match for word-by-word lyrics"],
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = DesktopSecondary,
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Switch(
+                                checked = prioritizeSyllables,
+                                onCheckedChange = onPrioritizeSyllables,
+                                colors = desktopSwitchColors(),
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = panelInset(20.dp), vertical = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    DesktopStrings["lyrics_sources", "Lyrics sources"],
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DesktopInk,
+                )
+                Text(
+                    DesktopStrings[
+                        "d_sources_are_tried_in_this_order",
+                        "Sources are tried in this order. Drag to reorder them. The first source " +
+                            "with lyrics wins unless syllable lyrics are prioritized.",
+                    ],
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DesktopSecondary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 5.dp),
+                )
+            }
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .then(desktopPanelBody(cardMax = 340.dp))
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                ReorderableSourceList(order, enabled, onReorder, onToggle)
+            }
+            DesktopCardRule()
+            CheckableRow(
+                title = DesktopStrings["prioritize_syllable_lyrics", "Prioritize syllable lyrics"],
+                subtitle = DesktopStrings["prioritize_syllable_lyrics_subtitle", "Keep searching past a line-synced match for word-by-word lyrics"],
+                checked = prioritizeSyllables,
+                onClick = { onPrioritizeSyllables(!prioritizeSyllables) },
             )
-            Text(
-                DesktopStrings[
-                    "d_sources_are_tried_in_this_order",
-                    "Sources are tried in this order. Drag to reorder them. The first source " +
-                        "with lyrics wins unless syllable lyrics are prioritized.",
-                ],
-                style = MaterialTheme.typography.bodySmall,
-                color = DesktopSecondary,
-                textAlign = if (LocalDesktopPanelIsPage.current) TextAlign.Start else TextAlign.Center,
-                modifier = Modifier.padding(top = 5.dp),
-            )
-        }
-        // Scrolls: enough providers have been added that the card runs off both ends of a short
-        // window, taking Reset and Done with it. A plain Column inside, not a lazy list — the
-        // drag-reorder measures itself against the rows it has, and a lazy list would recycle one
-        // out from under the pointer.
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .then(desktopPanelBody(cardMax = 340.dp))
-                .verticalScroll(rememberScrollState()),
-        ) {
-            ReorderableSourceList(order, enabled, onReorder, onToggle)
-        }
-        DesktopCardRule()
-        // Not a source to ask or not: a rule about what to do once one has answered.
-        CheckableRow(
-            title = DesktopStrings["prioritize_syllable_lyrics", "Prioritize syllable lyrics"],
-            subtitle = DesktopStrings["prioritize_syllable_lyrics_subtitle", "Keep searching past a line-synced match for word-by-word lyrics"],
-            checked = prioritizeSyllables,
-            onClick = { onPrioritizeSyllables(!prioritizeSyllables) },
-        )
-        DesktopCardRule()
-        Row(Modifier.fillMaxWidth().padding(horizontal = panelInset(12.dp), vertical = 6.dp)) {
-            TextButton(onClick = onReset) { Text(DesktopStrings["reset_to_default", "Reset to default"], color = DesktopSecondary) }
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text(DesktopStrings["done", "Done"], color = DesktopAccent) }
+            DesktopCardRule()
+            Row(Modifier.fillMaxWidth().padding(horizontal = panelInset(12.dp), vertical = 6.dp)) {
+                TextButton(onClick = onReset) { Text(DesktopStrings["reset_to_default", "Reset to default"], color = DesktopSecondary) }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onDismiss) { Text(DesktopStrings["done", "Done"], color = DesktopAccent) }
+            }
         }
     }
 }
@@ -166,10 +229,10 @@ private fun ReorderableSourceList(
                                 }
                             }
                             .background(
-                                if (dragging) Color.White.copy(alpha = 0.08f) else Color.Transparent,
+                                if (dragging) DesktopInk.copy(alpha = 0.08f) else Color.Transparent,
                             ),
                     ) {
-                        if (slot > 0) DesktopCardRule()
+                        if (slot > 0) DesktopCardRule(alwaysVisible = true)
                         CheckableRow(
                             title = source.name,
                             subtitle = source.detail,
@@ -267,17 +330,20 @@ private fun CheckableRow(
     leading: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
+    val isPage = LocalDesktopPanelIsPage.current
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
-    val washed = hovered && enabled && !LocalDesktopPanelIsPage.current
+    val washed = hovered && enabled && !isPage
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
             .background(if (washed) DesktopRowHover else Color.Transparent)
+            .then(if (isPage) Modifier.desktopHoverFill(corner = 0.dp) else Modifier)
+            .desktopGlassPress(RectangleShape, interactionSource = interaction, enabled = enabled, pressScale = 0.99f, hoverScale = 1f)
             .hoverable(interaction, enabled = enabled)
-            .desktopRowClickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = panelInset(18.dp), vertical = 9.dp),
+            .clickable(interactionSource = interaction, indication = null, enabled = enabled, onClick = onClick)
+            .padding(horizontal = if (isPage) 16.dp else panelInset(18.dp), vertical = if (isPage) 11.dp else 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         leading?.let {
@@ -288,7 +354,7 @@ private fun CheckableRow(
             Text(
                 title,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (enabled) Color.White else DesktopSecondary,
+                color = if (enabled) DesktopInk else DesktopSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

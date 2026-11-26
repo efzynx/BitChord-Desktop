@@ -79,7 +79,138 @@ data class DesktopReplaySummary(
 object DesktopListeningStats {
 
     private val preferences: Preferences = Preferences.userRoot().node("com.music.bitchord.desktop.stats")
+    private val peerPreferences: Preferences = Preferences.userRoot().node("com.music.bitchord.desktop.stats.peers")
+    private val peerJson = kotlinx.serialization.json.Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
     private val lock = Any()
+
+    @kotlinx.serialization.Serializable
+    data class BackupTrack(
+        val songEncoded: String,
+        val listenedMs: Long,
+        val plays: Int,
+    )
+
+    @kotlinx.serialization.Serializable
+    data class BackupBucket(
+        val month: String,
+        val tracks: List<BackupTrack> = emptyList(),
+        val hours: List<Long> = emptyList(),
+        val days: Map<String, Long> = emptyMap(),
+    )
+
+    fun exportBackupBuckets(): List<BackupBucket> = synchronized(lock) {
+        read().map { bucket ->
+            BackupBucket(
+                month = bucket.month,
+                tracks = bucket.tracks.values.map { entry ->
+                    BackupTrack(
+                        songEncoded = DesktopPersistence.encodeSongFields(entry.song),
+                        listenedMs = entry.listenedMs,
+                        plays = entry.plays,
+                    )
+                },
+                hours = bucket.hours.toList(),
+                days = bucket.days.toMap(),
+            )
+        }
+    }
+
+    fun importBackupBuckets(imported: List<BackupBucket>) = synchronized(lock) {
+        write(parseBackupBuckets(imported))
+    }
+
+    internal fun parseBackupBuckets(imported: List<BackupBucket>): List<Bucket> =
+        imported.mapNotNull { b ->
+            val month = b.month.takeIf(String::isNotBlank) ?: return@mapNotNull null
+            val bucket = Bucket(month = month)
+            b.tracks.forEach { t ->
+                val song = DesktopPersistence.decodeSongFields(t.songEncoded) ?: return@forEach
+                bucket.tracks[song.videoId] = DesktopReplayEntry(
+                    song = song,
+                    listenedMs = t.listenedMs.coerceAtLeast(0L),
+                    plays = t.plays.coerceAtLeast(0),
+                )
+            }
+            for (h in 0 until minOf(24, b.hours.size)) {
+                bucket.hours[h] = b.hours[h].coerceAtLeast(0L)
+            }
+            b.days.forEach { (day, ms) ->
+                if (day.isNotBlank() && ms > 0L) bucket.days[day] = ms
+            }
+            bucket
+        }
+
+    fun setPeerBuckets(deviceId: String, imported: List<BackupBucket>) = synchronized(lock) {
+        if (deviceId.isBlank()) return@synchronized
+        val currentIds = readPeerIds().toMutableSet()
+        if (imported.isEmpty()) {
+            DesktopPreferenceChunks.remove(peerPreferences, peerKey(deviceId))
+            currentIds.remove(deviceId)
+        } else {
+            val encoded = peerJson.encodeToString(
+                kotlinx.serialization.builtins.ListSerializer(BackupBucket.serializer()),
+                imported,
+            )
+            DesktopPreferenceChunks.write(peerPreferences, peerKey(deviceId), encoded)
+            currentIds.add(deviceId)
+        }
+        DesktopPreferenceChunks.write(peerPreferences, KEY_PEER_IDS, currentIds.joinToString("\n"))
+        runCatching { peerPreferences.flush() }
+    }
+
+    fun removePeerDevice(deviceId: String) = synchronized(lock) {
+        if (deviceId.isBlank()) return@synchronized
+        DesktopPreferenceChunks.remove(peerPreferences, peerKey(deviceId))
+        val remaining = readPeerIds().filterNot { it == deviceId }
+        DesktopPreferenceChunks.write(peerPreferences, KEY_PEER_IDS, remaining.joinToString("\n"))
+        runCatching { peerPreferences.flush() }
+    }
+
+    fun retainOnlyPeerDevices(activeIds: Set<String>) = synchronized(lock) {
+        val current = readPeerIds()
+        val dropped = current.filterNot { it in activeIds }
+        if (dropped.isEmpty()) return@synchronized
+        dropped.forEach { DesktopPreferenceChunks.remove(peerPreferences, peerKey(it)) }
+        DesktopPreferenceChunks.write(
+            peerPreferences,
+            KEY_PEER_IDS,
+            current.filter { it in activeIds }.joinToString("\n"),
+        )
+        runCatching { peerPreferences.flush() }
+    }
+
+    fun clearAllPeerBuckets() = synchronized(lock) {
+        readPeerIds().forEach { DesktopPreferenceChunks.remove(peerPreferences, peerKey(it)) }
+        DesktopPreferenceChunks.remove(peerPreferences, KEY_PEER_IDS)
+        runCatching { peerPreferences.flush() }
+    }
+
+    fun peerDeviceCount(): Int = synchronized(lock) { readPeerIds().size }
+
+    private fun readPeerIds(): List<String> = DesktopPreferenceChunks.read(peerPreferences, KEY_PEER_IDS)
+        .orEmpty()
+        .lineSequence()
+        .map(String::trim)
+        .filter(String::isNotBlank)
+        .distinct()
+        .toList()
+
+    private fun readAllPeerBuckets(): List<Bucket> = readPeerIds().flatMap { id ->
+        val raw = DesktopPreferenceChunks.read(peerPreferences, peerKey(id)).orEmpty()
+        if (raw.isBlank()) return@flatMap emptyList()
+        val parsed = runCatching {
+            peerJson.decodeFromString(
+                kotlinx.serialization.builtins.ListSerializer(BackupBucket.serializer()),
+                raw,
+            )
+        }.getOrDefault(emptyList())
+        parseBackupBuckets(parsed)
+    }
+
+    private fun peerKey(deviceId: String): String = "peer_$deviceId"
 
     /** A month's listening. */
     internal data class Bucket(
@@ -111,7 +242,7 @@ object DesktopListeningStats {
     }
 
     fun summary(period: DesktopReplayPeriod = DesktopReplayPeriod.ALL_TIME): DesktopReplaySummary =
-        synchronized(lock) { summarise(read(), period, LocalDate.now()) }
+        synchronized(lock) { summarise(read() + readAllPeerBuckets(), period, LocalDate.now()) }
 
     /** Everything recorded, thrown away. */
     fun clear() = synchronized(lock) {
@@ -344,4 +475,5 @@ object DesktopListeningStats {
     private const val ROW_DAY = "d"
     private const val KEY_BUCKETS = "buckets"
     private const val KEY_ENTRIES = "entries"
+    private const val KEY_PEER_IDS = "peer_ids"
 }

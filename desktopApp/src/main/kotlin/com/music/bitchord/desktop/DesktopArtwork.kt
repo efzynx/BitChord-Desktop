@@ -4,14 +4,20 @@ import com.music.bitchord.data.model.artworkAt
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.Image
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -68,6 +74,7 @@ fun DesktopArtwork(
     contentScale: ContentScale = ContentScale.Crop,
     contentDescription: String? = null,
     px: Int? = null,
+    placeholder: ImageVector? = null,
 ) {
     val sized = if (px != null) url.artworkAt(px) else url
     val bitmap by produceState<ImageBitmap?>(initialValue = null, key1 = sized) {
@@ -76,7 +83,19 @@ fun DesktopArtwork(
         }
     }
     if (bitmap == null) {
-        Box(modifier.background(Color(0xFF2B2B35)))
+        Box(
+            modifier = modifier.background(Color(0xFF2B2B35)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (placeholder != null) {
+                Icon(
+                    imageVector = placeholder,
+                    contentDescription = contentDescription,
+                    tint = Color.White.copy(alpha = 0.45f),
+                    modifier = Modifier.fillMaxSize(0.38f),
+                )
+            }
+        }
     } else {
         Image(
             painter = BitmapPainter(bitmap!!),

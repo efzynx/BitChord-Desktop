@@ -1,64 +1,469 @@
 package com.music.bitchord.desktop
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.foundation.border
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 // The look every modal card in the app shares.
 
 /** The card fill. */
-internal val DesktopCardFill = Color(0xFA1A1A1D)
+internal val DesktopCardFill: Color
+    @Composable get() = LocalDesktopPalette.current.cardFill
 
 /** A block inside a card — a settings group — lifted just off the fill. */
-internal val DesktopCardInsetFill = Color(0x14FFFFFF)
+internal val DesktopCardInsetFill: Color
+    @Composable get() = LocalDesktopPalette.current.cardInsetFill
 
 /** The hairline that bounds a card, and separates one row from the next. */
-internal val DesktopCardEdge = Color(0x1FFFFFFF)
+internal val DesktopCardEdge: Color
+    @Composable get() = LocalDesktopPalette.current.cardEdge
 
 /** What a row reads at while the pointer is on it. */
-internal val DesktopRowHover = Color(0x1AFFFFFF)
+internal val DesktopRowHover: Color
+    @Composable get() = LocalDesktopPalette.current.rowHover
 
 /** The scrim a modal card sits on. */
-internal val DesktopScrim = Color(0x8C000000)
+internal val DesktopScrim: Color
+    @Composable get() = LocalDesktopPalette.current.scrim
 
 /** Card, hairline and all. */
-internal fun Modifier.desktopCard(shape: Shape): Modifier =
+internal fun Modifier.desktopCard(shape: Shape): Modifier = composed {
     clip(shape).background(DesktopCardFill).border(0.5.dp, DesktopCardEdge, shape)
+}
 
-/** A block of rows inside a card. */
-internal fun Modifier.desktopCardInset(shape: Shape): Modifier =
-    clip(shape).background(DesktopCardInsetFill).border(0.5.dp, DesktopCardEdge, shape)
+/**
+ * Shared smoked/frosted Settings container surface synced with Ambient artwork glow, Liquid Glass,
+ * Reduce dynamic blur, Disable blend effects, and active Light/Dark theme.
+ */
+internal fun Modifier.desktopSettingsCardSurface(
+    shape: Shape = RoundedCornerShape(14.dp),
+): Modifier = composed {
+    val palette = LocalDesktopPalette.current
+    val ambient by DesktopAppearanceSettings.ambientBackdrop.collectAsState()
+    val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
+    val reduceBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
+    val disableBlend by DesktopAppearanceSettings.disableBlendEffects.collectAsState()
+    val translucentCard = !reduceBlur && (liquidGlass || (ambient && !disableBlend))
+    val cardAlpha = when {
+        ambient && !disableBlend && !reduceBlur -> if (palette.isDark) 0.56f else 0.52f
+        liquidGlass && !reduceBlur -> if (palette.isDark) 0.72f else 0.68f
+        else -> 1f
+    }
+    this
+        .clip(shape)
+        .then(
+            if (translucentCard) {
+                Modifier
+                    .background(palette.settingsCardGlassBase.copy(alpha = cardAlpha))
+                    .background(
+                        Brush.verticalGradient(
+                            if (palette.isDark) {
+                                listOf(
+                                    Color.White.copy(alpha = 0.045f),
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.06f),
+                                )
+                            } else {
+                                listOf(
+                                    Color.White.copy(alpha = 0.34f),
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.025f),
+                                )
+                            },
+                        ),
+                    )
+                    .border(
+                        width = 0.75.dp,
+                        brush = Brush.linearGradient(
+                            if (palette.isDark) {
+                                listOf(
+                                    Color.White.copy(alpha = if (liquidGlass) 0.16f else 0.11f),
+                                    Color.White.copy(alpha = 0.04f),
+                                )
+                            } else {
+                                listOf(
+                                    Color.Black.copy(alpha = if (liquidGlass) 0.11f else 0.08f),
+                                    Color.Black.copy(alpha = 0.05f),
+                                )
+                            },
+                        ),
+                        shape = shape,
+                    )
+            } else {
+                Modifier
+                    .background(palette.settingsCardSolid)
+                    .border(0.5.dp, DesktopCardEdge, shape)
+            },
+        )
+}
 
-/** The rule between two rows of a card. A page of Settings has none: its rows are spaced, not ruled. */
+/** A block of rows inside a modal card or Settings sub-page. */
+internal fun Modifier.desktopCardInset(shape: Shape): Modifier = composed {
+    if (LocalDesktopPanelIsPage.current) {
+        desktopSettingsCardSurface(shape)
+    } else {
+        clip(shape)
+            .background(DesktopCardInsetFill)
+            .border(0.65.dp, DesktopCardEdge, shape)
+    }
+}
+
+/** The rule between two rows of a card. A page of Settings keeps grouped dividers when requested. */
 @Composable
-internal fun DesktopCardRule(modifier: Modifier = Modifier) {
-    if (LocalDesktopPanelIsPage.current) return
+internal fun DesktopCardRule(
+    modifier: Modifier = Modifier,
+    alwaysVisible: Boolean = false,
+) {
+    if (!alwaysVisible && LocalDesktopPanelIsPage.current) return
     HorizontalDivider(modifier, thickness = 0.5.dp, color = DesktopCardEdge)
+}
+
+/**
+ * Unified header bar for all Settings sub-pages (Audio output, Equalizer, Lyrics sources,
+ * Translation language, Integrations, Spotify Canvas, Listen together, Updates, Licenses).
+ */
+@Composable
+internal fun DesktopSettingsSubPageHeader(
+    title: String,
+    subtitle: String? = null,
+    onBack: () -> Unit,
+    trailing: @Composable () -> Unit = {},
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 20.dp, bottom = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DesktopToolbarButton(
+                onClick = onBack,
+                size = 36.dp,
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = DesktopStrings["back", "Back"],
+                    tint = DesktopInk,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = DesktopInk,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DesktopSecondary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+        trailing()
+    }
+}
+
+/**
+ * Frosted translucent text input field synced with Liquid Glass, Ambient artwork glow,
+ * Reduce dynamic blur, and interactive glass press animations.
+ */
+@Composable
+internal fun DesktopGlassTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    enabled: Boolean = true,
+    isPassword: Boolean = false,
+    imeAction: ImeAction = ImeAction.Done,
+    onSubmit: () -> Unit = {},
+) {
+    val palette = LocalDesktopPalette.current
+    val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
+    val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
+    val glassSurface = liquidGlass && DesktopPlatform.supportsLiquidGlass && !reduceDynamicBlur
+    var isFocused by remember { mutableStateOf(false) }
+    val interaction = remember { MutableInteractionSource() }
+    val fieldShape = RoundedCornerShape(11.dp)
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (!label.isNullOrBlank()) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = DesktopSecondary,
+                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 44.dp)
+                .desktopGlassPress(
+                    shape = fieldShape,
+                    interactionSource = interaction,
+                    enabled = enabled,
+                    pressScale = 0.988f,
+                    hoverScale = 1f,
+                    rimBoostAlpha = 0.28f,
+                )
+                .clip(fieldShape)
+                .then(
+                    if (glassSurface) {
+                        val bgBrush = if (palette.isDark) {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = if (isFocused) 0.13f else 0.095f),
+                                    Color(0xFF0E0E13).copy(alpha = 0.34f),
+                                ),
+                            )
+                        } else {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = if (isFocused) 0.92f else 0.78f),
+                                    palette.surfaceRaised.copy(alpha = 0.80f),
+                                ),
+                            )
+                        }
+                        val borderBrush = if (palette.isDark) {
+                            Brush.linearGradient(
+                                listOf(
+                                    Color.White.copy(alpha = if (isFocused) 0.36f else 0.20f),
+                                    Color.White.copy(alpha = if (isFocused) 0.14f else 0.06f),
+                                ),
+                            )
+                        } else {
+                            Brush.linearGradient(
+                                listOf(
+                                    Color.Black.copy(alpha = if (isFocused) 0.30f else 0.14f),
+                                    Color.Black.copy(alpha = if (isFocused) 0.16f else 0.07f),
+                                ),
+                            )
+                        }
+                        Modifier
+                            .background(bgBrush)
+                            .border(
+                                width = if (isFocused) 1.dp else 0.85.dp,
+                                brush = borderBrush,
+                                shape = fieldShape,
+                            )
+                    } else {
+                        Modifier
+                            .background(
+                                if (palette.isDark) {
+                                    Color.White.copy(alpha = if (enabled) 0.08f else 0.04f)
+                                } else {
+                                    palette.surfaceRaised.copy(alpha = if (enabled) 1f else 0.6f)
+                                },
+                            )
+                            .border(
+                                width = if (isFocused) 1.dp else 0.5.dp,
+                                color = if (isFocused) DesktopAccent.copy(alpha = 0.65f) else DesktopCardEdge,
+                                shape = fieldShape,
+                            )
+                    },
+                )
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.weight(1f)) {
+                if (value.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = DesktopSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    enabled = enabled,
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = DesktopInk),
+                    cursorBrush = SolidColor(DesktopAccent),
+                    visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+                    keyboardOptions = KeyboardOptions(imeAction = imeAction),
+                    keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { isFocused = it.isFocused },
+                )
+            }
+            if (value.isNotEmpty() && enabled) {
+                val clearInteraction = remember { MutableInteractionSource() }
+                Spacer(Modifier.width(6.dp))
+                Box(
+                    Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .desktopGlassPress(CircleShape, interactionSource = clearInteraction, pressScale = 0.90f)
+                        .background(DesktopInk.copy(alpha = 0.12f))
+                        .clickable(interactionSource = clearInteraction, indication = null) { onValueChange("") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Rounded.Close,
+                        DesktopStrings["clear", "Clear"],
+                        tint = DesktopInk.copy(alpha = 0.85f),
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Interactive pill button synced with Liquid Glass press effects and Settings card styling.
+ */
+@Composable
+internal fun DesktopGlassPillButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    accent: Boolean = false,
+    destructive: Boolean = false,
+) {
+    val palette = LocalDesktopPalette.current
+    val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
+    val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
+    val glassSurface = liquidGlass && DesktopPlatform.supportsLiquidGlass && !reduceDynamicBlur
+    val interaction = remember { MutableInteractionSource() }
+    val shape = CircleShape
+    val bgBrush = when {
+        accent && enabled -> Brush.verticalGradient(listOf(DesktopAccent, DesktopAccent.copy(alpha = 0.90f)))
+        accent -> Brush.verticalGradient(listOf(DesktopInk.copy(alpha = 0.12f), DesktopInk.copy(alpha = 0.08f)))
+        destructive -> Brush.verticalGradient(listOf(DesktopDestructive.copy(alpha = 0.16f), DesktopDestructive.copy(alpha = 0.08f)))
+        glassSurface && !palette.isDark -> Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.74f), Color(0xFFF3F4F8).copy(alpha = 0.56f)))
+        glassSurface -> Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0.08f)))
+        !palette.isDark -> Brush.verticalGradient(listOf(palette.surfaceRaised, palette.surfaceRaised))
+        else -> Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f), Color.White.copy(alpha = 0.08f)))
+    }
+    val textColor = when {
+        !enabled -> DesktopSecondary.copy(alpha = 0.55f)
+        accent -> DesktopOnAccent
+        destructive -> DesktopDestructive
+        else -> DesktopInk
+    }
+    Box(
+        modifier = modifier
+            .heightIn(min = 34.dp)
+            .desktopGlassPress(
+                shape = shape,
+                interactionSource = interaction,
+                enabled = enabled,
+                pressScale = 0.95f,
+                sheenColor = if (accent) DesktopOnAccent else DesktopInk,
+            )
+            .clip(shape)
+            .background(bgBrush)
+            .then(
+                if (!accent && (glassSurface || destructive || !palette.isDark)) {
+                    Modifier.border(
+                        0.75.dp,
+                        if (destructive) DesktopDestructive.copy(alpha = 0.30f) else DesktopInk.copy(alpha = if (palette.isDark) 0.20f else 0.14f),
+                        shape,
+                    )
+                } else {
+                    Modifier
+                },
+            )
+            .clickable(interactionSource = interaction, indication = null, enabled = enabled, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 7.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = textColor,
+            maxLines = 1,
+        )
+    }
 }
 
 /**
@@ -132,10 +537,49 @@ internal fun Modifier.desktopRowClickable(enabled: Boolean = true, onClick: () -
     }
 }
 
+@Stable
+internal class DesktopModalEntry(
+    val id: Any,
+    val contentState: MutableState<@Composable () -> Unit>,
+)
+
+/**
+ * Window-level host for popup panels opened from inside scrollers or captured backdrop trees.
+ * Rendering modals outside the window's backdrop recorder avoids Skia self-recording crashes
+ * and ensures the backdrop dim covers the entire window chrome.
+ */
+@Stable
+internal class DesktopModalHostState {
+    val entries = mutableStateListOf<DesktopModalEntry>()
+
+    fun register(entry: DesktopModalEntry) {
+        if (entries.none { it.id === entry.id }) {
+            entries.add(entry)
+        }
+    }
+
+    fun unregister(entry: DesktopModalEntry) {
+        entries.removeAll { it.id === entry.id }
+    }
+}
+
+internal val LocalDesktopModalHost = staticCompositionLocalOf<DesktopModalHostState?> { null }
+internal val LocalDesktopInRootOverlay = staticCompositionLocalOf { false }
+
+@Composable
+internal fun DesktopModalPortalHost(state: DesktopModalHostState) {
+    for (entry in state.entries) {
+        key(entry.id) {
+            entry.contentState.value()
+        }
+    }
+}
+
 /**
  * The dialog shell: the same card the song menu is drawn on — or, inside Settings, a page of it.
  *
- * [popup] keeps it a card even there, for a prompt a page opens over itself.
+ * [popup] keeps it a card even there, for a prompt a page opens over itself. Popups portal into
+ * [LocalDesktopModalHost] so they render outside `overlayBackdrop` across the full window.
  */
 @Composable
 internal fun DesktopDialogPanel(
@@ -151,10 +595,114 @@ internal fun DesktopDialogPanel(
         )
         return
     }
+    val modalHost = LocalDesktopModalHost.current
+    val inRootOverlay = LocalDesktopInRootOverlay.current
+    if (modalHost != null && !inRootOverlay) {
+        val entry = remember(modalHost) {
+            DesktopModalEntry(
+                id = Any(),
+                contentState = mutableStateOf<@Composable () -> Unit>({
+                    DesktopDialogModalFrame(
+                        onDismiss = onDismiss,
+                        maxWidth = maxWidth,
+                        content = content,
+                    )
+                }),
+            )
+        }
+        SideEffect {
+            entry.contentState.value = {
+                DesktopDialogModalFrame(
+                    onDismiss = onDismiss,
+                    maxWidth = maxWidth,
+                    content = content,
+                )
+            }
+        }
+        DisposableEffect(modalHost, entry) {
+            modalHost.register(entry)
+            onDispose { modalHost.unregister(entry) }
+        }
+        return
+    }
+    DesktopDialogModalFrame(
+        onDismiss = onDismiss,
+        maxWidth = maxWidth,
+        content = content,
+    )
+}
+
+/**
+ * Spring entrance motion for anchored popups (context menus, volume pill, sidebar flyouts).
+ */
+internal fun Modifier.desktopPopupMotion(
+    pivotX: Float = 0.5f,
+    pivotY: Float = 0f,
+    slideXDp: Dp = 0.dp,
+    slideYDp: Dp = (-6).dp,
+): Modifier = composed {
+    val reduceMotion by DesktopAppearanceSettings.reduceAnimation.collectAsState()
+    var shown by remember { mutableStateOf(reduceMotion) }
+    LaunchedEffect(reduceMotion) { shown = true }
+    val progress by animateFloatAsState(
+        targetValue = if (shown) 1f else 0f,
+        animationSpec = if (reduceMotion) {
+            snap()
+        } else {
+            spring(dampingRatio = 0.84f, stiffness = Spring.StiffnessMedium)
+        },
+        label = "desktopPopupMotion",
+    )
+    val density = LocalDensity.current
+    val slideXPx = with(density) { slideXDp.toPx() }
+    val slideYPx = with(density) { slideYDp.toPx() }
+    graphicsLayer {
+        val p = progress.coerceIn(0f, 1.04f)
+        alpha = p.coerceIn(0f, 1f)
+        val scale = 0.92f + 0.08f * p
+        scaleX = scale
+        scaleY = scale
+        translationX = slideXPx * (1f - p)
+        translationY = slideYPx * (1f - p)
+        transformOrigin = TransformOrigin(pivotX, pivotY)
+    }
+}
+
+internal fun desktopModalSurfaceTint(isDark: Boolean): Color = if (isDark) {
+    Color(0xFF0C0C10).copy(alpha = 0.84f)
+} else {
+    Color(0xFFE6E9EF).copy(alpha = 0.88f)
+}
+
+@Composable
+private fun DesktopDialogModalFrame(
+    onDismiss: () -> Unit,
+    maxWidth: Int,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val reduceMotion by DesktopAppearanceSettings.reduceAnimation.collectAsState()
+    var visible by remember { mutableStateOf(reduceMotion) }
+    LaunchedEffect(reduceMotion) { visible = true }
+    val scrimAlpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = if (reduceMotion) snap() else tween(durationMillis = 180),
+        label = "dialogScrimAlpha",
+    )
+    val cardProgress by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = if (reduceMotion) {
+            snap()
+        } else {
+            spring(dampingRatio = 0.86f, stiffness = Spring.StiffnessMedium)
+        },
+        label = "dialogCardProgress",
+    )
+    val liftPx = with(LocalDensity.current) { 10.dp.toPx() }
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Box(
             Modifier
                 .fillMaxSize()
+                .graphicsLayer { alpha = scrimAlpha }
                 .background(DesktopScrim)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -165,11 +713,24 @@ internal fun DesktopDialogPanel(
         val shape = RoundedCornerShape(20.dp)
         Box(
             Modifier
+                .padding(horizontal = 24.dp, vertical = 16.dp)
                 .widthIn(max = maxWidth.dp)
                 .fillMaxWidth()
+                .graphicsLayer {
+                    val p = cardProgress.coerceIn(0f, 1.04f)
+                    alpha = p.coerceIn(0f, 1f)
+                    val s = 0.94f + 0.06f * p
+                    scaleX = s
+                    scaleY = s
+                    translationY = liftPx * (1f - p)
+                }
                 .shadow(24.dp, shape)
                 .clip(shape)
-                .desktopBarGlass(shape),
+                .desktopBarGlass(
+                    shape = shape,
+                    surfaceTint = desktopModalSurfaceTint(DesktopIsDark),
+                    borderAlpha = if (DesktopIsDark) 0.22f else 0.30f,
+                ),
         ) {
             // Behind the content rather than around it, so it swallows clicks on the panel's own
             // background without eating the rows' own.

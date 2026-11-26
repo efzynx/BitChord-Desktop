@@ -4,7 +4,9 @@ import com.music.bitchord.ui.replay.ReplayCreditCard
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,14 +30,27 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +62,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +81,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 // ── The banner on the Library page ──────────────────────────────────────────
@@ -80,6 +98,8 @@ internal fun DesktopReplayPage(
     onOpenArtist: (String) -> Unit,
     contentPadding: PaddingValues,
 ) {
+    var showShareDialog by remember { mutableStateOf(false) }
+
     // The mesh behind this page is painted by the frame, so the chrome is tinted by it too.
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = contentPadding) {
@@ -94,15 +114,24 @@ internal fun DesktopReplayPage(
                             DesktopStrings["replay", "Replay"],
                             style = MaterialTheme.typography.displayMedium,
                             fontWeight = FontWeight.W800,
-                            color = Color.White,
+                            color = DesktopInk,
                         )
                         Text(
                             summary.label.ifBlank { period.chip },
                             style = MaterialTheme.typography.titleMedium,
-                            color = Color.White.copy(alpha = 0.6f),
+                            color = DesktopInk.copy(alpha = 0.62f),
                         )
                         Spacer(Modifier.height(14.dp))
-                        PeriodPicker(period, onPeriodChange)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            PeriodPicker(period, onPeriodChange)
+                            if (!summary.isEmpty) {
+                                ShareReplayChip(onClick = { showShareDialog = true })
+                            }
+                        }
                         Spacer(Modifier.height(18.dp))
                     }
                 }
@@ -123,7 +152,7 @@ internal fun DesktopReplayPage(
                             artworkUrl = card.artworkUrl,
                             holder = holder,
                             memberSince = summary.memberSince(),
-                            onClick = {},
+                            onClick = { showShareDialog = true },
                             modifier = Modifier.width(300.dp),
                         )
                     }
@@ -151,24 +180,265 @@ internal fun DesktopReplayPage(
             )
 
             item("habits") { Habits(summary) }
+            item("share") {
+                Spacer(Modifier.height(14.dp))
+                ShareReplayBannerRow(onClick = { showShareDialog = true })
+            }
             item("tail") { Spacer(Modifier.height(32.dp)) }
+        }
+    }
+
+    if (showShareDialog) {
+        DesktopReplayShareDialog(
+            summary = summary,
+            holder = holder,
+            onDismiss = { showShareDialog = false },
+        )
+    }
+}
+
+@Composable
+private fun ShareReplayChip(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(DesktopInk.copy(alpha = 0.08f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.IosShare,
+            contentDescription = null,
+            tint = DesktopInk,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = DesktopStrings["share_my_replay", "Share my Replay"],
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.W700,
+            color = DesktopInk,
+        )
+    }
+}
+
+@Composable
+private fun ShareReplayBannerRow(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .padding(horizontal = GUTTER)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(DesktopInk.copy(alpha = 0.08f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.IosShare,
+            contentDescription = null,
+            tint = DesktopAccent,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = DesktopStrings["share_my_replay", "Share my Replay"],
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = DesktopInk,
+        )
+    }
+}
+
+@Composable
+private fun DesktopReplayShareDialog(
+    summary: DesktopReplaySummary,
+    holder: String,
+    onDismiss: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var rendered by remember { mutableStateOf<DesktopReplayPoster.RenderedPoster?>(null) }
+    var failed by remember { mutableStateOf(false) }
+    var saved by remember { mutableStateOf(false) }
+    var copied by remember { mutableStateOf(false) }
+    var errorNote by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(summary, holder) {
+        rendered = null
+        failed = false
+        saved = false
+        copied = false
+        errorNote = null
+        runCatching {
+            DesktopReplayPoster.render(
+                summary = summary,
+                holder = holder,
+                memberSince = summary.memberSince(),
+            )
+        }.fold(
+            onSuccess = { rendered = it },
+            onFailure = {
+                failed = true
+                errorNote = it.message
+            },
+        )
+    }
+
+    DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 460, popup = true) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 680.dp)
+                .padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = DesktopStrings["share_my_replay", "Share my Replay"],
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = DesktopInk,
+            )
+            Text(
+                text = DesktopStrings[
+                    "replay_share_summary_description",
+                    "A full picture with songs, artists, albums, genres, and habits.",
+                ],
+                style = MaterialTheme.typography.bodySmall,
+                color = DesktopSecondary,
+            )
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .heightIn(max = 390.dp)
+                    .aspectRatio(9f / 16f)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(DesktopInk.copy(alpha = 0.08f))
+                    .border(0.75.dp, DesktopCardEdge, RoundedCornerShape(18.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                val poster = rendered
+                when {
+                    poster != null -> Image(
+                        bitmap = poster.preview,
+                        contentDescription = DesktopStrings["your_replay", "Your Replay"],
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    failed -> Text(
+                        text = DesktopStrings["couldnt_draw_picture", "Could not create the picture"],
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = DesktopSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                    else -> CircularProgressIndicator(
+                        color = DesktopAccent,
+                        strokeWidth = 2.5.dp,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+            }
+
+            errorNote?.let { msg ->
+                Text(
+                    text = msg,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = DesktopDestructive,
+                )
+            }
+
+            val poster = rendered
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        val bytes = poster?.pngBytes ?: return@OutlinedButton
+                        val file = DesktopReplayPoster.chooseSaveFile(
+                            DesktopReplayPoster.suggestedFilename(summary),
+                        ) ?: return@OutlinedButton
+                        scope.launch {
+                            DesktopReplayPoster.savePng(file, bytes).fold(
+                                onSuccess = { saved = true },
+                                onFailure = { errorNote = it.message },
+                            )
+                        }
+                    },
+                    enabled = poster != null && !saved,
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        imageVector = if (saved) Icons.Rounded.Check else Icons.Rounded.Download,
+                        contentDescription = null,
+                        tint = DesktopInk,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = if (saved) DesktopStrings["saved", "Saved"] else DesktopStrings["save", "Save"],
+                        color = DesktopInk,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        val bytes = poster?.pngBytes ?: return@Button
+                        scope.launch {
+                            DesktopReplayPoster.copyPngToClipboard(bytes).fold(
+                                onSuccess = { copied = true },
+                                onFailure = { errorNote = it.message },
+                            )
+                        }
+                    },
+                    enabled = poster != null,
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = DesktopAccent,
+                        contentColor = DesktopOnAccent,
+                    ),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        imageVector = if (copied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = if (copied) {
+                            DesktopStrings["d_copied", "Copied"]
+                        } else {
+                            DesktopStrings["d_copy_image", "Copy image"]
+                        },
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun PeriodPicker(selected: DesktopReplayPeriod, onSelect: (DesktopReplayPeriod) -> Unit) {
+    val ink = DesktopInk
+    val accent = DesktopAccent
+    val onAccent = DesktopOnAccent
     Row(
         Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.10f))
+            .background(ink.copy(alpha = 0.08f))
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         DesktopReplayPeriod.entries.forEach { period ->
             val active = period == selected
             val background by animateColorAsState(
-                if (active) Color.White.copy(alpha = 0.92f) else Color.Transparent,
+                if (active) accent.copy(alpha = 0.94f) else Color.Transparent,
                 tween(160),
                 label = "periodChip",
             )
@@ -176,7 +446,7 @@ private fun PeriodPicker(selected: DesktopReplayPeriod, onSelect: (DesktopReplay
                 period.chip,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.W700,
-                color = if (active) Color.Black else Color.White.copy(alpha = 0.75f),
+                color = if (active) onAccent else ink.copy(alpha = 0.72f),
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
                     .background(background)
@@ -204,7 +474,7 @@ private fun LazyListScope.chart(
             title,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.W800,
-            color = Color.White,
+            color = DesktopInk,
             modifier = Modifier.padding(start = GUTTER, end = GUTTER, top = 8.dp, bottom = 10.dp),
         )
     }
@@ -236,14 +506,14 @@ private fun ChartRow(row: DesktopReplayRow, circular: Boolean, onClick: () -> Un
                 row.title,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.W600,
-                color = Color.White,
+                color = DesktopInk,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 listOfNotNull(row.subtitle, formatListening(row.ms)).joinToString(" · "),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.55f),
+                color = DesktopInk.copy(alpha = 0.58f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -252,7 +522,7 @@ private fun ChartRow(row: DesktopReplayRow, circular: Boolean, onClick: () -> Un
             Text(
                 row.plays.toString(),
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.45f),
+                color = DesktopInk.copy(alpha = 0.48f),
             )
         }
     }
@@ -266,7 +536,7 @@ private fun RankBadge(rank: Int) {
         rank.toString(),
         style = if (rank == 1) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.W800,
-        color = if (rank == 1) DesktopAccent else Color.White.copy(alpha = 0.45f),
+        color = if (rank == 1) DesktopAccent else DesktopInk.copy(alpha = 0.45f),
         modifier = Modifier.width(28.dp),
     )
 }
@@ -299,7 +569,7 @@ private fun Habits(summary: DesktopReplaySummary) {
             DesktopStrings["d_listening_shape", "Listening shape"],
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.W800,
-            color = Color.White,
+            color = DesktopInk,
             modifier = Modifier.padding(top = 8.dp, bottom = 10.dp),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -323,7 +593,7 @@ private fun StatTile(label: String, value: String, modifier: Modifier = Modifier
     Column(
         modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(Color.White.copy(alpha = 0.09f))
+            .background(DesktopInk.copy(alpha = 0.08f))
             .padding(vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -331,12 +601,12 @@ private fun StatTile(label: String, value: String, modifier: Modifier = Modifier
             value,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.W800,
-            color = Color.White,
+            color = DesktopInk,
         )
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.55f),
+            color = DesktopInk.copy(alpha = 0.58f),
             letterSpacing = 1.sp,
         )
     }
@@ -347,7 +617,7 @@ private fun Note(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
-        color = Color.White.copy(alpha = 0.6f),
+        color = DesktopInk.copy(alpha = 0.62f),
         modifier = modifier,
     )
 }
@@ -361,14 +631,14 @@ private fun EmptyReplay(period: DesktopReplayPeriod) {
         Icon(
             Icons.Rounded.Schedule,
             contentDescription = null,
-            tint = Color.White.copy(alpha = 0.4f),
+            tint = DesktopInk.copy(alpha = 0.4f),
             modifier = Modifier.size(44.dp),
         )
         Spacer(Modifier.height(16.dp))
         Text(
             DesktopStrings["not_enough_listening", "Not enough listening yet"],
             style = MaterialTheme.typography.titleLarge,
-            color = Color.White,
+            color = DesktopInk,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(8.dp))
@@ -378,7 +648,7 @@ private fun EmptyReplay(period: DesktopReplayPeriod) {
                 else -> "Play some music and your Replay will build itself."
             },
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.White.copy(alpha = 0.6f),
+            color = DesktopInk.copy(alpha = 0.62f),
             textAlign = TextAlign.Center,
         )
     }
@@ -388,11 +658,11 @@ private fun EmptyReplay(period: DesktopReplayPeriod) {
 
 /** The artwork's own colours, averaged into a mesh and held still. */
 @Composable
-internal fun DesktopMesh(url: String?) {
-    val mesh by produceState<ImageBitmap?>(initialValue = null, key1 = url) {
+internal fun DesktopMesh(url: String?, lightTheme: Boolean = false) {
+    val mesh by produceState<ImageBitmap?>(initialValue = null, key1 = url, key2 = lightTheme) {
         value = withContext(Dispatchers.IO) {
             DesktopArtworkCache.load(url.artworkAt(MESH_SOURCE_PX) ?: url)
-                ?.let { DesktopArtworkMesh.of(it, seed = url.hashCode()) }
+                ?.let { DesktopArtworkMesh.of(it, seed = url.hashCode(), lightTheme = lightTheme) }
         }
     }
     val texture = mesh

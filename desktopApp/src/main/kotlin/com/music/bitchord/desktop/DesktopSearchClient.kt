@@ -7,6 +7,7 @@ import com.music.bitchord.data.model.BrowseItem
 import com.music.bitchord.data.model.BrowseType
 import com.music.bitchord.data.model.HomeFeed
 import com.music.bitchord.data.model.HomeShelf
+import com.music.bitchord.data.model.KeyedMix
 import com.music.bitchord.data.model.LibraryPage
 import com.music.bitchord.data.model.LikeStatus
 import com.music.bitchord.data.model.MoodGenreSection
@@ -49,6 +50,9 @@ object DesktopSearchClient {
 
     suspend fun moodGenreShelves(browseId: String, params: String?): Result<List<HomeShelf>> =
         YtMusicRepository.moodGenreShelves(browseId, params)
+
+    suspend fun mixedForYouKeyed(): Result<List<KeyedMix>> =
+        YtMusicRepository.mixedForYouKeyed()
 
     suspend fun moodGenreArtwork(browseId: String, params: String?): Result<String?> =
         YtMusicRepository.moodGenreArtwork(browseId, params)

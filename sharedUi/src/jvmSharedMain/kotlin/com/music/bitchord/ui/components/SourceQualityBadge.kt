@@ -32,9 +32,9 @@ enum class SourceQuality { DOLBY_ATMOS, HI_RES_LOSSLESS, LOSSLESS, HIGH_QUALITY 
 
 fun Song.sourceQualityBadge(): SourceQuality? = when (sourceQuality?.uppercase()) {
     "DOLBY" -> SourceQuality.DOLBY_ATMOS
-    "HI-RES", "HIRES" -> SourceQuality.HI_RES_LOSSLESS
+    "HI-RES", "HIRES", "HI_RES", "HI-RES LOSSLESS", "HI_RES_LOSSLESS" -> SourceQuality.HI_RES_LOSSLESS
     // The desktop's local files carry their container here — FLAC, WAV.
-    "LOSSLESS", "FLAC", "ALAC", "WAV" ->
+    "LOSSLESS", "FLAC", "ALAC", "WAV", "AIFF", "PCM" ->
         if (sourceHiRes) SourceQuality.HI_RES_LOSSLESS else SourceQuality.LOSSLESS
     "HIGH", "320" -> SourceQuality.HIGH_QUALITY
     else -> null

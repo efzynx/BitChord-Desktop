@@ -11,6 +11,7 @@ import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import com.music.bitchord.ui.components.longPressMenuClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -87,6 +88,7 @@ import com.music.bitchord.ui.components.feedSkeleton
 import com.music.bitchord.ui.components.recentlyPlayedSkeleton
 import com.music.bitchord.ui.components.thumbnailBorder
 import com.music.bitchord.ui.components.trackColumnWidth
+import com.music.bitchord.ui.player.LocalPlayerLightTheme
 import com.music.bitchord.ui.player.MeshGradientBackground
 import com.music.bitchord.ui.player.MeshPalette
 
@@ -901,12 +903,17 @@ internal fun NewShelfCard(
  */
 @Composable
 private fun ServiceCard(colors: List<Color>, trackKey: String, icon: ImageVector) {
-    val palette = remember { MeshPalette(colors) }
+    val lightTheme = LocalPlayerLightTheme.current
+    val palette = remember(colors) { MeshPalette(colors) }
+    val cardShape = RoundedCornerShape(12.dp)
+    val borderColor = if (lightTheme) Color.Black.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.12f)
+    val iconTint = if (lightTheme) Color(0xFF0A0A0C) else Color.White
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(12.dp)),
+            .clip(cardShape)
+            .border(0.75.dp, borderColor, cardShape),
         contentAlignment = Alignment.Center,
     ) {
         MeshGradientBackground(
@@ -918,7 +925,7 @@ private fun ServiceCard(colors: List<Color>, trackKey: String, icon: ImageVector
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Color.White,
+            tint = iconTint,
             modifier = Modifier.size(40.dp),
         )
     }
@@ -942,29 +949,11 @@ internal fun ShelfCard(
             .contextClick(onLongPress),
     ) {
         when (item.browseId) {
-            "local:downloads" -> {
-                val palette = remember { MeshPalette(listOf(Color(0xFF1E3C72), Color(0xFF2A5298))) }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    MeshGradientBackground(
-                        palette = palette,
-                        trackKey = "local:downloads",
-                        continuous = true,
-                        blurRadius = 24.dp,
-                    )
-                    Icon(
-                        imageVector = BitChordIcons.Download,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(40.dp),
-                    )
-                }
-            }
+            "local:downloads" -> ServiceCard(
+                colors = listOf(Color(0xFF1E3C72), Color(0xFF2A5298)),
+                trackKey = "local:downloads",
+                icon = BitChordIcons.Download,
+            )
             "local:all" -> ServiceCard(
                 colors = listOf(Color(0xFF134E5E), Color(0xFF71B280)),
                 trackKey = "local:all",

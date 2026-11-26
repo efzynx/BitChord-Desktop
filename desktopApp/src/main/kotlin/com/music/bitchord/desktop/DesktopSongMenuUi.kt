@@ -39,6 +39,8 @@ import androidx.compose.material.icons.rounded.ThumbDown
 import androidx.compose.material.icons.rounded.ThumbDownOffAlt
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -198,6 +200,8 @@ internal fun DesktopSongMenuFor(
      */
     lyricsOffsetMs: Int = 0,
     onSetLyricsOffset: ((Int) -> Unit)? = null,
+    hideLyricsPreview: Boolean? = null,
+    onToggleHideLyricsPreview: (() -> Unit)? = null,
     usePopup: Boolean = true,
 ) {
     val close = onDismiss
@@ -245,6 +249,8 @@ internal fun DesktopSongMenuFor(
         onSearchLyrics = onSearchLyrics,
         lyricsOffsetMs = lyricsOffsetMs,
         onSetLyricsOffset = onSetLyricsOffset,
+        hideLyricsPreview = hideLyricsPreview,
+        onToggleHideLyricsPreview = onToggleHideLyricsPreview?.let { { it(); close() } },
         usePopup = usePopup,
         onDismiss = close,
     )
@@ -296,6 +302,8 @@ internal fun DesktopSongMenu(
     /** The player's lyrics offset and its setter; a null setter hides the "Lyrics offset" row. */
     lyricsOffsetMs: Int = 0,
     onSetLyricsOffset: ((Int) -> Unit)? = null,
+    hideLyricsPreview: Boolean? = null,
+    onToggleHideLyricsPreview: (() -> Unit)? = null,
     usePopup: Boolean = true,
     onDismiss: () -> Unit,
 ) {
@@ -435,10 +443,22 @@ internal fun DesktopSongMenu(
         // named for whichever is not on screen; the translation the overflow used
         // to hold lives here, and "Lyrics provider" opens the search box and the
         // providers with what each turned up. Only the player's menu passes them.
-        if (onOpenLyrics != null || onOpenQueue != null || onSwitchLyricsQueue != null || onTranslate != null || onSelectLyricsProvider != null || onSetLyricsOffset != null) {
+        if (onOpenLyrics != null || onOpenQueue != null || onSwitchLyricsQueue != null || onTranslate != null || onSelectLyricsProvider != null || onSetLyricsOffset != null || onToggleHideLyricsPreview != null) {
             DesktopMenuDivider()
             onOpenLyrics?.let {
                 DesktopMenuRow(BitChordIcons.LyricsQuote, DesktopStrings["d_view_lyrics", "View lyrics"], onClick = it)
+            }
+            onToggleHideLyricsPreview?.let { toggle ->
+                val hidden = hideLyricsPreview == true
+                DesktopMenuRow(
+                    icon = if (hidden) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
+                    label = if (hidden) {
+                        DesktopStrings["d_show_player_lyrics", "Show lyrics in player"]
+                    } else {
+                        DesktopStrings["d_hide_player_lyrics", "Hide lyrics in player"]
+                    },
+                    onClick = toggle,
+                )
             }
             onOpenQueue?.let {
                 DesktopMenuRow(BitChordIcons.Queue, DesktopStrings["d_view_queue", "View queue"], onClick = it)
@@ -580,7 +600,7 @@ private fun DesktopLyricsOffsetControl(currentMs: Int, onChange: (Int) -> Unit) 
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
+                color = DesktopInk,
             )
             DesktopOffsetStepper("+", enabled = currentMs < MAX_LYRICS_OFFSET_MS) {
                 onChange(currentMs + LYRICS_OFFSET_STEP_MS)
@@ -603,14 +623,14 @@ private fun DesktopOffsetStepper(label: String, enabled: Boolean, onClick: () ->
         Modifier
             .size(38.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = if (enabled) 0.08f else 0.03f))
+            .background(DesktopInk.copy(alpha = if (enabled) 0.08f else 0.03f))
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.titleLarge,
-            color = if (enabled) Color.White else DesktopSecondary,
+            color = if (enabled) DesktopInk else DesktopSecondary,
         )
     }
 }
@@ -630,12 +650,13 @@ private fun DesktopMenuSurface(
     usePopup: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(16.dp)
     val menuModifier = Modifier
+        .then(if (usePopup) Modifier.desktopPopupMotion(pivotX = 0.5f, pivotY = 0f, slideYDp = (-6).dp) else Modifier)
         .widthIn(min = 232.dp, max = 300.dp)
-        .shadow(16.dp, shape)
+        .shadow(18.dp, shape)
         .clip(shape)
-        .desktopBarGlass(shape)
+        .desktopBarGlass(shape, tintAlpha = 0.44f, borderAlpha = 0.15f)
         .clickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = null,
@@ -723,7 +744,7 @@ private fun DesktopMenuHeader(title: String, onBack: () -> Unit) {
             title,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = Color.White,
+            color = DesktopInk,
         )
     }
 }
@@ -751,14 +772,21 @@ private fun DesktopMenuRow(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
+    val rowShape = RoundedCornerShape(7.dp)
     Row(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 5.dp)
-            .clip(RoundedCornerShape(7.dp))
+            .desktopGlassPress(rowShape, interactionSource = interaction, enabled = enabled, pressScale = 0.98f)
+            .clip(rowShape)
             .background(if (hovered && enabled) DesktopRowHover else Color.Transparent)
             .hoverable(interaction, enabled = enabled)
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                enabled = enabled,
+                onClick = onClick,
+            )
             .heightIn(min = 32.dp)
             .padding(horizontal = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -769,7 +797,7 @@ private fun DesktopMenuRow(
             Icon(
                 icon,
                 null,
-                tint = tint ?: if (enabled) Color.White.copy(alpha = 0.82f) else DesktopSecondary,
+                tint = tint ?: if (enabled) DesktopInk.copy(alpha = 0.82f) else DesktopSecondary,
                 modifier = Modifier.size(16.dp),
             )
         }
@@ -778,7 +806,7 @@ private fun DesktopMenuRow(
             label,
             Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium,
-            color = tint ?: if (enabled) Color.White else DesktopSecondary,
+            color = tint ?: if (enabled) DesktopInk else DesktopSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -797,11 +825,12 @@ private fun DesktopMenuRow(
 internal fun DesktopMoreButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
+    val ink = DesktopInk
     Box(
         modifier
             .size(34.dp)
             .clip(RoundedCornerShape(17.dp))
-            .background(if (hovered) Color.White.copy(alpha = 0.12f) else Color.Transparent)
+            .background(if (hovered) ink.copy(alpha = 0.12f) else Color.Transparent)
             .hoverable(interaction)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -813,7 +842,7 @@ internal fun DesktopMoreButton(onClick: () -> Unit, modifier: Modifier = Modifie
                     Modifier
                         .size(3.5.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(Color.White.copy(alpha = 0.75f)),
+                        .background(ink.copy(alpha = 0.75f)),
                 )
             }
         }

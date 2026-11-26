@@ -97,67 +97,118 @@ fun MixesScreen(
         state = pullState,
         modifier = modifier,
     ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = contentPadding,
-        ) {
-            if (title != null) {
-                item(key = "title") {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.displayLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        // Explore's exact spacing, so the heading stays put when
-                        // switching between the tabs that carry one.
-                        modifier = Modifier.padding(
-                            start = PAGE_GUTTER,
-                            end = PAGE_GUTTER,
-                            top = 8.dp,
-                            bottom = 14.dp,
-                        ),
-                    )
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val paneWidth = maxWidth
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = contentPadding,
+            ) {
+                if (title != null) {
+                    item(key = "title") {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.displayLarge,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            // Explore's exact spacing, so the heading stays put when
+                            // switching between the tabs that carry one.
+                            modifier = Modifier.padding(
+                                start = PAGE_GUTTER,
+                                end = PAGE_GUTTER,
+                                top = 8.dp,
+                                bottom = 14.dp,
+                            ),
+                        )
+                    }
                 }
-            }
-            // Every mix here is made from an account's listening; signed out
-            // there is nothing to show but the way in.
-            if (!signedIn) {
-                item(key = "sign-in") { SignInBanner(onSignIn = onSignIn) }
-                return@LazyColumn
-            }
-            when (state) {
-                is UiState.Loading -> feedSkeleton()
-                is UiState.Error -> item(key = "error") {
-                    MessageState(state.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
+                // Every mix here is made from an account's listening; signed out
+                // there is nothing to show but the way in.
+                if (!signedIn) {
+                    item(key = "sign-in") { SignInBanner(onSignIn = onSignIn) }
+                    return@LazyColumn
                 }
-                is UiState.Success -> {
-                    if (sections == null || sections.isEmpty) {
-                        item(key = "empty") { MessageState(stringResource(Res.string.mixes_none)) }
-                    } else {
-                        if (sections.stations.isNotEmpty()) {
-                            item(key = "stations") {
-                                StationGrid(sections.stations, onItemClick, onItemLongPress)
+                when (state) {
+                    is UiState.Loading -> feedSkeleton()
+                    is UiState.Error -> item(key = "error") {
+                        MessageState(state.message, actionLabel = stringResource(Res.string.retry), onAction = onRetry)
+                    }
+                    is UiState.Success -> {
+                        if (sections == null || sections.isEmpty) {
+                            item(key = "empty") { MessageState(stringResource(Res.string.mixes_none)) }
+                        } else {
+                            if (sections.stations.isNotEmpty()) {
+                                item(key = "stations") {
+                                    StationGrid(sections.stations, onItemClick, onItemLongPress)
+                                }
                             }
-                        }
-                        if (sections.yours.isNotEmpty()) {
-                            item(key = "yours") {
-                                FeatureCarousel(
-                                    title = stringResource(Res.string.mixes_yours),
-                                    items = sections.yours,
-                                    onItemClick = onItemClick,
-                                    onItemLongPress = onItemLongPress,
-                                )
+                            if (sections.yours.isNotEmpty()) {
+                                item(key = "yours") {
+                                    FeatureCarousel(
+                                        title = stringResource(Res.string.mixes_yours),
+                                        items = sections.yours,
+                                        onItemClick = onItemClick,
+                                        onItemLongPress = onItemLongPress,
+                                    )
+                                }
                             }
-                        }
-                        // A shelf per mood, its Supermix first — Home's own shelf,
-                        // so these rows read exactly like the feed's.
-                        sections.moods.forEach { mood ->
-                            item(key = "mood:${mood.key}") {
-                                Shelf(
-                                    shelf = HomeShelf(title = mood.name, items = mood.items),
-                                    onItemClick = onItemClick,
-                                    onItemLongPress = onItemLongPress,
-                                )
+                            // Phone stays on Home's horizontal 150dp Shelf(); wide desktop pairs 4-card
+                            // mood sections side-by-side (or uses wider responsive columns) so cards
+                            // stay readable and don't leave the right half empty.
+                            if (paneWidth < MOOD_DESKTOP_MIN_WIDTH) {
+                                sections.moods.forEach { mood ->
+                                    item(key = "mood:${mood.key}") {
+                                        Shelf(
+                                            shelf = HomeShelf(title = mood.name, items = mood.items),
+                                            onItemClick = onItemClick,
+                                            onItemLongPress = onItemLongPress,
+                                        )
+                                    }
+                                }
+                            } else {
+                                val paired = paneWidth >= MOOD_PAIRED_MIN_WIDTH
+                                val singleColumns = when {
+                                    paneWidth >= MOOD_PAIRED_MIN_WIDTH -> 6
+                                    paneWidth >= MOOD_MEDIUM_COLS_MIN_WIDTH -> 5
+                                    else -> 4
+                                }
+                                chunkMoodsForDesktop(sections.moods, paired = paired).forEach { row ->
+                                    when (row) {
+                                        is MoodDesktopRow.Single -> item(key = "mood:${row.mood.key}") {
+                                            MoodDesktopSection(
+                                                mood = row.mood,
+                                                columns = singleColumns,
+                                                onItemClick = onItemClick,
+                                                onItemLongPress = onItemLongPress,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(start = PAGE_GUTTER, end = PAGE_GUTTER, bottom = 26.dp),
+                                            )
+                                        }
+                                        is MoodDesktopRow.Pair -> item(key = "moods:${row.first.key}:${row.second.key}") {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(start = PAGE_GUTTER, end = PAGE_GUTTER, bottom = 28.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(MOOD_PAIR_GAP),
+                                            ) {
+                                                MoodDesktopSection(
+                                                    mood = row.first,
+                                                    columns = 4,
+                                                    onItemClick = onItemClick,
+                                                    onItemLongPress = onItemLongPress,
+                                                    modifier = Modifier.weight(1f),
+                                                )
+                                                MoodDesktopSection(
+                                                    mood = row.second,
+                                                    columns = 4,
+                                                    onItemClick = onItemClick,
+                                                    onItemLongPress = onItemLongPress,
+                                                    modifier = Modifier.weight(1f),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -166,6 +217,88 @@ fun MixesScreen(
         }
     }
 }
+
+private sealed interface MoodDesktopRow {
+    data class Single(val mood: MoodMixes) : MoodDesktopRow
+    data class Pair(val first: MoodMixes, val second: MoodMixes) : MoodDesktopRow
+}
+
+private fun chunkMoodsForDesktop(moods: List<MoodMixes>, paired: Boolean): List<MoodDesktopRow> {
+    if (!paired) return moods.map(MoodDesktopRow::Single)
+    val rows = mutableListOf<MoodDesktopRow>()
+    var index = 0
+    while (index < moods.size) {
+        val current = moods[index]
+        val next = moods.getOrNull(index + 1)
+        if (next != null && current.items.size <= 4 && next.items.size <= 4) {
+            rows += MoodDesktopRow.Pair(current, next)
+            index += 2
+        } else {
+            rows += MoodDesktopRow.Single(current)
+            index += 1
+        }
+    }
+    return rows
+}
+
+@Composable
+private fun MoodDesktopSection(
+    mood: MoodMixes,
+    columns: Int,
+    onItemClick: (ShelfItem) -> Unit,
+    onItemLongPress: ((ShelfItem) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = localizeShelfTitle(mood.name),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(vertical = 10.dp),
+        )
+        if (mood.items.size <= columns) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(MOOD_CARD_SPACING),
+            ) {
+                mood.items.forEach { item ->
+                    ShelfCard(
+                        item = item,
+                        onClick = { onItemClick(item) },
+                        onLongPress = onItemLongPress?.let { { it(item) } },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                repeat(columns - mood.items.size) {
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+        } else {
+            ShelfRow(
+                contentPadding = PaddingValues(0.dp),
+                horizontalArrangement = Arrangement.spacedBy(MOOD_CARD_SPACING),
+            ) {
+                items(mood.items, key = { it.browseId ?: it.title }) { item ->
+                    ShelfCard(
+                        item = item,
+                        onClick = { onItemClick(item) },
+                        onLongPress = onItemLongPress?.let { { it(item) } },
+                        modifier = Modifier.width(MOOD_OVERFLOW_CARD_WIDTH),
+                    )
+                }
+            }
+        }
+    }
+}
+
+private val MOOD_DESKTOP_MIN_WIDTH = 700.dp
+private val MOOD_MEDIUM_COLS_MIN_WIDTH = 1080.dp
+private val MOOD_PAIRED_MIN_WIDTH = 1400.dp
+private val MOOD_PAIR_GAP = 32.dp
+private val MOOD_CARD_SPACING = 12.dp
+private val MOOD_OVERFLOW_CARD_WIDTH = 200.dp
 
 /**
  * The named mixes as square tiles, three across (six on a wide screen), the

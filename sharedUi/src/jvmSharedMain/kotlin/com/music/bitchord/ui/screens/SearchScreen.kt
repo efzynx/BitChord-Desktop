@@ -520,7 +520,6 @@ private fun TopResultCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
             .padding(start = PAGE_GUTTER, end = PAGE_GUTTER, top = 18.dp, bottom = 8.dp)
             .longPressMenuClickable(onClick = onPlay, onLongClick = onLongPress)
             .contextClick(onLongPress),
@@ -756,7 +755,6 @@ private fun TypeaheadSongRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
                 .longPressMenuClickable(
                     onClick = onClick,
                     onLongClick = onLongPress,
@@ -952,7 +950,6 @@ private fun RecentSearchEntityRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
                 .longPressMenuClickable(
                     onClick = onClick,
                     onLongClick = onLongPress,

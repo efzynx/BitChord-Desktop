@@ -26,4 +26,36 @@ internal object DesktopPlatform {
 
     /** Whether the application draws the window's own frame instead of the system drawing it. */
     val drawsOwnWindowFrame: Boolean = isWindows || isMac
+
+    /**
+     * Liquid Glass (real-time Skia refraction + backdrop blur) requires Windows 10 or newer on
+     * Windows, and is available without OS version restrictions on Linux and macOS.
+     */
+    val supportsLiquidGlass: Boolean by lazy {
+        liquidGlassSupportedFor(
+            isWindows = isWindows,
+            isLinux = isLinux,
+            isMac = isMac,
+            windowsBuildNumber = if (isWindows) DesktopSystemInfo.windowsBuildNumber else -1,
+            osVersion = DesktopSystemInfo.osVersion,
+            osName = name,
+        )
+    }
+
+    internal fun liquidGlassSupportedFor(
+        isWindows: Boolean,
+        isLinux: Boolean,
+        isMac: Boolean,
+        windowsBuildNumber: Int,
+        osVersion: String,
+        osName: String = "",
+    ): Boolean {
+        if (isLinux || isMac) return true
+        if (!isWindows) return false
+        if (windowsBuildNumber >= 10240) return true
+        if (windowsBuildNumber in 0 until 10240) return false
+        val major = osVersion.substringBefore('.').toIntOrNull()
+        if (major != null) return major >= 10
+        return osName.contains("10") || osName.contains("11")
+    }
 }

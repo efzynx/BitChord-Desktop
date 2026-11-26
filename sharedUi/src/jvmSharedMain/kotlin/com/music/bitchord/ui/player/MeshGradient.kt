@@ -137,28 +137,31 @@ internal fun MeshGradientBackground(
     directStill: Boolean = false,
 ) {
     val reduceAnimation by PlayerSettings.reduceAnimation.collectAsStateWithLifecycle()
+    val lightTheme = LocalPlayerLightTheme.current
 
     val lastDrawn = remember { LastLegacyAmbientColors() }
-    val held = remember(mix) {
-        if (mix == null) null else lastDrawn.colors ?: run {
+    val held = remember(mix, lightTheme) {
+        if (mix == null) null else lastDrawn.colors?.takeIf { it.lightTheme == lightTheme } ?: run {
             val slots = (cachedArtworkPalette(mix.outgoingUrl)
-                ?: if (currentIsOutgoing) palette else MeshPalette(FallbackColors)).tunedSlots()
-            LegacyAmbientColors(slots, slots.first().dimmed())
+                ?: if (currentIsOutgoing) palette else MeshPalette(FallbackColors)).tunedSlots(lightTheme)
+            LegacyAmbientColors(slots, slots.first().ambientBase(lightTheme), lightTheme)
         }
     }
-    val tuned = held?.slots ?: palette.tunedSlots()
+    val tuned = held?.slots ?: palette.tunedSlots(lightTheme)
 
     // Each colour slot crossfades independently when the track (palette) changes,
     // unless "reduce animation" is on, in which case colours snap straight to target.
     val colorSpec: AnimationSpec<Color> = if (directStill || reduceAnimation || !animated) snap() else tween(colorFadeMillis)
-    val (animatedColors, baseColor) = key(snapKey) {
+    val (animatedColors, baseColor) = key(snapKey, lightTheme) {
         val slots = tuned.mapIndexed { index, color ->
             animateColorAsState(color, colorSpec, label = "meshColor$index")
         }
-        slots to animateColorAsState(held?.base ?: tuned.first().dimmed(), colorSpec, label = "meshBase")
+        slots to animateColorAsState(held?.base ?: tuned.first().ambientBase(lightTheme), colorSpec, label = "meshBase")
     }
-    val target = remember(mix) {
-        mix?.prepared?.palette?.tunedSlots()?.let { LegacyAmbientColors(it, it.first().dimmed()) }
+    val target = remember(mix, lightTheme) {
+        mix?.prepared?.palette?.tunedSlots(lightTheme)?.let {
+            LegacyAmbientColors(it, it.first().ambientBase(lightTheme), lightTheme)
+        }
     }
 
     // Read in the draw lambda, not here: an Animatable read during draw
@@ -208,7 +211,7 @@ internal fun MeshGradientBackground(
                 scaleY = 1.3f
             }
             .then(if (held == null || mix == null) Modifier.background(
-                if (directStill) tuned.first().dimmed() else baseColor.value,
+                if (directStill) tuned.first().ambientBase(lightTheme) else baseColor.value,
             ) else Modifier.drawBehind {
                 drawRect(ambientColor(held.base, target?.base, mix.ease()))
             })
@@ -226,7 +229,11 @@ internal fun MeshGradientBackground(
         val e = mix?.ease() ?: 0f
         val slots = held?.slots ?: if (directStill) tuned else animatedColors.map { it.value }
         if (held == null && trackKey != null) {
-            lastDrawn.colors = LegacyAmbientColors(slots, if (directStill) tuned.first().dimmed() else baseColor.value)
+            lastDrawn.colors = LegacyAmbientColors(
+                slots,
+                if (directStill) tuned.first().ambientBase(lightTheme) else baseColor.value,
+                lightTheme,
+            )
         }
         slots.forEachIndexed { index, slot ->
             val color = ambientColor(slot, target?.slots?.get(index), e)
@@ -253,23 +260,25 @@ internal fun MeshGradientBackground(
             )
         }
 
-        // Gentle scrim so white text stays legible over bright art.
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color.Black.copy(alpha = 0.10f),
-                    Color.Black.copy(alpha = 0.38f),
+        // Dark-mode bottom scrim for contrast; Light mode keeps vibrant colors un-veiled.
+        if (!lightTheme) {
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = 0.10f),
+                        Color.Black.copy(alpha = 0.38f),
+                    ),
                 ),
-            ),
-        )
+            )
+        }
     }
 }
 
 private class LastLegacyAmbientColors(var colors: LegacyAmbientColors? = null)
-private class LegacyAmbientColors(val slots: List<Color>, val base: Color)
+private class LegacyAmbientColors(val slots: List<Color>, val base: Color, val lightTheme: Boolean = false)
 
-private fun MeshPalette.tunedSlots(): List<Color> =
-    (colors.ifEmpty { FallbackColors } + FallbackColors).take(4).map { it.tuned() }
+private fun MeshPalette.tunedSlots(lightTheme: Boolean = false): List<Color> =
+    (colors.ifEmpty { FallbackColors } + FallbackColors).take(4).map { it.tuned(lightTheme) }
 
 private fun ambientColor(from: Color, to: Color?, e: Float): Color = when {
     to == null || e <= 0f -> from
@@ -477,18 +486,24 @@ private fun Color.shifted(hue: Float, lightness: Float): Color {
 private fun Color.hsl(): FloatArray =
     FloatArray(3).also { ColorUtils.colorToHSL(toArgb(), it) }
 
-/** Boost saturation and clamp lightness so any artwork yields a rich, non-muddy mesh. */
-private fun Color.tuned(): Color {
+/** Boost saturation and tune lightness so artwork yields a rich dark mesh or luminous light mesh. */
+private fun Color.tuned(lightTheme: Boolean = false): Color {
     val hsl = FloatArray(3)
     ColorUtils.colorToHSL(toArgb(), hsl)
-    hsl[1] = (hsl[1] * 1.35f).coerceAtMost(1f)
-    hsl[2] = hsl[2].coerceIn(0.28f, 0.58f)
+    if (lightTheme) {
+        hsl[1] = (hsl[1] * 1.75f).coerceIn(0.48f, 0.96f)
+        hsl[2] = hsl[2].coerceIn(0.50f, 0.72f)
+    } else {
+        hsl[1] = (hsl[1] * 1.35f).coerceAtMost(1f)
+        hsl[2] = hsl[2].coerceIn(0.28f, 0.58f)
+    }
     return Color(ColorUtils.HSLToColor(hsl))
 }
 
-private fun Color.dimmed(): Color {
+private fun Color.ambientBase(lightTheme: Boolean): Color {
     val hsl = FloatArray(3)
     ColorUtils.colorToHSL(toArgb(), hsl)
-    hsl[2] = 0.12f
+    hsl[2] = if (lightTheme) 0.70f else 0.12f
+    if (lightTheme) hsl[1] = (hsl[1] * 0.78f).coerceAtMost(0.55f)
     return Color(ColorUtils.HSLToColor(hsl))
 }

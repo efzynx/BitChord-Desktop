@@ -64,6 +64,13 @@ internal object DesktopWindowVisibility {
                     win.extendedState = win.extendedState and Frame.ICONIFIED.inv()
                 }
                 win.isVisible = true
+                if (DesktopPlatform.isWindows) {
+                    DesktopWindowsFrame.activate()
+                } else if (DesktopPlatform.isLinux && !win.isAlwaysOnTop) {
+                    // Brief always-on-top pulse asks X11/XWayland WMs to raise an already-open window.
+                    win.isAlwaysOnTop = true
+                    win.isAlwaysOnTop = false
+                }
                 win.toFront()
                 win.requestFocus()
             }

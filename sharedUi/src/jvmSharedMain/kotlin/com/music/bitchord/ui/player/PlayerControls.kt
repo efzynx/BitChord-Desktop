@@ -185,16 +185,22 @@ internal fun PlaybackOriginCaption(
     modifier: Modifier = Modifier,
 ) {
     val chrome = LocalPlayerChrome.current
+    val lightTheme = LocalPlayerLightTheme.current
+    val ink = LocalPlayerSurfaceInk.current
     Text(
         text = text,
-        style = MaterialTheme.typography.labelSmall.copy(
-            shadow = Shadow(
-                color = Color.Black.copy(alpha = 0.55f),
-                offset = Offset(0f, 1f),
-                blurRadius = 4f,
-            ),
-        ),
-        color = Color.White.copy(alpha = if (chrome) CHROME_FULL_ALPHA else 1f),
+        style = if (lightTheme) {
+            MaterialTheme.typography.labelSmall
+        } else {
+            MaterialTheme.typography.labelSmall.copy(
+                shadow = Shadow(
+                    color = Color.Black.copy(alpha = 0.55f),
+                    offset = Offset(0f, 1f),
+                    blurRadius = 4f,
+                ),
+            )
+        },
+        color = ink.copy(alpha = if (chrome) CHROME_FULL_ALPHA else 1f),
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         textAlign = textAlign,
@@ -242,6 +248,7 @@ internal fun PlayerScrubber(
     val mixPulse = rememberMixPulse({ mixBlend.value }, enabled = !reduceAnimation)
     Column(Modifier.fillMaxWidth()) {
         val ink = sliderInk()
+        val surfaceInk = LocalPlayerSurfaceInk.current
         ThinSlider(
             value = shown,
             onValueChange = onScrub,
@@ -251,9 +258,9 @@ internal fun PlayerScrubber(
             mixPulse = mixPulse,
             transitionWindow = transitionWindow,
             vibrant = ink != null,
-            activeColor = ink?.active ?: Color.White.copy(alpha = 0.92f),
-            inactiveColor = ink?.inactive ?: Color.White.copy(alpha = 0.26f),
-            markerColor = ink?.marker ?: Color.White.copy(alpha = 0.5f),
+            activeColor = ink?.active ?: surfaceInk.copy(alpha = 0.92f),
+            inactiveColor = ink?.inactive ?: surfaceInk.copy(alpha = 0.24f),
+            markerColor = ink?.marker ?: surfaceInk.copy(alpha = 0.45f),
         )
         Box(
             modifier = Modifier
@@ -438,19 +445,25 @@ private fun NerdStatsLines(song: Song) {
     // stretch of an animated cover — sky, snow, a pale sleeve — washes it out
     // entirely. The shadow costs nothing on a dark background and is what
     // keeps it legible on a bright one.
-    val nerdStyle = MaterialTheme.typography.labelSmall.copy(
-        shadow = Shadow(
-            color = Color.Black.copy(alpha = 0.55f),
-            offset = Offset(0f, 1f),
-            blurRadius = 4f,
-        ),
-    )
+    val lightTheme = LocalPlayerLightTheme.current
+    val surfaceInk = LocalPlayerSurfaceInk.current
+    val nerdStyle = if (lightTheme) {
+        MaterialTheme.typography.labelSmall
+    } else {
+        MaterialTheme.typography.labelSmall.copy(
+            shadow = Shadow(
+                color = Color.Black.copy(alpha = 0.55f),
+                offset = Offset(0f, 1f),
+                blurRadius = 4f,
+            ),
+        )
+    }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         nerdStats?.describe()?.let { stats ->
             Text(
                 text = stats,
                 style = nerdStyle,
-                color = Color.White.copy(alpha = 0.65f),
+                color = surfaceInk.copy(alpha = 0.65f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
@@ -485,7 +498,7 @@ private fun NerdStatsLines(song: Song) {
                 // Dimmer than the measured line above it: that one describes
                 // the audio, this one describes the app, and the ranking
                 // should show.
-                color = Color.White.copy(alpha = 0.5f),
+                color = surfaceInk.copy(alpha = 0.5f),
                 // The detailed line runs long on a phone: a second line rather
                 // than an ellipsis through the part that says what the mix is.
                 maxLines = 2,
@@ -580,11 +593,13 @@ internal fun BestPartPill(
         ) {
             // The star and ⋯ discs' own fill over the frost, so the three
             // read as one material, then the rim over both.
+            val lightTheme = LocalPlayerLightTheme.current
+            val surfaceInk = LocalPlayerSurfaceInk.current
             Box(
                 Modifier
                     .matchParentSize()
                     .vibrantChrome(chrome)
-                    .background(discFill(chrome)),
+                    .background(discFill(chrome, lightTheme = lightTheme)),
             )
             Box(Modifier.matchParentSize().glassRim(shape))
             Row(
@@ -594,7 +609,7 @@ internal fun BestPartPill(
                 Icon(
                     imageVector = BitChordIcons.MusicNote,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = surfaceInk,
                     modifier = Modifier.size(15.dp),
                 )
                 Spacer(Modifier.width(6.dp))
@@ -602,7 +617,7 @@ internal fun BestPartPill(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.W700,
-                    color = Color.White,
+                    color = surfaceInk,
                     maxLines = 1,
                 )
             }
@@ -668,6 +683,8 @@ internal fun TransportRow(
         active = animationsActive && !isLoading && playVector.root.size > 0 && pauseVector.root.size > 0,
         reduceMotion = reduceAnimation,
     )
+    val lightTheme = LocalPlayerLightTheme.current
+    val surfaceInk = LocalPlayerSurfaceInk.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         // SpaceAround, not SpaceEvenly: the outer margins take half a gap, so
@@ -686,7 +703,7 @@ internal fun TransportRow(
                     .clip(CircleShape)
                     .then(
                         if (shuffleEnabled) {
-                            Modifier.background(Color.White.copy(alpha = 0.18f))
+                            Modifier.background(surfaceInk.copy(alpha = if (lightTheme) 0.10f else 0.18f))
                         } else {
                             Modifier
                         }
@@ -705,7 +722,7 @@ internal fun TransportRow(
                     contentDescription = stringResource(
                         if (shuffleEnabled) Res.string.shuffle_on else Res.string.shuffle_off,
                     ),
-                    tint = Color.White.copy(alpha = shuffleAlpha),
+                    tint = surfaceInk.copy(alpha = shuffleAlpha),
                     modifier = Modifier.size(secondarySize),
                 )
             }
@@ -727,7 +744,7 @@ internal fun TransportRow(
             // would shunt everything below it on every load.
             Box(Modifier.size(playTouch), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(
-                    color = Color.White,
+                    color = surfaceInk,
                     strokeWidth = 3.dp,
                     modifier = Modifier.size(if (compact) 30.dp else 38.dp),
                 )
@@ -766,7 +783,7 @@ internal fun TransportRow(
                     .clip(CircleShape)
                     .then(
                         if (isRepeatActive) {
-                            Modifier.background(Color.White.copy(alpha = 0.18f))
+                            Modifier.background(surfaceInk.copy(alpha = if (lightTheme) 0.10f else 0.18f))
                         } else {
                             Modifier
                         }
@@ -791,12 +808,12 @@ internal fun TransportRow(
                         Icon(
                             imageVector = BitChordIcons.Repeat,
                             contentDescription = stringResource(Res.string.repeat_one),
-                            tint = Color.White.copy(alpha = repeatAlpha),
+                            tint = surfaceInk.copy(alpha = repeatAlpha),
                             modifier = Modifier.size(secondarySize),
                         )
                         Text(
                             text = "1",
-                            color = Color.White.copy(alpha = repeatAlpha),
+                            color = surfaceInk.copy(alpha = repeatAlpha),
                             fontWeight = FontWeight.Bold,
                             fontSize = if (compact) 9.sp else 10.sp,
                             modifier = Modifier.align(Alignment.Center),
@@ -808,7 +825,7 @@ internal fun TransportRow(
                         contentDescription = stringResource(
                             if (repeatMode == RepeatModes.ALL) Res.string.repeat_all else Res.string.repeat_off,
                         ),
-                        tint = Color.White.copy(alpha = repeatAlpha),
+                        tint = surfaceInk.copy(alpha = repeatAlpha),
                         modifier = Modifier.size(secondarySize),
                     )
                 }
@@ -844,6 +861,7 @@ internal fun VolumeRow(
         )
         Spacer(Modifier.width(10.dp))
         val ink = sliderInk()
+        val surfaceInk = LocalPlayerSurfaceInk.current
         ThinSlider(
             value = value(),
             onValueChange = onValueChange,
@@ -852,8 +870,8 @@ internal fun VolumeRow(
             activeHeight = 10.dp,
             modifier = Modifier.weight(1f),
             vibrant = ink != null,
-            activeColor = ink?.active ?: Color.White.copy(alpha = 0.92f),
-            inactiveColor = ink?.inactive ?: Color.White.copy(alpha = 0.26f),
+            activeColor = ink?.active ?: surfaceInk.copy(alpha = 0.92f),
+            inactiveColor = ink?.inactive ?: surfaceInk.copy(alpha = 0.24f),
         )
         Spacer(Modifier.width(10.dp))
         Icon(
@@ -1119,6 +1137,7 @@ internal fun CircleGlyph(
         label = "glyphDisc",
     )
     val chrome = LocalPlayerChrome.current
+    val lightTheme = LocalPlayerLightTheme.current
     Box(
         modifier = modifier
             .size(34.dp)
@@ -1133,13 +1152,13 @@ internal fun CircleGlyph(
         contentAlignment = Alignment.Center,
     ) {
         // The disc carries the blend, dodged as the bottom row's glyphs are, and
-        // the glyph sits on it in plain white. The ink is mixed in at a few times
+        // the glyph sits on it in plain ink. The ink is mixed in at a few times
         // the plain disc's strength: a dodge laid on this thinly is next to nothing.
         Box(
             Modifier
                 .matchParentSize()
                 .vibrantChrome(chrome)
-                .background(discFill(chrome, discAlpha)),
+                .background(discFill(chrome, discAlpha, lightTheme = lightTheme)),
         )
         // Outside the blend: the rim is light catching the edge, not ink.
         Box(Modifier.matchParentSize().glassRim(CircleShape))
@@ -1151,7 +1170,7 @@ internal fun CircleGlyph(
             Icon(
                 imageVector = glyph,
                 contentDescription = contentDescription,
-                tint = Color.White,
+                tint = LocalPlayerSurfaceInk.current,
                 modifier = Modifier.size(19.dp),
             )
         }
@@ -1162,12 +1181,15 @@ internal fun CircleGlyph(
  * The star and ⋯ discs' fill at [alpha]: under the blend, the ink at a few
  * times that strength, since a dodge laid on this thinly is next to nothing.
  */
-private fun discFill(chrome: Boolean, alpha: Float = CIRCLE_DISC_ALPHA): Color =
-    if (chrome) {
-        VibrantChromeInk.copy(alpha = (alpha * CIRCLE_DISC_DODGE_GAIN).coerceAtMost(1f))
-    } else {
-        Color.White.copy(alpha = alpha)
-    }
+private fun discFill(
+    chrome: Boolean,
+    alpha: Float = CIRCLE_DISC_ALPHA,
+    lightTheme: Boolean = false,
+): Color = when {
+    chrome -> VibrantChromeInk.copy(alpha = (alpha * CIRCLE_DISC_DODGE_GAIN).coerceAtMost(1f))
+    lightTheme -> Color.Black.copy(alpha = alpha * 0.42f)
+    else -> Color.White.copy(alpha = alpha)
+}
 
 /**
  * Whether an AutoMix transition is armed or mixing. The glass goes flat for it, as it
@@ -1191,12 +1213,15 @@ internal fun rememberAutoMixFrostHold(): () -> Boolean {
  * over it, which blur the player live themselves) and a missing [hazeState]
  * draw the slab alone, thicker, and blur nothing.
  */
-internal fun Modifier.glassFrost(hazeState: HazeState?, flat: Boolean): Modifier =
-    if (flat || hazeState == null) {
-        background(MenuFrostDark.copy(alpha = GLASS_FLAT_ALPHA))
+@Composable
+internal fun Modifier.glassFrost(hazeState: HazeState?, flat: Boolean): Modifier {
+    val slab = if (LocalPlayerLightTheme.current) MenuFrostLight else MenuFrostDark
+    return if (flat || hazeState == null) {
+        background(slab.copy(alpha = GLASS_FLAT_ALPHA))
     } else {
-        liveMenuFrost(hazeState, MenuFrostDark, alpha = GLASS_SLAB_ALPHA)
+        liveMenuFrost(hazeState, slab, alpha = GLASS_SLAB_ALPHA)
     }
+}
 
 /**
  * The star and ⋯ discs beside the credits, behind one frost between them.
@@ -1241,12 +1266,20 @@ private val DiscPairShape = GenericShape { size, _ ->
  * catch it. One rim for the Best Part pill and the star and ⋯ discs, so they
  * read as the same material.
  */
+@Composable
 internal fun Modifier.glassRim(shape: Shape): Modifier = border(
     width = 1.dp,
-    brush = Brush.verticalGradient(
-        0f to Color.White.copy(alpha = 0.42f),
-        1f to Color.White.copy(alpha = 0.14f),
-    ),
+    brush = if (LocalPlayerLightTheme.current) {
+        Brush.verticalGradient(
+            0f to Color.White.copy(alpha = 0.86f),
+            1f to Color.Black.copy(alpha = 0.12f),
+        )
+    } else {
+        Brush.verticalGradient(
+            0f to Color.White.copy(alpha = 0.42f),
+            1f to Color.White.copy(alpha = 0.14f),
+        )
+    },
     shape = shape,
 )
 
@@ -1277,6 +1310,7 @@ private fun TransportGlyph(
         targetValue = if (enabled) 1f else 0.3f,
         label = "transportAlpha",
     )
+    val surfaceInk = LocalPlayerSurfaceInk.current
     Box(
         modifier = Modifier
             .size(touchSize)
@@ -1285,13 +1319,13 @@ private fun TransportGlyph(
                     motion = skipMotion,
                     interactionSource = interactionSource,
                     enabled = enabled,
-                    tint = Color.White.copy(alpha = alpha),
+                    tint = surfaceInk.copy(alpha = alpha),
                     glyphSize = size,
                     diameter = PLAYER_PRESS_CIRCLE_DIAMETER,
                 ) else if (playPauseMotion != null) Modifier.expandedPlayPausePressCircle(
                     motion = playPauseMotion,
                     interactionSource = interactionSource,
-                    tint = Color.White.copy(alpha = alpha),
+                    tint = surfaceInk.copy(alpha = alpha),
                     glyphSize = size,
                     diameter = PLAYER_PRESS_CIRCLE_DIAMETER,
                 ) else Modifier,
@@ -1312,7 +1346,7 @@ private fun TransportGlyph(
             PlayerSkipGlyph(
                 motion = skipMotion,
                 contentDescription = contentDescription,
-                tint = Color.White.copy(alpha = alpha),
+                tint = surfaceInk.copy(alpha = alpha),
                 modifier = Modifier
                     .size(size)
                     .then(if (heightScale != 1f) Modifier.graphicsLayer { scaleY = heightScale } else Modifier),
@@ -1325,14 +1359,14 @@ private fun TransportGlyph(
                 playPainter = painterResource(Res.drawable.ic_player_play),
                 pausePainter = painterResource(Res.drawable.ic_player_pause),
                 contentDescription = contentDescription,
-                tint = Color.White.copy(alpha = alpha),
+                tint = surfaceInk.copy(alpha = alpha),
                 modifier = Modifier.size(size),
             )
         } else {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = contentDescription,
-                tint = Color.White.copy(alpha = alpha),
+                tint = surfaceInk.copy(alpha = alpha),
                 modifier = Modifier
                     .size(size)
                     .then(if (heightScale != 1f) Modifier.graphicsLayer { scaleY = heightScale } else Modifier),
@@ -1430,11 +1464,19 @@ private fun Pill(
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val lightTheme = LocalPlayerLightTheme.current
     Row(
         modifier = modifier
             .height(BOTTOM_ACTION_SIZE)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.12f))
+            .background(if (lightTheme) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.12f))
+            .then(
+                if (lightTheme) {
+                    Modifier.border(0.75.dp, Color.Black.copy(alpha = 0.10f), CircleShape)
+                } else {
+                    Modifier
+                },
+            )
             .animateContentSize(
                 animationSpec = spring(
                     dampingRatio = 0.82f,
@@ -1448,11 +1490,12 @@ private fun Pill(
 
 @Composable
 private fun PillDivider() {
+    val lightTheme = LocalPlayerLightTheme.current
     Box(
         Modifier
             .width(1.dp)
             .fillMaxHeight()
-            .background(Color.White.copy(alpha = 0.20f)),
+            .background(if (lightTheme) Color.Black.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.20f)),
     )
 }
 
@@ -1592,13 +1635,21 @@ private fun PillSegment(
     val haptics = rememberHaptics()
     val lastTap = remember { mutableLongStateOf(-tapWindowMs) }
     val chrome = LocalPlayerChrome.current
+    val surfaceInk = LocalPlayerSurfaceInk.current
+    val lightTheme = LocalPlayerLightTheme.current
     Box(
         modifier = Modifier
             .width(width)
             .height(BOTTOM_ACTION_SIZE)
             // Round the highlight and both fades, not inside them — see [CircleGlyph].
             .additiveChrome(chrome && !vibrant)
-            .background(if (highlighted) Color.White.copy(alpha = 0.14f) else Color.Transparent)
+            .background(
+                if (highlighted) {
+                    surfaceInk.copy(alpha = if (lightTheme) 0.11f else 0.14f)
+                } else {
+                    Color.Transparent
+                },
+            )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1617,8 +1668,8 @@ private fun PillSegment(
         val tint = when {
             vibrant && chrome -> brightRowInk()
             !highlighted -> chromeWhite(0.75f)
-            chrome -> Color.White.copy(alpha = CHROME_FULL_ALPHA)
-            else -> Color.White
+            chrome -> surfaceInk.copy(alpha = CHROME_FULL_ALPHA)
+            else -> surfaceInk
         }
         Crossfade(
             targetState = loading,
@@ -1629,7 +1680,7 @@ private fun PillSegment(
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(17.dp),
-                    color = Color.White,
+                    color = surfaceInk,
                     strokeWidth = 2.dp,
                 )
             } else if (icon != null) {
@@ -1862,9 +1913,10 @@ private fun BottomGlyph(
         // Not while lit: the tile's cut-out needs the glyph drawn plainly in the
         // layer above, which is blended as a whole.
         val chrome = LocalPlayerChrome.current && !highlighted
+        val surfaceInk = LocalPlayerSurfaceInk.current
         val tint = when {
             vibrant && chrome -> brightRowInk()
-            highlighted -> Color.White
+            highlighted -> surfaceInk
             else -> chromeWhite(0.75f)
         }
         val glyphChrome = if (vibrant) Modifier.vibrantChrome(chrome) else Modifier.additiveChrome(chrome)
@@ -2412,7 +2464,7 @@ private fun ShimmerText(
         ),
         label = "lossless-shimmer-progress",
     )
-    val tint = Color.White.copy(alpha = if (LocalPlayerChrome.current) CHROME_FULL_ALPHA else 1f)
+    val tint = LocalPlayerSurfaceInk.current.copy(alpha = if (LocalPlayerChrome.current) CHROME_FULL_ALPHA else 1f)
     val baseColor = chromeWhite(baseAlpha)
     // The glyphs are laid out and drawn once, in the plain tint, and the moving
     // band is painted over them in the draw phase with SrcIn — which keeps the
