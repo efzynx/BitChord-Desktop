@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title id="docTitle">Terms of Service — BitChord Desktop</title>
+  <meta name="description" id="docDesc" content="Terms of Service and open-source GPLv3 license terms for BitChord Desktop." />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <style>
+    :root {
+      --base: #000000;
+      --ink: #f5f5f7;
+      --ink-soft: rgba(245, 245, 247, 0.72);
+      --ink-faint: rgba(245, 245, 247, 0.46);
+      --accent: #ff2d55;
+      --accent-glow: rgba(255, 45, 85, 0.32);
+      --glass: rgba(255, 255, 255, 0.045);
+      --glass-edge: rgba(255, 255, 255, 0.09);
+      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      --radius-lg: 24px;
+      --radius-pill: 999px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background-color: var(--base); scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--base);
+      color: var(--ink);
+      line-height: 1.65;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .ambient {
+      position: fixed;
+      inset: -20%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .ambient span {
+      position: absolute;
+      width: 52vmax;
+      height: 52vmax;
+      border-radius: 50%;
+      filter: blur(120px);
+    }
+    .ambient span:first-child {
+      background: radial-gradient(circle, rgba(255, 45, 85, 0.12) 0%, transparent 70%);
+      top: -12%;
+      right: 10%;
+    }
+    .ambient span:last-child {
+      background: radial-gradient(circle, rgba(120, 140, 255, 0.08) 0%, transparent 70%);
+      bottom: -15%;
+      left: 5%;
+    }
+
+    .glass {
+      position: relative;
+      z-index: 1;
+      background: var(--glass);
+      border: 1px solid var(--glass-edge);
+      box-shadow: var(--glass-highlight);
+      -webkit-backdrop-filter: blur(28px) saturate(150%);
+      backdrop-filter: blur(28px) saturate(150%);
+    }
+
+    .nav {
+      position: sticky;
+      top: 16px;
+      z-index: 20;
+      width: min(1060px, calc(100% - 32px));
+      margin: 16px auto 0;
+      padding: 10px 14px 10px 20px;
+      border-radius: var(--radius-pill);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 650;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 4px 12px var(--accent-glow);
+    }
+    .nav-links { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .nav-links a {
+      color: var(--ink-soft);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: var(--radius-pill);
+      transition: color .2s, background .2s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--ink); background: rgba(255,255,255,.09); }
+
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px;
+      border-radius: var(--radius-pill);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-edge);
+      gap: 2px;
+    }
+    .lang-btn {
+      background: transparent;
+      border: none;
+      color: var(--ink-soft);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+    }
+    .lang-btn.active {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+    }
+
+    main, footer {
+      position: relative;
+      z-index: 1;
+      width: min(860px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .page-head { padding: 64px 0 28px; }
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: clamp(32px, 5vw, 48px);
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+    .updated { color: var(--ink-faint); font-size: 14px; }
+
+    .legal-card {
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-bottom: 20px;
+    }
+    .legal-card h2 {
+      font-size: 20px;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+      color: #ffffff;
+    }
+    .legal-card p { color: var(--ink-soft); font-size: 15px; }
+    .legal-card p + p { margin-top: 12px; }
+    .legal-card ul { margin: 12px 0 0 20px; color: var(--ink-soft); font-size: 15px; }
+    .legal-card li + li { margin-top: 8px; }
+    .legal-card a { color: #ff6b86; text-decoration: none; }
+    .legal-card a:hover { text-decoration: underline; }
+
+    footer {
+      margin-top: 72px;
+      padding: 36px 0 48px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+      color: var(--ink-faint);
+    }
+    footer a { color: var(--ink-soft); text-decoration: none; }
+    footer a:hover { color: var(--ink); }
+    footer .links { display: flex; gap: 20px; flex-wrap: wrap; }
+
+    @media (max-width: 640px) {
+      .legal-card { padding: 22px; }
+      .nav-links a:not(.keep) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"><span></span><span></span></div>
+
+  <nav class="nav glass" aria-label="Navigation">
+    <a href="./index.html" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="18" height="12" viewBox="0 0 730 484" fill="none">
+          <path fill="#ffffff" d="M6.73729 316.937C20.201 294.159 49.6986 286.649 72.4033 300.174H72.4277C237.603 398.282 510.121 407.302 667.823 359.439C693.147 351.759 719.927 366.055 727.602 391.378C735.276 416.715 720.992 443.477 695.649 451.176C514.618 506.132 213.674 495.514 23.5058 382.622C0.678772 369.103 -6.78757 339.685 6.73729 316.937ZM77.8135 154.865C89.38 136.046 113.982 130.11 132.77 141.676C270.528 226.369 480.519 250.891 643.46 201.43C664.592 195.047 686.911 206.957 693.324 228.052C699.689 249.184 687.774 271.46 666.679 277.886C480.555 334.36 249.169 307.004 90.9707 209.79C72.1827 198.224 66.247 173.628 77.8135 154.865ZM140.542 15.3012C149.722 0.246392 169.428 -4.52761 184.482 4.71335C304.811 78.2128 456.29 94.8593 634.684 54.101C651.874 50.1843 669.01 60.9551 672.927 78.1518C676.862 95.3486 666.134 112.484 648.9 116.401C453.677 161.021 286.219 141.799 151.129 59.2417C136.074 50.0006 131.301 30.3561 140.542 15.3012Z"/>
+        </svg>
+      </span>
+      BitChord Desktop
+    </a>
+    <div class="nav-links">
+      <a href="./index.html" class="keep" data-i18n="nav_home">Home</a>
+      <a href="./privacy.html" class="keep" data-i18n="nav_privacy">Privacy</a>
+      <a href="./terms.html" class="active keep" data-i18n="nav_terms">Terms</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener">GitHub</a>
+      <div class="lang-switch" role="group" aria-label="Select language">
+        <button type="button" class="lang-btn active" data-lang-btn="en">EN</button>
+        <button type="button" class="lang-btn" data-lang-btn="id">ID</button>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <header class="page-head">
+      <span class="eyebrow" data-i18n="eyebrow">Legal &amp; License</span>
+      <h1 data-i18n="title">Terms of Service</h1>
+      <p class="updated" data-i18n="updated">Last updated: November 27, 2026</p>
+    </header>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s1_title">1. Acceptance of Terms &amp; Open-Source License</h2>
+      <p data-i18n="s1_p1">By downloading or using BitChord Desktop, you agree to these Terms of Service. BitChord Desktop is an independent, community-maintained desktop port of BitChord (originally created by Kushagra Singh) and is distributed as free and open-source software under the GNU General Public License v3.0 (GPLv3).</p>
+      <p>You may inspect, modify, and redistribute the source code in accordance with the <a href="https://github.com/efzynx/BitChord-Desktop/blob/main/LICENSE" target="_blank" rel="noopener">GPLv3 License</a>.</p>
+    </article>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s2_title">2. Use of the Application</h2>
+      <p data-i18n="s2_p1">BitChord Desktop is a local client application for playing local audio files and streaming audio from supported external sources. You are solely responsible for how you configure third-party integrations, custom sources, and accounts within the application, as well as complying with the terms of service of any external service you choose to connect.</p>
+    </article>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s3_title">3. Optional Google Drive Backup Feature</h2>
+      <ul>
+        <li data-i18n="s3_li1">Google Drive backup and Replay synchronization are entirely optional features. You retain full ownership of all backup snapshots stored inside your Google Drive account.</li>
+        <li data-i18n="s3_li2">You may use either the built-in OAuth sign-in or supply your own Google Cloud Desktop OAuth Client ID (BYO) or access token.</li>
+        <li data-i18n="s3_li3">While care is taken to validate backups before applying them, you are encouraged to keep independent local copies of important playlists or data before restoring across devices.</li>
+      </ul>
+    </article>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s4_title">4. Intellectual Property &amp; Non-Affiliation</h2>
+      <p data-i18n="s4_p1">BitChord Desktop does not host or own third-party music recordings, album artwork, or lyrics retrieved from external APIs. All trademarks and media copyrights belong to their respective rights holders.</p>
+      <p data-i18n="s4_p2">BitChord Desktop is an unofficial, independent open-source client and is not affiliated with, endorsed by, or connected to Google LLC, YouTube, Apple Inc., Spotify AB, Last.fm, or Discord Inc.</p>
+    </article>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s5_title">5. Disclaimer of Warranty &amp; Limitation of Liability</h2>
+      <p data-i18n="s5_p1">Consistent with Sections 15 and 16 of the GNU General Public License v3.0, BitChord Desktop is provided on an "AS IS" and "AS AVAILABLE" basis, without warranties of any kind, express or implied, including merchantability, fitness for a particular purpose, or non-infringement.</p>
+      <p data-i18n="s5_p2">In no event shall the maintainer or contributors be liable for any direct, indirect, incidental, special, or consequential damages, or loss of data arising out of the use or inability to use the software or optional cloud backup features.</p>
+    </article>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s6_title">6. Changes &amp; Contact</h2>
+      <p>These terms may be updated as features evolve. Questions regarding BitChord Desktop can be directed to <a href="mailto:me@efzyn.my.id">me@efzyn.my.id</a> or via <a href="https://github.com/efzynx/BitChord-Desktop/issues" target="_blank" rel="noopener">GitHub Issues</a>.</p>
+    </article>
+  </main>
+
+  <footer>
+    <div>
+      <div style="color: var(--ink-soft); font-weight: 600; margin-bottom: 4px;">BitChord Desktop</div>
+      <div>&copy; 2026 BitChord Desktop Community · GPLv3</div>
+    </div>
+    <div class="links">
+      <a href="./index.html" data-i18n="nav_home">Home</a>
+      <a href="./privacy.html" data-i18n="nav_privacy">Privacy</a>
+      <a href="./terms.html" data-i18n="nav_terms">Terms</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const dictMap = {
+        en: {
+          doc_title: "Terms of Service — BitChord Desktop",
+          eyebrow: "Legal & License",
+          title: "Terms of Service",
+          updated: "Last updated: November 27, 2026",
+          nav_home: "Home",
+          nav_privacy: "Privacy",
+          nav_terms: "Terms",
+          s1_title: "1. Acceptance of Terms & Open-Source License",
+          s1_p1: "By downloading or using BitChord Desktop, you agree to these Terms of Service. BitChord Desktop is an independent, community-maintained desktop port of BitChord (originally created by Kushagra Singh) and is distributed as free and open-source software under the GNU General Public License v3.0 (GPLv3).",
+          s2_title: "2. Use of the Application",
+          s2_p1: "BitChord Desktop is a local client application for playing local audio files and streaming audio from supported external sources. You are solely responsible for how you configure third-party integrations, custom sources, and accounts within the application, as well as complying with the terms of service of any external service you choose to connect.",
+          s3_title: "3. Optional Google Drive Backup Feature",
+          s3_li1: "Google Drive backup and Replay synchronization are entirely optional features. You retain full ownership of all backup snapshots stored inside your Google Drive account.",
+          s3_li2: "You may use either the built-in OAuth sign-in or supply your own Google Cloud Desktop OAuth Client ID (BYO) or access token.",
+          s3_li3: "While care is taken to validate backups before applying them, you are encouraged to keep independent local copies of important playlists or data before restoring across devices.",
+          s4_title: "4. Intellectual Property & Non-Affiliation",
+          s4_p1: "BitChord Desktop does not host or own third-party music recordings, album artwork, or lyrics retrieved from external APIs. All trademarks and media copyrights belong to their respective rights holders.",
+          s4_p2: "BitChord Desktop is an unofficial, independent open-source client and is not affiliated with, endorsed by, or connected to Google LLC, YouTube, Apple Inc., Spotify AB, Last.fm, or Discord Inc.",
+          s5_title: "5. Disclaimer of Warranty & Limitation of Liability",
+          s5_p1: "Consistent with Sections 15 and 16 of the GNU General Public License v3.0, BitChord Desktop is provided on an \"AS IS\" and \"AS AVAILABLE\" basis, without warranties of any kind, express or implied, including merchantability, fitness for a particular purpose, or non-infringement.",
+          s5_p2: "In no event shall the maintainer or contributors be liable for any direct, indirect, incidental, special, or consequential damages, or loss of data arising out of the use or inability to use the software or optional cloud backup features.",
+          s6_title: "6. Changes & Contact"
+        },
+        id: {
+          doc_title: "Ketentuan Layanan — BitChord Desktop",
+          eyebrow: "Hukum & Lisensi",
+          title: "Ketentuan Layanan",
+          updated: "Pembaruan terakhir: 27 November 2026",
+          nav_home: "Beranda",
+          nav_privacy: "Privasi",
+          nav_terms: "Ketentuan",
+          s1_title: "1. Penerimaan Ketentuan & Lisensi Open-Source",
+          s1_p1: "Dengan mengunduh atau menggunakan BitChord Desktop, Anda menyetujui Ketentuan Layanan ini. BitChord Desktop adalah port desktop independen berbasis komunitas dari BitChord (karya awal Kushagra Singh) yang didistribusikan secara gratis di bawah lisensi GNU General Public License v3.0 (GPLv3).",
+          s2_title: "2. Penggunaan Aplikasi",
+          s2_p1: "BitChord Desktop adalah aplikasi klien lokal untuk memutar file audio lokal dan streaming dari sumber eksternal yang didukung. Anda bertanggung jawab penuh atas konfigurasi integrasi pihak ketiga, sumber kustom, dan akun yang Anda hubungkan serta kepatuhan terhadap ketentuan masing-masing layanan eksternal.",
+          s3_title: "3. Fitur Cadangan Google Drive (Opsional)",
+          s3_li1: "Pencadangan Google Drive dan sinkronisasi Replay bersifat sepenuhnya opsional. Anda tetap memegang kepemilikan penuh atas seluruh data cadangan di akun Google Drive Anda.",
+          s3_li2: "Anda bebas memilih masuk menggunakan OAuth bawaan atau memakai OAuth Client ID Google Cloud milik Anda sendiri (BYO) maupun token akses.",
+          s3_li3: "Meskipun file cadangan divalidasi sebelum dipulihkan, Anda tetap disarankan menyimpan ekspor lokal sebelum melakukan pemulihan lintas perangkat.",
+          s4_title: "4. Hak Kekayaan Intelektual & Non-Afiliasi",
+          s4_p1: "BitChord Desktop tidak menyimpan atau memiliki rekaman musik, sampul album, atau lirik milik pihak ketiga yang diakses melalui API eksternal. Seluruh merek dagang dan hak cipta dimiliki oleh pemegang haknya masing-masing.",
+          s4_p2: "BitChord Desktop adalah klien open-source independen tidak resmi serta tidak berafiliasi dengan, didukung oleh, maupun terhubung dengan Google LLC, YouTube, Apple Inc., Spotify AB, Last.fm, atau Discord Inc.",
+          s5_title: "5. Penafian Garansi & Batasan Tanggung Jawab",
+          s5_p1: "Sesuai Bagian 15 dan 16 lisensi GNU General Public License v3.0, BitChord Desktop disediakan \"APA ADANYA\" (AS IS) tanpa jaminan apa pun, baik tersurat maupun tersirat.",
+          s5_p2: "Pengelola maupun kontributor tidak bertanggung jawab atas kerusakan langsung, tidak langsung, insidental, maupun kehilangan data yang timbul akibat penggunaan perangkat lunak ini atau fitur cadangan cloud opsional.",
+          s6_title: "6. Perubahan & Kontak"
+        }
+      };
+
+      function apply(lang) {
+        const d = dictMap[lang] || dictMap.en;
+        localStorage.setItem("bitchord_lang", lang);
+        document.documentElement.lang = lang;
+        document.getElementById("docTitle").textContent = d.doc_title;
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const k = el.getAttribute("data-i18n");
+          if (d[k]) el.textContent = d[k];
+        });
+        document.querySelectorAll("[data-lang-btn]").forEach(btn => {
+          btn.classList.toggle("active", btn.getAttribute("data-lang-btn") === lang);
+        });
+      }
+
+      document.querySelectorAll("[data-lang-btn]").forEach(btn => {
+        btn.addEventListener("click", () => apply(btn.getAttribute("data-lang-btn")));
+      });
+      apply(localStorage.getItem("bitchord_lang") || "en");
+    })();
+  </script>
+</body>
+</html>

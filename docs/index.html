@@ -6,7 +6,7 @@
   <title id="docTitle">BitChord Desktop — Aesthetic YouTube Music Player for Linux & Windows</title>
   <meta name="description" id="docDesc" content="BitChord Desktop is a high-performance desktop music player for Linux and Windows powered by Compose Multiplatform and native FFmpeg 7.1." />
   <meta name="theme-color" content="#000000" />
-  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/efzynx/BitChord-Desktop/assets/Logo.png" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <style>
     :root {
       --base: #000000;
@@ -588,6 +588,157 @@
     footer a:hover { color: var(--ink); }
     footer .links { display: flex; gap: 24px; flex-wrap: wrap; }
 
+    /* ---------- Changelog Card ---------- */
+    .changelog-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 22px;
+      margin-top: 32px;
+    }
+    .changelog-card {
+      padding: 28px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: transform .35s cubic-bezier(.2,.7,.2,1), border-color .3s ease;
+    }
+    .changelog-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--glass-edge-hover);
+    }
+    .changelog-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .changelog-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .changelog-version {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .01em;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: var(--ink);
+    }
+    .changelog-badge-latest {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      background: rgba(255, 45, 85, 0.16);
+      border: 1px solid rgba(255, 45, 85, 0.36);
+      color: #ff7a96;
+    }
+    .changelog-date {
+      font-size: 13px;
+      color: var(--ink-faint);
+    }
+    .changelog-title {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -.018em;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+    .changelog-body {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--ink-soft);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+    .changelog-body h4 {
+      margin-top: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .02em;
+      color: var(--ink);
+    }
+    .changelog-body h4:first-child { margin-top: 0; }
+    .changelog-body ul {
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .changelog-body li { color: var(--ink-soft); }
+    .changelog-body strong { color: var(--ink); font-weight: 600; }
+    .changelog-body code {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      padding: 1px 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--ink);
+    }
+    .changelog-body a {
+      color: var(--ink);
+      text-decoration: underline;
+      text-decoration-color: rgba(255, 255, 255, 0.3);
+      text-underline-offset: 3px;
+    }
+    .changelog-body a:hover {
+      text-decoration-color: var(--accent);
+    }
+    .changelog-media {
+      margin: 4px 0 10px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .changelog-media img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .changelog-foot {
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      display: flex;
+      justify-content: flex-end;
+    }
+    .changelog-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--ink-soft);
+      text-decoration: none;
+      transition: color .2s ease;
+    }
+    .changelog-link:hover { color: var(--ink); }
+    .changelog-skeleton {
+      min-height: 220px;
+      background: linear-gradient(110deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 45%, rgba(255,255,255,0.03) 65%);
+      background-size: 200% 100%;
+      animation: changelog-shimmer 1.6s infinite linear;
+    }
+    @keyframes changelog-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
     /* ---------- Back to Top Floating Button ---------- */
     .back-to-top {
       position: fixed;
@@ -643,6 +794,7 @@
       .artwork-wrap { width: min(380px, 90%); }
       .platforms { grid-template-columns: 1fr; }
       .features { grid-template-columns: 1fr; }
+      .changelog-grid { grid-template-columns: 1fr; }
       .nav-links a:not(.nav-cta) { display: none; }
     }
     @media (max-width: 520px) {
@@ -684,6 +836,7 @@
     <div class="nav-links">
       <a href="#fitur" data-i18n="nav_features">Features</a>
       <a href="#unduh" data-i18n="nav_download">Download</a>
+      <a href="#changelog" data-i18n="nav_changelog">Changelog</a>
       <a href="#instal" data-i18n="nav_install">Install</a>
       <a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" target="_blank" rel="noopener" data-i18n="nav_guide">Guide</a>
       <a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener">GitHub</a>
@@ -871,6 +1024,20 @@
       </div>
     </section>
 
+    <section id="changelog" aria-labelledby="changelog-heading">
+      <h2 class="section-title" id="changelog-heading" data-i18n="changelog_title">Latest stable release</h2>
+      <p class="section-lede" data-i18n="changelog_lede">Automatically synced with the latest stable release on GitHub.</p>
+
+      <div class="changelog-grid" id="changelogList" aria-live="polite">
+        <article class="changelog-card glass changelog-skeleton" aria-hidden="true"></article>
+      </div>
+
+      <p class="all-releases">
+        <span data-i18n="changelog_history_text">Looking for older releases and complete patch notes?</span>
+        <a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener" data-i18n="all_releases_link">View all releases on GitHub</a>
+      </p>
+    </section>
+
   </main>
 
   <footer>
@@ -879,6 +1046,8 @@
       <div>&copy; 2026 BitChord Desktop Community. Licensed under GNU General Public License v3.0.</div>
     </div>
     <div class="links">
+      <a href="./privacy.html" data-i18n="footer_privacy">Privacy Policy</a>
+      <a href="./terms.html" data-i18n="footer_terms">Terms of Service</a>
       <a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener" data-i18n="footer_source">Source Code</a>
       <a href="https://github.com/efzynx/BitChord-Desktop/blob/main/DESKTOP.md" target="_blank" rel="noopener" data-i18n="footer_guide">User Guide</a>
       <a href="https://github.com/efzynx/BitChord-Desktop/releases" target="_blank" rel="noopener" data-i18n="footer_releases">All Releases</a>
@@ -910,6 +1079,7 @@
           doc_desc: "BitChord Desktop adalah pemutar musik desktop berkinerja tinggi untuk Linux dan Windows bertenaga Compose Multiplatform dan FFmpeg 7.1.",
           nav_features: "Fitur",
           nav_download: "Unduh",
+          nav_changelog: "Catatan Rilis",
           nav_install: "Instal",
           nav_guide: "Panduan",
           nav_cta: "Unduh",
@@ -956,6 +1126,8 @@
           install_win_msi_desc: "Jalankan BitChord-*.msi untuk pemasangan sistem berbasis Windows Installer standar.",
           install_win_zip_title: "Portable ZIP:",
           install_win_zip_desc: "Ekstrak arsip ZIP di lokasi mana pun, lalu klik dua kali BitChord.vbs untuk menjalankan pemutar secara instan di latar belakang tanpa jendela terminal.",
+          footer_privacy: "Kebijakan Privasi",
+          footer_terms: "Ketentuan Layanan",
           footer_source: "Kode Sumber",
           footer_guide: "Panduan Pengguna",
           footer_releases: "Semua Rilis",
@@ -968,6 +1140,15 @@
           dynamic_download_fallback: "Unduh BitChord (",
           dynamic_empty_note: "Belum ada paket resmi untuk platform ini di rilis stabil terbaru. ",
           dynamic_empty_link: "Cek riwayat rilis di GitHub",
+          changelog_title: "Rilis stabil terbaru",
+          changelog_lede: "Diperbarui otomatis mengikuti catatan rilis stabil terbaru di GitHub.",
+          changelog_latest: "Terbaru",
+          changelog_previous: "Rilis sebelumnya",
+          changelog_view_release: "Lihat rilis di GitHub",
+          changelog_empty_body: "Lihat catatan rilis lengkap langsung di halaman GitHub Releases.",
+          changelog_fallback_title: "Catatan rilis tersedia di GitHub",
+          changelog_fallback_desc: "Tidak dapat memuat ringkasan rilis secara langsung saat ini. Buka GitHub Releases untuk membaca catatan rilis stabil terbaru.",
+          changelog_history_text: "Ingin menelusuri versi terdahulu dan catatan perubahan lengkap?",
           back_to_top_title: "Kembali ke atas"
         },
         en: {
@@ -975,6 +1156,7 @@
           doc_desc: "BitChord Desktop is a high-performance desktop music player for Linux and Windows powered by Compose Multiplatform and native FFmpeg 7.1.",
           nav_features: "Features",
           nav_download: "Download",
+          nav_changelog: "Changelog",
           nav_install: "Install",
           nav_guide: "Guide",
           nav_cta: "Download",
@@ -1021,6 +1203,8 @@
           install_win_msi_desc: "Run BitChord-*.msi for standard Windows Installer system deployment.",
           install_win_zip_title: "Portable ZIP:",
           install_win_zip_desc: "Extract the ZIP archive anywhere, then double-click BitChord.vbs to launch the player silently in the background without terminal windows.",
+          footer_privacy: "Privacy Policy",
+          footer_terms: "Terms of Service",
           footer_source: "Source Code",
           footer_guide: "User Guide",
           footer_releases: "All Releases",
@@ -1033,6 +1217,15 @@
           dynamic_download_fallback: "Download BitChord (",
           dynamic_empty_note: "No official packages available for this platform in the latest stable release. ",
           dynamic_empty_link: "Check release history on GitHub",
+          changelog_title: "Latest stable release",
+          changelog_lede: "Automatically synced with the latest stable release on GitHub.",
+          changelog_latest: "Latest",
+          changelog_previous: "Previous release",
+          changelog_view_release: "View release on GitHub",
+          changelog_empty_body: "See the complete release notes on the GitHub Releases page.",
+          changelog_fallback_title: "Release notes available on GitHub",
+          changelog_fallback_desc: "Unable to load live release summaries right now. Visit GitHub Releases to read the latest stable notes.",
+          changelog_history_text: "Looking for older releases and complete patch notes?",
           back_to_top_title: "Back to top"
         }
       };
@@ -1081,6 +1274,9 @@
         // Re-render release meta & labels if releases data is cached
         if (window._latestReleaseCache) {
           renderReleaseUI(window._latestReleaseCache.release, window._latestReleaseCache.totalDownloads);
+          renderChangelog(window._latestReleaseCache.stableChangelog || []);
+        } else if (window._changelogFallback) {
+          renderChangelog([]);
         }
       }
 
@@ -1202,14 +1398,298 @@
         }
       }
 
+      function formatReleaseDate(isoString) {
+        if (!isoString) return "";
+        const date = new Date(isoString);
+        if (Number.isNaN(date.getTime())) return "";
+        const locale = currentLang === "id" ? "id-ID" : "en-US";
+        return new Intl.DateTimeFormat(locale, {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        }).format(date);
+      }
+
+      function isSafeHttpUrl(url) {
+        return typeof url === "string" && /^https?:\/\//i.test(url.trim());
+      }
+
+      function extractHtmlAttr(tag, attrName) {
+        const re = new RegExp(`\\b${attrName}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i");
+        const m = tag.match(re);
+        return m ? (m[1] ?? m[2] ?? m[3] ?? "") : "";
+      }
+
+      function createBannerElement(src, alt) {
+        if (!isSafeHttpUrl(src)) return null;
+        const wrap = document.createElement("div");
+        wrap.className = "changelog-media";
+        const img = document.createElement("img");
+        img.src = src.trim();
+        img.alt = (alt || "BitChord Desktop Release Banner").trim();
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.addEventListener("error", () => wrap.remove(), { once: true });
+        wrap.appendChild(img);
+        return wrap;
+      }
+
+      function normalizeInlineHtml(text) {
+        return text
+          .replace(/<a\b[^>]*\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>([\s\S]*?)<\/a>/gi, (_, h1, h2, label) => {
+            const href = (h1 || h2 || "").trim();
+            return `[${label.trim()}](${href})`;
+          })
+          .replace(/<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>/gi, "**$2**")
+          .replace(/<(code|kbd)\b[^>]*>([\s\S]*?)<\/\1>/gi, "`$2`")
+          .replace(/<(em|i)\b[^>]*>([\s\S]*?)<\/\1>/gi, "$2")
+          .replace(/<br\s*\/?>/gi, " ")
+          .replace(/<[^>]+>/g, "");
+      }
+
+      function appendInlineMarkdown(parent, rawText) {
+        const clean = normalizeInlineHtml(rawText);
+        const tokenRe = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+        let lastIndex = 0;
+        let match;
+        while ((match = tokenRe.exec(clean)) !== null) {
+          if (match.index > lastIndex) {
+            parent.appendChild(document.createTextNode(clean.slice(lastIndex, match.index)));
+          }
+          const token = match[0];
+          if (token.startsWith("**") && token.endsWith("**")) {
+            const strong = document.createElement("strong");
+            strong.textContent = token.slice(2, -2);
+            parent.appendChild(strong);
+          } else if (token.startsWith("`") && token.endsWith("`")) {
+            const code = document.createElement("code");
+            code.textContent = token.slice(1, -1);
+            parent.appendChild(code);
+          } else {
+            const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+            if (linkMatch && isSafeHttpUrl(linkMatch[2])) {
+              const a = document.createElement("a");
+              a.href = linkMatch[2].trim();
+              a.target = "_blank";
+              a.rel = "noopener noreferrer";
+              a.textContent = linkMatch[1];
+              parent.appendChild(a);
+            } else {
+              parent.appendChild(document.createTextNode(linkMatch ? linkMatch[1] : token));
+            }
+          }
+          lastIndex = tokenRe.lastIndex;
+        }
+        if (lastIndex < clean.length) {
+          parent.appendChild(document.createTextNode(clean.slice(lastIndex)));
+        }
+      }
+
+      function buildChangelogBody(rawBody, dict) {
+        const container = document.createElement("div");
+        container.className = "changelog-body";
+        const normalizedBody = (rawBody || "")
+          .replace(/<!--[\s\S]*?-->/g, "")
+          .replace(/<img\b[\s\S]*?>/gi, tag => `\n${tag.replace(/\s*\r?\n\s*/g, " ")}\n`)
+          .replace(/<summary\b[^>]*>([\s\S]*?)<\/summary>/gi, "\n#### $1\n");
+        const lines = normalizedBody.split(/\r?\n/);
+
+        let currentList = null;
+        let renderedBlocks = 0;
+        const maxBlocks = 40;
+
+        for (const rawLine of lines) {
+          if (renderedBlocks >= maxBlocks) break;
+          let line = rawLine.trim();
+          if (!line || /^[-*_]{3,}$/.test(line)) {
+            currentList = null;
+            continue;
+          }
+          if (/^\|/.test(line)) continue;
+
+          if (/^<\/?(p|div|center|details|blockquote|br|hr)\b[^>]*\/?>$/i.test(line)) {
+            currentList = null;
+            continue;
+          }
+
+          let remaining = line;
+          const htmlImgRe = /<img\b[^>]*>/gi;
+          let imgMatch;
+          let addedMedia = false;
+          while ((imgMatch = htmlImgRe.exec(line)) !== null) {
+            const src = extractHtmlAttr(imgMatch[0], "src");
+            const alt = extractHtmlAttr(imgMatch[0], "alt");
+            const banner = createBannerElement(src, alt);
+            if (banner) {
+              currentList = null;
+              container.appendChild(banner);
+              renderedBlocks++;
+              addedMedia = true;
+            }
+          }
+          if (addedMedia) {
+            remaining = remaining.replace(htmlImgRe, "").trim();
+            if (!remaining) continue;
+          }
+
+          const mdImgMatch = remaining.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)$/);
+          if (mdImgMatch) {
+            const banner = createBannerElement(mdImgMatch[2], mdImgMatch[1]);
+            if (banner) {
+              currentList = null;
+              container.appendChild(banner);
+              renderedBlocks++;
+            }
+            continue;
+          }
+
+          const headingMatch = remaining.match(/^#{1,4}\s+(.+)$/);
+          if (headingMatch) {
+            currentList = null;
+            const h4 = document.createElement("h4");
+            appendInlineMarkdown(h4, headingMatch[1]);
+            if (h4.textContent.trim()) {
+              container.appendChild(h4);
+              renderedBlocks++;
+            }
+            continue;
+          }
+
+          const listMatch = remaining.match(/^[-*+]\s+(.+)$/);
+          if (listMatch) {
+            if (!currentList) {
+              currentList = document.createElement("ul");
+              container.appendChild(currentList);
+            }
+            const li = document.createElement("li");
+            appendInlineMarkdown(li, listMatch[1]);
+            if (li.textContent.trim()) {
+              currentList.appendChild(li);
+              renderedBlocks++;
+            }
+            continue;
+          }
+
+          currentList = null;
+          const p = document.createElement("p");
+          appendInlineMarkdown(p, remaining);
+          if (p.textContent.trim()) {
+            container.appendChild(p);
+            renderedBlocks++;
+          }
+        }
+
+        if (!container.childNodes.length) {
+          const emptyP = document.createElement("p");
+          emptyP.textContent = dict.changelog_empty_body;
+          container.appendChild(emptyP);
+        }
+        return container;
+      }
+
+      function renderChangelog(stableReleases) {
+        const dict = translations[currentLang] || translations.en;
+        const listEl = document.getElementById("changelogList");
+        if (!listEl) return;
+        listEl.innerHTML = "";
+
+        if (!stableReleases || !stableReleases.length) {
+          const fallbackCard = document.createElement("article");
+          fallbackCard.className = "changelog-card glass";
+
+          const titleEl = document.createElement("h3");
+          titleEl.className = "changelog-title";
+          titleEl.textContent = dict.changelog_fallback_title;
+          fallbackCard.appendChild(titleEl);
+
+          const bodyEl = document.createElement("div");
+          bodyEl.className = "changelog-body";
+          const descP = document.createElement("p");
+          descP.textContent = dict.changelog_fallback_desc;
+          bodyEl.appendChild(descP);
+          fallbackCard.appendChild(bodyEl);
+
+          const footEl = document.createElement("div");
+          footEl.className = "changelog-foot";
+          const link = document.createElement("a");
+          link.className = "changelog-link";
+          link.href = RELEASES_PAGE;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = dict.all_releases_link + " →";
+          footEl.appendChild(link);
+          fallbackCard.appendChild(footEl);
+
+          listEl.appendChild(fallbackCard);
+          return;
+        }
+
+        stableReleases.slice(0, 1).forEach((rel, index) => {
+          const card = document.createElement("article");
+          card.className = "changelog-card glass";
+
+          const head = document.createElement("div");
+          head.className = "changelog-head";
+
+          const badges = document.createElement("div");
+          badges.className = "changelog-badges";
+
+          const versionPill = document.createElement("span");
+          versionPill.className = "changelog-version";
+          versionPill.textContent = rel.tag_name || rel.name || "v1.10.0";
+          badges.appendChild(versionPill);
+
+          if (index === 0) {
+            const latestBadge = document.createElement("span");
+            latestBadge.className = "changelog-badge-latest";
+            latestBadge.textContent = dict.changelog_latest;
+            badges.appendChild(latestBadge);
+          }
+
+          head.appendChild(badges);
+
+          const formattedDate = formatReleaseDate(rel.published_at || rel.created_at);
+          if (formattedDate) {
+            const dateEl = document.createElement("span");
+            dateEl.className = "changelog-date";
+            dateEl.textContent = formattedDate;
+            head.appendChild(dateEl);
+          }
+
+          card.appendChild(head);
+
+          const titleEl = document.createElement("h3");
+          titleEl.className = "changelog-title";
+          titleEl.textContent = rel.name && rel.name.trim() ? rel.name : (rel.tag_name || "Release");
+          card.appendChild(titleEl);
+
+          card.appendChild(buildChangelogBody(rel.body, dict));
+
+          const foot = document.createElement("div");
+          foot.className = "changelog-foot";
+          const link = document.createElement("a");
+          link.className = "changelog-link";
+          link.href = rel.html_url || RELEASES_PAGE;
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.textContent = dict.changelog_view_release + " →";
+          foot.appendChild(link);
+          card.appendChild(foot);
+
+          listEl.appendChild(card);
+        });
+      }
+
       function setFallback() {
+        window._changelogFallback = true;
         renderReleaseUI(null, 0);
+        renderChangelog([]);
         document.getElementById("hero-download").href = RELEASES_PAGE;
       }
 
       async function loadReleases() {
         try {
-          const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=15`, {
+          const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=20`, {
             headers: { Accept: "application/vnd.github+json" }
           });
           if (!res.ok) throw new Error("HTTP " + res.status);
@@ -1226,8 +1706,14 @@
             }
           }
 
-          window._latestReleaseCache = { release, totalDownloads };
+          const stableChangelog = releases
+            .filter(r => !r.draft && !r.prerelease)
+            .slice(0, 1);
+
+          window._changelogFallback = false;
+          window._latestReleaseCache = { release, totalDownloads, stableChangelog };
           renderReleaseUI(release, totalDownloads);
+          renderChangelog(stableChangelog);
         } catch (err) {
           console.warn("Could not fetch releases from GitHub API:", err);
           setFallback();

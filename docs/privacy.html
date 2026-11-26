@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title id="docTitle">Privacy Policy — BitChord Desktop</title>
+  <meta name="description" id="docDesc" content="Privacy Policy for BitChord Desktop, including Google Drive App Data backup scope, local-first storage, and third-party services." />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <style>
+    :root {
+      --base: #000000;
+      --ink: #f5f5f7;
+      --ink-soft: rgba(245, 245, 247, 0.72);
+      --ink-faint: rgba(245, 245, 247, 0.46);
+      --accent: #ff2d55;
+      --accent-glow: rgba(255, 45, 85, 0.32);
+      --glass: rgba(255, 255, 255, 0.045);
+      --glass-edge: rgba(255, 255, 255, 0.09);
+      --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      --radius-lg: 24px;
+      --radius-pill: 999px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background-color: var(--base); scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--base);
+      color: var(--ink);
+      line-height: 1.65;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .ambient {
+      position: fixed;
+      inset: -20%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .ambient span {
+      position: absolute;
+      width: 52vmax;
+      height: 52vmax;
+      border-radius: 50%;
+      filter: blur(120px);
+    }
+    .ambient span:first-child {
+      background: radial-gradient(circle, rgba(255, 45, 85, 0.12) 0%, transparent 70%);
+      top: -12%;
+      left: 10%;
+    }
+    .ambient span:last-child {
+      background: radial-gradient(circle, rgba(120, 140, 255, 0.08) 0%, transparent 70%);
+      bottom: -15%;
+      right: 5%;
+    }
+
+    .glass {
+      position: relative;
+      z-index: 1;
+      background: var(--glass);
+      border: 1px solid var(--glass-edge);
+      box-shadow: var(--glass-highlight);
+      -webkit-backdrop-filter: blur(28px) saturate(150%);
+      backdrop-filter: blur(28px) saturate(150%);
+    }
+
+    .nav {
+      position: sticky;
+      top: 16px;
+      z-index: 20;
+      width: min(1060px, calc(100% - 32px));
+      margin: 16px auto 0;
+      padding: 10px 14px 10px 20px;
+      border-radius: var(--radius-pill);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 650;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 4px 12px var(--accent-glow);
+    }
+    .nav-links { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .nav-links a {
+      color: var(--ink-soft);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: var(--radius-pill);
+      transition: color .2s, background .2s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--ink); background: rgba(255,255,255,.09); }
+
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px;
+      border-radius: var(--radius-pill);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-edge);
+      gap: 2px;
+    }
+    .lang-btn {
+      background: transparent;
+      border: none;
+      color: var(--ink-soft);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+    }
+    .lang-btn.active {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+    }
+
+    main, footer {
+      position: relative;
+      z-index: 1;
+      width: min(860px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .page-head { padding: 64px 0 28px; }
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: clamp(32px, 5vw, 48px);
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+    .updated { color: var(--ink-faint); font-size: 14px; }
+
+    .legal-card {
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-bottom: 20px;
+    }
+    .legal-card h2 {
+      font-size: 20px;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+      color: #ffffff;
+    }
+    .legal-card p { color: var(--ink-soft); font-size: 15px; }
+    .legal-card p + p { margin-top: 12px; }
+    .legal-card ul { margin: 12px 0 0 20px; color: var(--ink-soft); font-size: 15px; }
+    .legal-card li + li { margin-top: 8px; }
+    .legal-card code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      background: rgba(255,255,255,.08);
+      padding: 2px 7px;
+      border-radius: 6px;
+      color: var(--ink);
+    }
+    .legal-card a { color: #ff6b86; text-decoration: none; }
+    .legal-card a:hover { text-decoration: underline; }
+
+    footer {
+      margin-top: 72px;
+      padding: 36px 0 48px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+      color: var(--ink-faint);
+    }
+    footer a { color: var(--ink-soft); text-decoration: none; }
+    footer a:hover { color: var(--ink); }
+    footer .links { display: flex; gap: 20px; flex-wrap: wrap; }
+
+    @media (max-width: 640px) {
+      .legal-card { padding: 22px; }
+      .nav-links a:not(.keep) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"><span></span><span></span></div>
+
+  <nav class="nav glass" aria-label="Navigation">
+    <a href="./index.html" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="18" height="12" viewBox="0 0 730 484" fill="none">
+          <path fill="#ffffff" d="M6.73729 316.937C20.201 294.159 49.6986 286.649 72.4033 300.174H72.4277C237.603 398.282 510.121 407.302 667.823 359.439C693.147 351.759 719.927 366.055 727.602 391.378C735.276 416.715 720.992 443.477 695.649 451.176C514.618 506.132 213.674 495.514 23.5058 382.622C0.678772 369.103 -6.78757 339.685 6.73729 316.937ZM77.8135 154.865C89.38 136.046 113.982 130.11 132.77 141.676C270.528 226.369 480.519 250.891 643.46 201.43C664.592 195.047 686.911 206.957 693.324 228.052C699.689 249.184 687.774 271.46 666.679 277.886C480.555 334.36 249.169 307.004 90.9707 209.79C72.1827 198.224 66.247 173.628 77.8135 154.865ZM140.542 15.3012C149.722 0.246392 169.428 -4.52761 184.482 4.71335C304.811 78.2128 456.29 94.8593 634.684 54.101C651.874 50.1843 669.01 60.9551 672.927 78.1518C676.862 95.3486 666.134 112.484 648.9 116.401C453.677 161.021 286.219 141.799 151.129 59.2417C136.074 50.0006 131.301 30.3561 140.542 15.3012Z"/>
+        </svg>
+      </span>
+      BitChord Desktop
+    </a>
+    <div class="nav-links">
+      <a href="./index.html" class="keep" data-i18n="nav_home">Home</a>
+      <a href="./privacy.html" class="active keep" data-i18n="nav_privacy">Privacy</a>
+      <a href="./terms.html" class="keep" data-i18n="nav_terms">Terms</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener">GitHub</a>
+      <div class="lang-switch" role="group" aria-label="Select language">
+        <button type="button" class="lang-btn active" data-lang-btn="en">EN</button>
+        <button type="button" class="lang-btn" data-lang-btn="id">ID</button>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <header class="page-head">
+      <span class="eyebrow" data-i18n="eyebrow">Legal &amp; Privacy</span>
+      <h1 data-i18n="title">Privacy Policy</h1>
+      <p class="updated" data-i18n="updated">Last updated: November 27, 2026</p>
+    </header>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s1_title">1. Overview &amp; Local-First Design</h2>
+      <p data-i18n="s1_p1">BitChord Desktop is a free, open-source desktop music player licensed under the GNU General Public License v3.0 (GPLv3). The application is designed to run locally on your computer without centralized tracking servers, behavioral telemetry, or advertising SDKs.</p>
+      <p data-i18n="s1_p2">Your playback preferences, local playlists, listening history, and Replay statistics are stored locally on your device using standard operating system storage.</p>
+    </article>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s2_title">2. Google Drive Backup &amp; User Data</h2>
+      <p data-i18n="s2_p1">If you choose to connect Google Drive under Settings &gt; Backup and Restore, BitChord Desktop uses OAuth 2.0 with PKCE to access only the following limited Google API scope:</p>
+      <ul>
+        <li><code>https://www.googleapis.com/auth/drive.appdata</code> — <span data-i18n="s2_li1">Provides access solely to a hidden application-specific folder in your Google Drive. BitChord Desktop cannot view, read, modify, or delete any of your personal Google Drive files or folders outside that hidden app folder.</span></li>
+        <li><span data-i18n="s2_li2">Basic Google account metadata (email address and display name from Google Drive About) is displayed inside the app so you know which Google account is connected.</span></li>
+      </ul>
+      <p data-i18n="s2_p2">Backup files uploaded to your Google Drive app folder contain compressed JSON snapshots of your non-credential app settings, local playlists, liked/disliked track IDs, playback history, and monthly Replay listening statistics. Account cookies, passwords, and third-party API tokens are strictly excluded from backups.</p>
+    </article>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s3_title">3. Google API Services User Data Policy (Limited Use)</h2>
+      <p>BitChord Desktop's use and transfer to any other app of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+      <ul>
+        <li data-i18n="s3_li1">Google user data accessed via Drive App Data is used exclusively to provide backup, restore, and Replay synchronization features directly requested by you inside BitChord Desktop.</li>
+        <li data-i18n="s3_li2">BitChord Desktop does not transfer, sell, or share your Google user data with third parties, advertisers, or AI/ML training pipelines.</li>
+        <li data-i18n="s3_li3">OAuth tokens remain encrypted or stored locally on your machine (using Windows DPAPI on Windows and local OS preferences on Linux/macOS) and are never sent to the maintainer's servers.</li>
+      </ul>
+    </article>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s4_title">4. Custom OAuth (BYO) &amp; Data Control</h2>
+      <p data-i18n="s4_p1">For maximum transparency, BitChord Desktop also supports Bring Your Own (BYO) Google Cloud Desktop OAuth Client IDs and direct access tokens, allowing you to use your own Google Cloud project instead of the built-in client.</p>
+      <p data-i18n="s4_p2">You can disconnect Google Drive at any time inside Settings &gt; Backup and Restore &gt; Google Drive backup (which revokes the token and clears local credentials), delete individual cloud backups in-app, or remove the hidden app data directly from Google Drive via Settings &gt; Manage apps.</p>
+    </article>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s5_title">5. Third-Party Services</h2>
+      <p data-i18n="s5_p1">When you use optional music and metadata features, BitChord Desktop communicates directly from your computer with the third-party services you choose to enable:</p>
+      <ul>
+        <li data-i18n="s5_li1">YouTube / YouTube Music for catalog search, stream resolution, and optional account library sync.</li>
+        <li data-i18n="s5_li2">Lyrics providers (LRCLIB, Musixmatch, YouTube) and optional scrobbling/presence services (Last.fm, ListenBrainz, Discord local IPC, Spotify Canvas).</li>
+        <li data-i18n="s5_li3">Listen Together party servers (default community relay or self-hosted/Cloudflare Quick Tunnel) only when you explicitly join or host a party session.</li>
+      </ul>
+    </article>
+
+    <article class="legal-card glass">
+      <h2 data-i18n="s6_title">6. Contact</h2>
+      <p>If you have questions about this Privacy Policy or wish to report a privacy concern, please contact the maintainer at <a href="mailto:me@efzyn.my.id">me@efzyn.my.id</a> or open an issue on <a href="https://github.com/efzynx/BitChord-Desktop/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+    </article>
+  </main>
+
+  <footer>
+    <div>
+      <div style="color: var(--ink-soft); font-weight: 600; margin-bottom: 4px;">BitChord Desktop</div>
+      <div>&copy; 2026 BitChord Desktop Community · GPLv3</div>
+    </div>
+    <div class="links">
+      <a href="./index.html" data-i18n="nav_home">Home</a>
+      <a href="./privacy.html" data-i18n="nav_privacy">Privacy</a>
+      <a href="./terms.html" data-i18n="nav_terms">Terms</a>
+      <a href="https://github.com/efzynx/BitChord-Desktop" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const dictMap = {
+        en: {
+          doc_title: "Privacy Policy — BitChord Desktop",
+          eyebrow: "Legal & Privacy",
+          title: "Privacy Policy",
+          updated: "Last updated: November 27, 2026",
+          nav_home: "Home",
+          nav_privacy: "Privacy",
+          nav_terms: "Terms",
+          s1_title: "1. Overview & Local-First Design",
+          s1_p1: "BitChord Desktop is a free, open-source desktop music player licensed under the GNU General Public License v3.0 (GPLv3). The application runs locally on your computer without centralized tracking servers, behavioral telemetry, or advertising SDKs.",
+          s1_p2: "Your playback preferences, local playlists, listening history, and Replay statistics are stored locally on your device using standard operating system storage.",
+          s2_title: "2. Google Drive Backup & User Data",
+          s2_p1: "If you choose to connect Google Drive under Settings > Backup and Restore, BitChord Desktop uses OAuth 2.0 with PKCE to access only the following limited Google API scope:",
+          s2_li1: "Provides access solely to a hidden application-specific folder in your Google Drive. BitChord Desktop cannot view, read, modify, or delete any of your personal Google Drive files or folders outside that hidden app folder.",
+          s2_li2: "Basic Google account metadata (email address and display name from Google Drive About) is displayed inside the app so you know which Google account is connected.",
+          s2_p2: "Backup files uploaded to your Google Drive app folder contain compressed JSON snapshots of your non-credential app settings, local playlists, liked/disliked track IDs, playback history, and monthly Replay listening statistics. Account cookies, passwords, and third-party API tokens are strictly excluded from backups.",
+          s3_title: "3. Google API Services User Data Policy (Limited Use)",
+          s3_li1: "Google user data accessed via Drive App Data is used exclusively to provide backup, restore, and Replay synchronization features directly requested by you inside BitChord Desktop.",
+          s3_li2: "BitChord Desktop does not transfer, sell, or share your Google user data with third parties, advertisers, or AI/ML training pipelines.",
+          s3_li3: "OAuth tokens remain encrypted or stored locally on your machine (using Windows DPAPI on Windows and local OS preferences on Linux/macOS) and are never sent to the maintainer's servers.",
+          s4_title: "4. Custom OAuth (BYO) & Data Control",
+          s4_p1: "For maximum transparency, BitChord Desktop also supports Bring Your Own (BYO) Google Cloud Desktop OAuth Client IDs and direct access tokens, allowing you to use your own Google Cloud project instead of the built-in client.",
+          s4_p2: "You can disconnect Google Drive at any time inside Settings > Backup and Restore > Google Drive backup (which revokes the token and clears local credentials), delete individual cloud backups in-app, or remove the hidden app data directly from Google Drive via Settings > Manage apps.",
+          s5_title: "5. Third-Party Services",
+          s5_p1: "When you use optional music and metadata features, BitChord Desktop communicates directly from your computer with the third-party services you choose to enable:",
+          s5_li1: "YouTube / YouTube Music for catalog search, stream resolution, and optional account library sync.",
+          s5_li2: "Lyrics providers (LRCLIB, Musixmatch, YouTube) and optional scrobbling/presence services (Last.fm, ListenBrainz, Discord local IPC, Spotify Canvas).",
+          s5_li3: "Listen Together party servers (default community relay or self-hosted/Cloudflare Quick Tunnel) only when you explicitly join or host a party session."
+        },
+        id: {
+          doc_title: "Kebijakan Privasi — BitChord Desktop",
+          eyebrow: "Hukum & Privasi",
+          title: "Kebijakan Privasi",
+          updated: "Pembaruan terakhir: 27 November 2026",
+          nav_home: "Beranda",
+          nav_privacy: "Privasi",
+          nav_terms: "Ketentuan",
+          s1_title: "1. Ringkasan & Arsitektur Lokal",
+          s1_p1: "BitChord Desktop adalah pemutar musik desktop open-source gratis berlisensi GNU General Public License v3.0 (GPLv3). Aplikasi berjalan lokal di komputer Anda tanpa server pelacakan terpusat, telemetri perilaku, maupun SDK iklan.",
+          s1_p2: "Preferensi pemutaran, playlist lokal, riwayat dengar, dan statistik Replay disimpan secara lokal di perangkat Anda menggunakan penyimpanan standar sistem operasi.",
+          s2_title: "2. Cadangan Google Drive & Data Pengguna",
+          s2_p1: "Jika Anda menghubungkan Google Drive di menu Settings > Backup and Restore, BitChord Desktop menggunakan OAuth 2.0 + PKCE untuk meminta izin terbatas berikut saja:",
+          s2_li1: "Memberi akses hanya ke folder aplikasi tersembunyi di Google Drive Anda. BitChord Desktop tidak dapat melihat, membaca, mengubah, atau menghapus file dan folder Google Drive pribadi Anda di luar folder aplikasi tersembunyi tersebut.",
+          s2_li2: "Metadata dasar akun Google (alamat email dan nama tampilan dari Google Drive About) hanya ditampilkan di dalam aplikasi agar Anda mengetahui akun mana yang terhubung.",
+          s2_p2: "File cadangan berisi snapshot JSON terkompresi dari pengaturan non-kredensial, playlist lokal, ID lagu disukai/tidak disukai, riwayat putar, dan statistik Replay bulanan. Cookie akun, kata sandi, dan token API pihak ketiga dikecualikan secara ketat.",
+          s3_title: "3. Kebijakan Data Pengguna Layanan Google API (Limited Use)",
+          s3_li1: "Data pengguna Google melalui Drive App Data hanya digunakan untuk menyediakan fitur cadangan, pemulihan, dan sinkronisasi Replay yang Anda aktifkan di dalam BitChord Desktop.",
+          s3_li2: "BitChord Desktop tidak menjual, memindahkan, atau membagikan data pengguna Google Anda ke pihak ketiga, pengiklan, maupun pelatihan model AI/ML.",
+          s3_li3: "Token OAuth disimpan lokal atau terenkripsi di komputer Anda (menggunakan Windows DPAPI di Windows dan preferensi OS lokal di Linux/macOS) serta tidak pernah dikirim ke server pengembang.",
+          s4_title: "4. OAuth Kustom (BYO) & Kontrol Data",
+          s4_p1: "Untuk transparansi penuh, BitChord Desktop mendukung metode Bring Your Own (BYO) OAuth Client ID maupun token akses langsung sehingga Anda dapat memakai proyek Google Cloud Anda sendiri.",
+          s4_p2: "Anda dapat memutus koneksi Google Drive kapan saja dari Settings > Backup and Restore > Google Drive backup (otomatis mencabut token dan menghapus kredensial lokal), menghapus file cadangan di aplikasi, atau menghapus data aplikasi langsung dari Google Drive > Setelan > Kelola aplikasi.",
+          s5_title: "5. Layanan Pihak Ketiga",
+          s5_p1: "Saat fitur musik dan metadata opsional digunakan, BitChord Desktop berkomunikasi langsung dari komputer Anda ke layanan pihak ketiga yang Anda aktifkan:",
+          s5_li1: "YouTube / YouTube Music untuk pencarian katalog, streaming audio, dan sinkronisasi pustaka opsional.",
+          s5_li2: "Penyedia lirik (LRCLIB, Musixmatch, YouTube) serta layanan scrobbling/presence opsional (Last.fm, ListenBrainz, Discord IPC lokal, Spotify Canvas).",
+          s5_li3: "Server Listen Together (server komunitas bawaan, server mandiri, atau Cloudflare Quick Tunnel) hanya ketika Anda bergabung atau membuat sesi."
+        }
+      };
+
+      function apply(lang) {
+        const d = dictMap[lang] || dictMap.en;
+        localStorage.setItem("bitchord_lang", lang);
+        document.documentElement.lang = lang;
+        document.getElementById("docTitle").textContent = d.doc_title;
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const k = el.getAttribute("data-i18n");
+          if (d[k]) el.textContent = d[k];
+        });
+        document.querySelectorAll("[data-lang-btn]").forEach(btn => {
+          btn.classList.toggle("active", btn.getAttribute("data-lang-btn") === lang);
+        });
+      }
+
+      document.querySelectorAll("[data-lang-btn]").forEach(btn => {
+        btn.addEventListener("click", () => apply(btn.getAttribute("data-lang-btn")));
+      });
+      apply(localStorage.getItem("bitchord_lang") || "en");
+    })();
+  </script>
+</body>
+</html>

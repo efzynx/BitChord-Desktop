@@ -1,0 +1,180 @@
+name: Desktop Beta Preview Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Preview Version (blank uses build.gradle.kts version)'
+        required: false
+        default: ''
+      platform:
+        description: 'Target platforms to build'
+        type: choice
+        required: true
+        default: 'all'
+        options:
+          - all
+          - linux
+          - windows
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-preview:
+    name: Resolve Preview Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Determine Version
+        id: resolve
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            BASE_VERSION=$(sed -n 's/.*extra\["bitchordVersionName"\] = "\(.*\)".*/\1/p' build.gradle.kts)
+            VERSION="${BASE_VERSION}-preview.${{ github.run_number }}"
+          fi
+
+          if [ -z "$VERSION" ]; then
+            echo "Error: Could not determine preview version."
+            exit 1
+          fi
+
+          echo "Preview Version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  build-linux:
+    name: Build Linux Preview (AppImage, DEB, RPM, Tar.gz)
+    needs: prepare-preview
+    if: github.event.inputs.platform == 'all' || github.event.inputs.platform == 'linux'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare-preview.outputs.version }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Install Packaging Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot dpkg-dev rpm wget file libfuse2
+
+      - name: Grant Execute Permission for Gradle & Scripts
+        run: |
+          chmod +x gradlew
+          chmod +x desktopApp/packaging/appimage.sh
+
+      - name: Build Linux Distributable & Packages
+        run: |
+          ./gradlew :desktopApp:createDistributable :desktopApp:packageDeb :desktopApp:packageRpm -Pbitchord.version="${{ env.VERSION }}" --no-daemon
+
+      - name: Package Linux Tar.gz Portable
+        run: |
+          mkdir -p dist/linux
+          tar -czvf "dist/linux/BitChord-${{ env.VERSION }}-linux-x64.tar.gz" -C desktopApp/build/compose/binaries/main/app BitChord
+
+      - name: Package AppImage
+        run: |
+          mkdir -p dist/linux
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+          ./desktopApp/packaging/appimage.sh \
+            desktopApp/build/compose/binaries/main/app/BitChord \
+            "dist/linux/BitChord-${{ env.VERSION }}-x86_64.AppImage" \
+            "$PWD/appimagetool"
+
+      - name: Collect DEB and RPM packages
+        run: |
+          mkdir -p dist/linux
+          for f in $(find desktopApp/build/compose/binaries -name "*.deb"); do
+            cp "$f" "dist/linux/bitchord_${{ env.VERSION }}_amd64.deb"
+          done
+          for f in $(find desktopApp/build/compose/binaries -name "*.rpm"); do
+            cp "$f" "dist/linux/bitchord-${{ env.VERSION }}.x86_64.rpm"
+          done
+          ls -lh dist/linux/
+
+      - name: Upload Linux Preview Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitchord-linux-preview
+          path: dist/linux/*
+          retention-days: 14
+
+  build-windows:
+    name: Build Windows Preview (Setup EXE, MSI, Portable Zip)
+    needs: prepare-preview
+    if: github.event.inputs.platform == 'all' || github.event.inputs.platform == 'windows'
+    runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.prepare-preview.outputs.version }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Ensure Inno Setup 6 is Available
+        shell: powershell
+        run: |
+          $isccPaths = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+            "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+          )
+          $found = $isccPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $found) {
+            $cmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+            if ($cmd) { $found = $cmd.Source }
+          }
+          if (-not $found) {
+            Write-Host "Installing Inno Setup via Chocolatey..."
+            choco install innosetup -y --no-progress
+          } else {
+            Write-Host "Found Inno Setup compiler at $found"
+          }
+
+      - name: Build Windows Portable Zip
+        shell: cmd
+        run: |
+          call gradlew.bat :desktopApp:windowsPortable -Pbitchord.target=windows -Pbitchord.version="%VERSION%" --no-daemon
+
+      - name: Build Windows Setup EXE (Inno Setup) and MSI
+        shell: cmd
+        run: |
+          call gradlew.bat :desktopApp:packageWindowsInstaller :desktopApp:packageReleaseMsi -Pbitchord.target=windows -Pbitchord.version="%VERSION%" --no-daemon
+
+      - name: Collect Windows Packages
+        shell: bash
+        run: |
+          mkdir -p dist/windows
+          find desktopApp/build/distributions -name "*windows-portable.zip" -exec cp {} dist/windows/ \;
+          cp "desktopApp/build/distributions/BitChord-${{ env.VERSION }}.exe" "dist/windows/BitChord-${{ env.VERSION }}.exe"
+          for f in $(find desktopApp/build/compose/binaries -name "*.msi"); do
+            cp "$f" "dist/windows/BitChord-${{ env.VERSION }}.msi"
+          done
+          ls -lh dist/windows/
+
+      - name: Upload Windows Preview Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitchord-windows-preview
+          path: dist/windows/*
+          retention-days: 14
