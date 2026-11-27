@@ -257,4 +257,197 @@ class DesktopBackupAndAlignerTest {
         assertEquals(0x47.toByte(), poster.pngBytes[3])
         assertEquals("bitchord-replay-all-time.png", DesktopReplayPoster.suggestedFilename(summary))
     }
+
+    @Test
+    fun `drive multi-snapshot property builder clamps utf8 length and pruning keeps newest N backups`() {
+        val longName = "Laptop-Kantor-Super-Panjang-" + "é".repeat(70)
+        val props = DesktopDriveBackup.buildBackupProperties(
+            deviceId = "dev-1234",
+            deviceName = longName,
+            backupId = "snap0001",
+            updatedAtMs = 1_795_000_000_000L,
+            versionName = "1.10.1-beta.3",
+            automatic = false,
+            playlists = 4,
+            liked = 29,
+            months = 7,
+        )
+        props.forEach { (k, v) ->
+            val utf8Len = k.toByteArray(Charsets.UTF_8).size + v.toByteArray(Charsets.UTF_8).size
+            assertTrue(utf8Len <= 124, "Drive appProperty '$k' exceeds 124 bytes ($utf8Len)")
+        }
+        assertEquals("4p,29l,7m", props["summary"])
+        assertEquals("manual", props["trigger"])
+
+        val nameA = DesktopDriveBackup.buildBackupFilename("dev-1234", 1_795_000_000_000L, "aaaa1111")
+        val nameB = DesktopDriveBackup.buildBackupFilename("dev-1234", 1_795_000_000_000L, "bbbb2222")
+        assertTrue(nameA != nameB && nameA.startsWith("bitchord-desktop-backup-dev-1234-"))
+
+        val snapshots = (1L..5L).map { idx ->
+            DesktopDriveBackup.RemoteBackup(
+                fileId = "file-$idx",
+                name = "snap-$idx",
+                backupId = "b$idx",
+                deviceId = "dev-1234",
+                deviceName = "My PC",
+                updatedAtMs = idx * 1_000L,
+                sizeBytes = 1024L,
+                versionName = "1.10.1",
+            )
+        }
+        val toPrune = DesktopDriveBackup.selectSnapshotsToPrune(snapshots, keepCount = 3)
+        assertEquals(listOf("file-2", "file-1"), toPrune.map { it.fileId })
+        assertTrue(DesktopDriveBackup.selectSnapshotsToPrune(snapshots, keepCount = 0).isEmpty())
+    }
+
+    @Test
+    fun `drive groups combine multi-device desktop snapshots and mobile replay manifests cleanly`() {
+        val currentId = "11111111-1111-1111-1111-111111111111"
+        val otherId = "22222222-2222-2222-2222-222222222222"
+        val mobileId = "android-pixel-8"
+
+        val files = listOf(
+            DesktopDriveApi.DriveFile(
+                id = "cur-old",
+                name = "bitchord-desktop-backup-$currentId-old.json.gz",
+                md5 = "m1",
+                modifiedAt = "2026-11-26T10:00:00Z",
+                sizeBytes = 2000L,
+                properties = mapOf(
+                    "kind" to "desktop_backup",
+                    "deviceId" to currentId,
+                    "deviceName" to "Old PC Name",
+                    "backupId" to "old1",
+                    "updatedAt" to "1000",
+                    "summary" to "2p,5l,1m",
+                    "trigger" to "auto",
+                ),
+            ),
+            DesktopDriveApi.DriveFile(
+                id = "cur-new",
+                name = "bitchord-desktop-backup-$currentId-new.json.gz",
+                md5 = "m2",
+                modifiedAt = "2026-11-27T10:00:00Z",
+                sizeBytes = 2500L,
+                properties = mapOf(
+                    "kind" to "desktop_backup",
+                    "deviceId" to currentId,
+                    "deviceName" to "Workstation",
+                    "backupId" to "new1",
+                    "updatedAt" to "3000",
+                    "summary" to "3p,10l,2m",
+                    "trigger" to "manual",
+                ),
+            ),
+            DesktopDriveApi.DriveFile(
+                id = "other-1",
+                name = "bitchord-desktop-backup-$otherId.json.gz",
+                md5 = "m3",
+                modifiedAt = "2026-11-27T12:00:00Z",
+                sizeBytes = 4000L,
+                properties = mapOf(
+                    "kind" to "desktop_backup",
+                    "deviceId" to otherId,
+                    "deviceName" to "Home Laptop",
+                    "updatedAt" to "5000",
+                ),
+            ),
+            DesktopDriveApi.DriveFile(
+                id = "mob-manifest",
+                name = "device-$mobileId.json.gz",
+                md5 = "mm1",
+                modifiedAt = "2026-11-27T14:00:00Z",
+                sizeBytes = 500L,
+                properties = mapOf("kind" to "device", "deviceId" to mobileId),
+            ),
+            DesktopDriveApi.DriveFile(
+                id = "mob-month",
+                name = "replay-$mobileId-2026-11.json.gz",
+                md5 = "mr1",
+                modifiedAt = "2026-11-27T14:00:00Z",
+                sizeBytes = 1500L,
+                properties = mapOf("kind" to "replay", "deviceId" to mobileId, "month" to "2026-11"),
+            ),
+        )
+        val manifests = mapOf(
+            mobileId to DesktopDriveBackup.MobileDeviceManifest(
+                deviceId = mobileId,
+                name = "Pixel 8 Pro",
+                updatedAt = 4000L,
+                versionName = "1.9.4",
+                months = mapOf("2026-11" to "hash"),
+            ),
+        )
+        val groups = DesktopDriveBackup.buildRemoteDeviceGroups(files, manifests, currentId, "Workstation")
+        assertEquals(3, groups.size)
+        // Current computer comes first even if another device synced slightly more recently.
+        assertEquals(currentId, groups[0].deviceId)
+        assertEquals("Workstation", groups[0].deviceName)
+        assertEquals(2, groups[0].snapshots.size)
+        assertEquals("cur-new", groups[0].latestSnapshot?.fileId)
+        assertEquals(3, groups[0].latestSnapshot?.playlistsCount)
+        assertFalse(groups[0].latestSnapshot!!.isAutoBackup)
+        assertTrue(groups[0].snapshots[1].isAutoBackup)
+
+        assertEquals(otherId, groups[1].deviceId)
+        assertEquals(RemoteDeviceKind.DESKTOP, groups[1].kind)
+
+        assertEquals(mobileId, groups[2].deviceId)
+        assertEquals(RemoteDeviceKind.MOBILE, groups[2].kind)
+        assertEquals("Pixel 8 Pro", groups[2].deviceName)
+        assertEquals(1, groups[2].mobileMonthsCount)
+
+        val peers = DesktopDriveBackup.selectLatestPeerDevices(groups, currentId)
+        assertEquals(setOf(otherId, mobileId), peers.map { it.deviceId }.toSet())
+    }
+
+    @Test
+    fun `mobile stored bucket and compatible preferences convert cleanly for desktop restore`() {
+        val rawBucket = """
+            {
+              "version": 1,
+              "month": "2026-11",
+              "tracks": [
+                {"id": "trk1", "title": "Night Drive", "artist": "Synth", "album": "Neon", "ms": 240000, "plays": 3}
+              ],
+              "hours": [0, 0, 240000],
+              "days": {"9": 240000}
+            }
+        """.trimIndent().encodeToByteArray()
+        val converted = DesktopDriveBackup.parseMobileStoredBucket(rawBucket)
+        assertTrue(converted != null)
+        assertEquals("2026-11", converted.month)
+        assertEquals(1, converted.tracks.size)
+        assertEquals(240_000L, converted.days["2026-11-09"])
+
+        val summary = DesktopListeningStats.summarise(
+            DesktopListeningStats.parseBackupBuckets(listOf(converted)),
+            DesktopReplayPeriod.ALL_TIME,
+            java.time.LocalDate.of(2026, 11, 28),
+        )
+        assertEquals(240_000L, summary.totalMs)
+        assertEquals(3, summary.totalPlays)
+        assertEquals("2026-11-09", summary.busiestDay)
+
+        val targetPrefs = Preferences.userRoot().node("com.music.bitchord.desktop.test.mob.${UUID.randomUUID()}")
+        try {
+            val persistence = DesktopPersistence(targetPrefs)
+            val applied = DesktopDriveBackup.applyMobileSettingsToDesktop(
+                settings = mapOf(
+                    "skip_silence" to DesktopDriveBackup.MobilePrefValue(type = "bool", value = "true"),
+                    "audio_quality" to DesktopDriveBackup.MobilePrefValue(type = "string", value = "HIGH"),
+                    "lyrics_offset_ms" to DesktopDriveBackup.MobilePrefValue(type = "int", value = "-150"),
+                    "unknown_mobile_secret" to DesktopDriveBackup.MobilePrefValue(type = "string", value = "ignored"),
+                ),
+                persistence = persistence,
+            )
+            assertEquals(3, applied)
+            assertTrue(persistence.boolean("skip_silence", false))
+            assertEquals("HIGH", persistence.string("audio_quality"))
+            assertEquals(-150, persistence.int("lyrics_offset_ms", 0))
+            assertEquals(null, targetPrefs.get("unknown_mobile_secret", null))
+        } finally {
+            runCatching { targetPrefs.removeNode() }
+        }
+    }
 }

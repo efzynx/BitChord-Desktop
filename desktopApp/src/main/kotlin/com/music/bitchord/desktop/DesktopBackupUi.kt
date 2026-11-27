@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -27,10 +28,13 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CloudDone
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.CloudUpload
+import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.HelpOutline
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.LocalOffer
@@ -38,9 +42,13 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material.icons.rounded.UploadFile
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +62,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -156,16 +165,19 @@ internal fun DesktopBackupRestorePage(
                     subtitle = when {
                         driveSettings.connected && driveSettings.needsSignIn ->
                             DesktopStrings["d_drive_sign_in_again_subtitle", "Google Drive access was removed. Sign in again to keep backing up."]
+                        driveSettings.connected && driveSettings.needsDeviceSetup ->
+                            "${driveSettings.accountEmail} · ${DesktopStrings["d_drive_choose_device_badge", "Setup needed"]}"
                         driveSettings.connected && driveSettings.lastBackupAt > 0L ->
-                            "${driveSettings.accountEmail} · ${formatTimestamp(driveSettings.lastBackupAt)}"
+                            "${driveSettings.deviceName} · ${driveSettings.accountEmail} · ${formatTimestamp(driveSettings.lastBackupAt)}"
                         driveSettings.connected ->
-                            driveSettings.accountEmail ?: DesktopStrings["signed_in", "Signed in"]
+                            "${driveSettings.deviceName} · ${driveSettings.accountEmail ?: DesktopStrings["signed_in", "Signed in"]}"
                         else ->
                             DesktopStrings["d_drive_backup_row_subtitle", "Manual and automatic backups saved in your Google Drive app folder"]
                     },
                     value = when {
                         !driveSettings.connected -> DesktopStrings["d_off", "Off"]
                         driveSettings.needsSignIn -> DesktopStrings["sign_in", "Sign in"]
+                        driveSettings.needsDeviceSetup -> DesktopStrings["d_drive_choose_device_badge", "Setup needed"]
                         else -> driveFrequencyLabel(driveSettings.frequency)
                     },
                     onClick = onOpenDriveBackup,
@@ -279,11 +291,16 @@ internal fun DesktopGoogleDriveBackupPage(
     var showConnectDialog by remember { mutableStateOf(false) }
     var confirmDisconnect by remember { mutableStateOf(false) }
     var pendingRestore by remember { mutableStateOf<DesktopDriveBackup.RemoteBackup?>(null) }
-    var pendingDelete by remember { mutableStateOf<DesktopDriveBackup.RemoteBackup?>(null) }
+    var adoptSessionOnRestore by remember { mutableStateOf(false) }
+    var pendingDeleteSnapshot by remember { mutableStateOf<DesktopDriveBackup.RemoteBackup?>(null) }
+    var pendingDeleteDevice by remember { mutableStateOf<DesktopDriveBackup.RemoteDeviceGroup?>(null) }
+    var renamingDevice by remember { mutableStateOf<String?>(null) }
+    var confirmNewSession by remember { mutableStateOf(false) }
+    val expandedDevices = remember { mutableStateMapOf<String, Boolean>() }
 
     LaunchedEffect(settings.connected) {
         if (settings.connected && backupsState is DesktopDriveBackup.BackupsState.Unknown) {
-            DesktopDriveBackup.refreshBackupsAsync()
+            DesktopDriveBackup.refreshBackupsAsync(onReplaySynced = onReplaySynced)
         }
     }
 
@@ -396,7 +413,7 @@ internal fun DesktopGoogleDriveBackupPage(
                         } else {
                             Button(
                                 onClick = { DesktopDriveBackup.backupNowAsync(onSynced = onReplaySynced) },
-                                enabled = !isBusy,
+                                enabled = !isBusy && !settings.needsDeviceSetup,
                                 shape = RoundedCornerShape(50),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = DesktopAccent,
@@ -420,7 +437,116 @@ internal fun DesktopGoogleDriveBackupPage(
             }
 
             if (settings.connected) {
-                // Automatic Backup Schedule
+                // This Computer Session Card
+                DesktopGroupedCard(
+                    header = DesktopStrings["d_drive_this_device_header", "This device"],
+                ) {
+                    if (settings.needsDeviceSetup) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Warning,
+                                    contentDescription = null,
+                                    tint = DesktopAccent,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Text(
+                                    text = DesktopStrings["d_drive_choose_device_title", "Set up this computer's session"],
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = DesktopInk,
+                                )
+                            }
+                            Text(
+                                text = DesktopStrings[
+                                    "d_drive_choose_device_body",
+                                    "Existing devices were found on this Google account. Start a new device session for this computer, or restore from another device below.",
+                                ],
+                                style = MaterialTheme.typography.bodySmall,
+                                color = DesktopSecondary,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Button(
+                                    onClick = {
+                                        DesktopDriveBackup.chooseNewDeviceAsync(
+                                            deviceName = settings.deviceName,
+                                            syncImmediately = true,
+                                            onSynced = onReplaySynced,
+                                        )
+                                    },
+                                    enabled = !isBusy,
+                                    shape = RoundedCornerShape(50),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = DesktopAccent,
+                                        contentColor = DesktopOnAccent,
+                                    ),
+                                ) {
+                                    Icon(Icons.Rounded.Add, null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        DesktopStrings["d_drive_new_device_action", "Back up as new device"],
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Rounded.Computer,
+                                contentDescription = null,
+                                tint = DesktopInk.copy(alpha = 0.8f),
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Spacer(Modifier.width(14.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    text = settings.deviceName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color = DesktopInk,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = DesktopStrings[
+                                        "d_drive_this_device_subtitle",
+                                        "Each computer keeps its own backup session and history in Drive",
+                                    ],
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = DesktopSecondary,
+                                )
+                            }
+                            TextButton(
+                                onClick = { renamingDevice = settings.deviceName },
+                                enabled = !isBusy,
+                                colors = ButtonDefaults.textButtonColors(contentColor = DesktopInk),
+                            ) {
+                                Icon(Icons.Rounded.Edit, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(DesktopStrings["d_drive_rename", "Rename"])
+                            }
+                            TextButton(
+                                onClick = { confirmNewSession = true },
+                                enabled = !isBusy,
+                                colors = ButtonDefaults.textButtonColors(contentColor = DesktopSecondary),
+                            ) {
+                                Text(DesktopStrings["d_drive_new_session_action", "New session"])
+                            }
+                        }
+                    }
+                }
+
+                // Automatic Backup Schedule & Snapshot Retention
                 DesktopGroupedCard(
                     header = DesktopStrings["d_auto_backup", "Automatic Backup"],
                 ) {
@@ -475,9 +601,37 @@ internal fun DesktopGoogleDriveBackupPage(
                             )
                         }
                     }
+                    DesktopGroupedDivider()
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text(
+                            text = DesktopStrings["d_drive_retention", "Keep backups per device"],
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = DesktopInk,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = DesktopStrings[
+                                "d_drive_retention_subtitle",
+                                "Older backups on this device are kept up to this limit instead of being overwritten",
+                            ],
+                            style = MaterialTheme.typography.bodySmall,
+                            color = DesktopSecondary,
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        val retentions = DesktopBackupRetention.entries
+                        PillSegmentedControl(
+                            options = retentions.map(::driveRetentionLabel),
+                            selectedIndex = retentions.indexOf(settings.retention).coerceAtLeast(0),
+                            onSelect = { idx -> DesktopDriveBackup.setRetention(retentions[idx]) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(CircleShape)
+                                .background(DesktopInk.copy(alpha = 0.06f)),
+                        )
+                    }
                 }
 
-                // Remote Drive Backups (Restore + Multi-Device Replay Sync)
+                // Multi-device & Multi-snapshot Restore Section
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -486,13 +640,13 @@ internal fun DesktopGoogleDriveBackupPage(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = DesktopStrings["d_drive_restore_header", "Restore"].uppercase(Locale.ROOT),
+                        text = DesktopStrings["d_drive_devices_backups_header", "Devices & Backups"].uppercase(Locale.ROOT),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = DesktopSecondary,
                     )
                     IconButton(
-                        onClick = { DesktopDriveBackup.refreshBackupsAsync() },
+                        onClick = { DesktopDriveBackup.refreshBackupsAsync(onReplaySynced = onReplaySynced) },
                         enabled = !isBusy,
                         modifier = Modifier.size(28.dp),
                     ) {
@@ -527,7 +681,7 @@ internal fun DesktopGoogleDriveBackupPage(
                             )
                         }
                         is DesktopDriveBackup.BackupsState.Loaded -> {
-                            if (bs.items.isEmpty()) {
+                            if (bs.devices.isEmpty()) {
                                 Text(
                                     DesktopStrings["d_drive_no_backups", "No backups found in Google Drive yet. Click Back up now to create your first cloud backup."],
                                     color = DesktopSecondary,
@@ -535,66 +689,28 @@ internal fun DesktopGoogleDriveBackupPage(
                                     modifier = Modifier.padding(18.dp),
                                 )
                             } else {
-                                bs.items.forEachIndexed { idx, item ->
+                                bs.devices.forEachIndexed { idx, group ->
                                     if (idx > 0) DesktopGroupedDivider()
-                                    val isThisComputer = DesktopDriveBackup.isCurrentDevice(item)
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Icon(Icons.Rounded.Backup, null, tint = DesktopInk.copy(alpha = 0.8f), modifier = Modifier.size(22.dp))
-                                        Spacer(Modifier.width(14.dp))
-                                        Column(Modifier.weight(1f)) {
-                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                Text(
-                                                    text = item.deviceName,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = DesktopInk,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                )
-                                                if (isThisComputer) {
-                                                    Text(
-                                                        text = DesktopStrings["d_drive_this_computer", "This computer"],
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = DesktopAccent,
-                                                        modifier = Modifier
-                                                            .clip(RoundedCornerShape(50))
-                                                            .background(DesktopAccent.copy(alpha = 0.14f))
-                                                            .padding(horizontal = 8.dp, vertical = 2.dp),
-                                                    )
-                                                }
-                                            }
-                                            val meta = buildString {
-                                                if (item.updatedAtMs > 0L) append(formatTimestamp(item.updatedAtMs))
-                                                else append(item.name)
-                                                if (item.sizeBytes > 0L) {
-                                                    append(" · ")
-                                                    append("${(item.sizeBytes / 1024L).coerceAtLeast(1L)} KB")
-                                                }
-                                                if (item.versionName.isNotBlank()) {
-                                                    append(" · v${item.versionName}")
-                                                }
-                                            }
-                                            Text(meta, color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
-                                        }
-                                        TextButton(
-                                            onClick = { pendingRestore = item },
-                                            enabled = !isBusy,
-                                            colors = ButtonDefaults.textButtonColors(contentColor = DesktopInk),
-                                        ) {
-                                            Icon(Icons.Rounded.Restore, null, modifier = Modifier.size(16.dp))
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(DesktopStrings["d_drive_restore_action", "Restore"])
-                                        }
-                                        IconButton(
-                                            onClick = { pendingDelete = item },
-                                            enabled = !isBusy,
-                                            modifier = Modifier.size(32.dp),
-                                        ) {
-                                            Icon(Icons.Rounded.DeleteOutline, "Delete", tint = DesktopSecondary, modifier = Modifier.size(18.dp))
-                                        }
-                                    }
+                                    val deviceKey = "${group.kind.name}:${group.deviceId}"
+                                    val isThisComputer = DesktopDriveBackup.isCurrentDevice(group)
+                                    val defaultExpanded = isThisComputer || settings.needsDeviceSetup || bs.devices.size <= 3
+                                    val expanded = expandedDevices[deviceKey] ?: defaultExpanded
+                                    DriveDeviceGroupSection(
+                                        group = group,
+                                        isThisComputer = isThisComputer,
+                                        expanded = expanded,
+                                        isBusy = isBusy,
+                                        onToggleExpand = { expandedDevices[deviceKey] = !expanded },
+                                        onRestoreSnapshot = { snap ->
+                                            adoptSessionOnRestore =
+                                                snap.deviceKind == RemoteDeviceKind.DESKTOP &&
+                                                !isThisComputer &&
+                                                settings.needsDeviceSetup
+                                            pendingRestore = snap
+                                        },
+                                        onDeleteSnapshot = { snap -> pendingDeleteSnapshot = snap },
+                                        onDeleteDevice = { pendingDeleteDevice = group },
+                                    )
                                 }
                             }
                         }
@@ -628,14 +744,25 @@ internal fun DesktopGoogleDriveBackupPage(
                     )
                 }
                 is DesktopDriveBackup.ActionResult.Restored -> {
-                    BackupNoticeBanner(
-                        text = DesktopStrings.format(
+                    val msg = if (res.fromMobile) {
+                        DesktopStrings.format(
+                            "d_drive_restore_mobile_done",
+                            res.sourceName,
+                            res.summary.months,
+                            res.settingsApplied,
+                            fallback = "Restored Replay and preferences from %1\$s (%2\$d months, %3\$d settings)",
+                        )
+                    } else {
+                        DesktopStrings.format(
                             "d_drive_restore_done",
                             res.sourceName,
                             res.summary.playlists,
                             res.summary.months,
                             fallback = "Restored from %1\$s (%2\$d playlists, %3\$d months)",
-                        ),
+                        )
+                    }
+                    BackupNoticeBanner(
+                        text = msg,
                         isError = false,
                         modifier = Modifier.padding(top = 14.dp),
                     )
@@ -663,7 +790,10 @@ internal fun DesktopGoogleDriveBackupPage(
     if (showConnectDialog) {
         DriveConnectDialog(
             onDismiss = { showConnectDialog = false },
-            onConnected = { showConnectDialog = false },
+            onConnected = {
+                showConnectDialog = false
+                onReplaySynced()
+            },
         )
     }
 
@@ -685,41 +815,499 @@ internal fun DesktopGoogleDriveBackupPage(
     }
 
     pendingRestore?.let { item ->
-        DesktopConfirmDialog(
-            title = DesktopStrings["import_backup_title", "Import a backup?"],
-            message = DesktopStrings.format(
-                "d_drive_restore_confirm_body",
-                item.deviceName,
-                fallback = "This replaces this computer's listening history, playlists, and settings with the backup from %1\$s. Sign-ins aren't included.",
-            ),
-            confirmLabel = DesktopStrings["d_drive_restore_action", "Restore"],
-            destructive = true,
+        val isThisComputer = DesktopDriveBackup.isCurrentDevice(item)
+        DriveRestoreDialog(
+            item = item,
+            isThisComputer = isThisComputer,
+            adoptSession = adoptSessionOnRestore,
+            onAdoptChange = { adoptSessionOnRestore = it },
             onDismiss = { pendingRestore = null },
             onConfirm = {
                 val chosen = item
+                val adopt = adoptSessionOnRestore && chosen.deviceKind == RemoteDeviceKind.DESKTOP && !isThisComputer
                 pendingRestore = null
-                DesktopDriveBackup.restoreBackupAsync(chosen, onRestored = onRestored)
+                DesktopDriveBackup.restoreBackupAsync(
+                    backup = chosen,
+                    adoptDeviceSession = adopt,
+                    onRestored = onRestored,
+                )
             },
         )
     }
 
-    pendingDelete?.let { item ->
+    pendingDeleteSnapshot?.let { item ->
+        val whenLabel = if (item.updatedAtMs > 0L) formatTimestamp(item.updatedAtMs) else item.name
         DesktopConfirmDialog(
             title = DesktopStrings.format(
-                "d_drive_remove_confirm_title",
-                item.deviceName,
-                fallback = "Delete backup of %1\$s?",
+                "d_drive_delete_snapshot_title",
+                whenLabel,
+                fallback = "Delete backup from %1\$s?",
             ),
             message = DesktopStrings["d_drive_delete_backup_body", "This removes that backup file from your Google Drive app folder."],
             confirmLabel = DesktopStrings["delete", "Delete"],
             destructive = true,
-            onDismiss = { pendingDelete = null },
+            onDismiss = { pendingDeleteSnapshot = null },
             onConfirm = {
                 val chosen = item
-                pendingDelete = null
+                pendingDeleteSnapshot = null
                 DesktopDriveBackup.deleteBackupAsync(chosen, onDeleted = onReplaySynced)
             },
         )
+    }
+
+    pendingDeleteDevice?.let { group ->
+        DesktopConfirmDialog(
+            title = DesktopStrings.format(
+                "d_drive_delete_device_title",
+                group.deviceName,
+                fallback = "Delete device %1\$s?",
+            ),
+            message = DesktopStrings.format(
+                "d_drive_delete_device_body",
+                group.snapshotCount,
+                fallback = "This permanently removes all %1\$d backup files for this device from your Google Drive app folder.",
+            ),
+            confirmLabel = DesktopStrings["delete", "Delete"],
+            destructive = true,
+            onDismiss = { pendingDeleteDevice = null },
+            onConfirm = {
+                val chosen = group
+                pendingDeleteDevice = null
+                DesktopDriveBackup.deleteDeviceAsync(chosen, onDeleted = onReplaySynced)
+            },
+        )
+    }
+
+    renamingDevice?.let { draft ->
+        DriveRenameDeviceDialog(
+            value = draft,
+            onValueChange = { renamingDevice = it.take(60) },
+            onDismiss = { renamingDevice = null },
+            onSave = {
+                DesktopDriveBackup.setDeviceName(draft)
+                renamingDevice = null
+            },
+        )
+    }
+
+    if (confirmNewSession) {
+        DesktopConfirmDialog(
+            title = DesktopStrings["d_drive_new_session_title", "Start a new device session?"],
+            message = DesktopStrings[
+                "d_drive_new_session_body",
+                "This computer will receive a new device ID. Future backups will appear under the new device without deleting backups already in Google Drive.",
+            ],
+            confirmLabel = DesktopStrings["d_drive_new_session_action", "New session"],
+            destructive = false,
+            onDismiss = { confirmNewSession = false },
+            onConfirm = {
+                confirmNewSession = false
+                DesktopDriveBackup.startNewDeviceSessionAsync(onDone = onReplaySynced)
+            },
+        )
+    }
+}
+
+@Composable
+private fun DriveDeviceGroupSection(
+    group: DesktopDriveBackup.RemoteDeviceGroup,
+    isThisComputer: Boolean,
+    expanded: Boolean,
+    isBusy: Boolean,
+    onToggleExpand: () -> Unit,
+    onRestoreSnapshot: (DesktopDriveBackup.RemoteBackup) -> Unit,
+    onDeleteSnapshot: (DesktopDriveBackup.RemoteBackup) -> Unit,
+    onDeleteDevice: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggleExpand)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (group.kind == RemoteDeviceKind.MOBILE) Icons.Rounded.Smartphone else Icons.Rounded.Computer,
+                contentDescription = null,
+                tint = DesktopInk.copy(alpha = 0.85f),
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = group.deviceName,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DesktopInk,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (isThisComputer) {
+                        DriveStatusBadge(
+                            text = DesktopStrings["d_drive_this_computer", "This computer"],
+                            accent = true,
+                        )
+                    } else if (group.kind == RemoteDeviceKind.MOBILE) {
+                        DriveStatusBadge(
+                            text = DesktopStrings["d_drive_mobile_badge", "Mobile"],
+                            accent = false,
+                        )
+                    }
+                }
+                val subtitle = buildString {
+                    if (group.kind == RemoteDeviceKind.MOBILE) {
+                        if (group.latestUpdatedAtMs > 0L) {
+                            append(formatTimestamp(group.latestUpdatedAtMs))
+                            append(" · ")
+                        }
+                        append(
+                            DesktopStrings.format(
+                                "d_drive_month_count",
+                                group.mobileMonthsCount,
+                                fallback = "%1\$d months",
+                            ),
+                        )
+                    } else {
+                        append(
+                            DesktopStrings.format(
+                                "d_drive_backup_count",
+                                group.snapshots.size,
+                                fallback = "%1\$d backups",
+                            ),
+                        )
+                        if (group.latestUpdatedAtMs > 0L) {
+                            append(" · ")
+                            append(formatTimestamp(group.latestUpdatedAtMs))
+                        }
+                    }
+                    if (group.totalSizeBytes > 0L) {
+                        append(" · ")
+                        append("${(group.totalSizeBytes / 1024L).coerceAtLeast(1L)} KB")
+                    }
+                    if (group.versionName.isNotBlank()) {
+                        append(" · v${group.versionName}")
+                    }
+                }
+                Text(subtitle, color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
+            }
+            IconButton(
+                onClick = onDeleteDevice,
+                enabled = !isBusy,
+                modifier = Modifier.size(32.dp),
+            ) {
+                Icon(Icons.Rounded.DeleteOutline, "Delete device", tint = DesktopSecondary, modifier = Modifier.size(18.dp))
+            }
+            Icon(
+                imageVector = if (expanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
+                contentDescription = null,
+                tint = DesktopSecondary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 52.dp, end = 16.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (group.kind == RemoteDeviceKind.MOBILE) {
+                    val mobileSnap = group.latestSnapshot
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(DesktopInk.copy(alpha = 0.04f))
+                            .border(0.75.dp, DesktopCardEdge, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = DesktopStrings[
+                                "d_drive_mobile_note",
+                                "Mobile cloud sync stores Replay listening history and app settings.",
+                            ],
+                            style = MaterialTheme.typography.bodySmall,
+                            color = DesktopSecondary,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (mobileSnap != null) {
+                            Spacer(Modifier.width(8.dp))
+                            TextButton(
+                                onClick = { onRestoreSnapshot(mobileSnap) },
+                                enabled = !isBusy,
+                                colors = ButtonDefaults.textButtonColors(contentColor = DesktopInk),
+                            ) {
+                                Icon(Icons.Rounded.Restore, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(DesktopStrings["d_drive_restore_action", "Restore"])
+                            }
+                        }
+                    }
+                } else {
+                    group.snapshots.forEachIndexed { snapIndex, snap ->
+                        DriveSnapshotRow(
+                            snapshot = snap,
+                            isLatest = snapIndex == 0,
+                            isBusy = isBusy,
+                            onRestore = { onRestoreSnapshot(snap) },
+                            onDelete = { onDeleteSnapshot(snap) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DriveSnapshotRow(
+    snapshot: DesktopDriveBackup.RemoteBackup,
+    isLatest: Boolean,
+    isBusy: Boolean,
+    onRestore: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(DesktopInk.copy(alpha = 0.04f))
+            .border(0.75.dp, DesktopCardEdge, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Rounded.History,
+            contentDescription = null,
+            tint = DesktopSecondary,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = if (snapshot.updatedAtMs > 0L) formatTimestamp(snapshot.updatedAtMs) else snapshot.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = DesktopInk,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (isLatest) {
+                    DriveStatusBadge(
+                        text = DesktopStrings["d_drive_latest_badge", "Latest"],
+                        accent = true,
+                    )
+                }
+                DriveStatusBadge(
+                    text = if (snapshot.isAutoBackup) {
+                        DesktopStrings["d_drive_auto_badge", "Auto"]
+                    } else {
+                        DesktopStrings["d_drive_manual_badge", "Manual"]
+                    },
+                    accent = false,
+                )
+            }
+            val meta = buildString {
+                if (snapshot.playlistsCount != null && snapshot.likedCount != null && snapshot.monthsCount != null) {
+                    append(
+                        DesktopStrings.format(
+                            "d_drive_snapshot_meta",
+                            snapshot.playlistsCount,
+                            snapshot.likedCount,
+                            snapshot.monthsCount,
+                            fallback = "%1\$d playlists · %2\$d liked · %3\$d months",
+                        ),
+                    )
+                }
+                if (snapshot.sizeBytes > 0L) {
+                    if (isNotEmpty()) append(" · ")
+                    append("${(snapshot.sizeBytes / 1024L).coerceAtLeast(1L)} KB")
+                }
+                if (snapshot.versionName.isNotBlank()) {
+                    if (isNotEmpty()) append(" · ")
+                    append("v${snapshot.versionName}")
+                }
+            }
+            if (meta.isNotBlank()) {
+                Text(meta, color = DesktopSecondary, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        TextButton(
+            onClick = onRestore,
+            enabled = !isBusy,
+            colors = ButtonDefaults.textButtonColors(contentColor = DesktopInk),
+        ) {
+            Icon(Icons.Rounded.Restore, null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(DesktopStrings["d_drive_restore_action", "Restore"])
+        }
+        IconButton(
+            onClick = onDelete,
+            enabled = !isBusy,
+            modifier = Modifier.size(30.dp),
+        ) {
+            Icon(Icons.Rounded.DeleteOutline, "Delete snapshot", tint = DesktopSecondary, modifier = Modifier.size(17.dp))
+        }
+    }
+}
+
+@Composable
+private fun DriveStatusBadge(text: String, accent: Boolean) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = if (accent) DesktopAccent else DesktopSecondary,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(if (accent) DesktopAccent.copy(alpha = 0.14f) else DesktopInk.copy(alpha = 0.08f))
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
+private fun DriveRestoreDialog(
+    item: DesktopDriveBackup.RemoteBackup,
+    isThisComputer: Boolean,
+    adoptSession: Boolean,
+    onAdoptChange: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 460, popup = true) {
+        Column(Modifier.fillMaxWidth().padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                DesktopStrings["import_backup_title", "Import a backup?"],
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = DesktopInk,
+            )
+            val body = if (item.deviceKind == RemoteDeviceKind.MOBILE) {
+                DesktopStrings.format(
+                    "d_drive_restore_mobile_body",
+                    item.deviceName,
+                    fallback = "This restores Replay listening stats and compatible settings from mobile device %1\$s. Your desktop playlists and liked songs will be kept.",
+                )
+            } else {
+                val whenStr = if (item.updatedAtMs > 0L) " (${formatTimestamp(item.updatedAtMs)})" else ""
+                DesktopStrings.format(
+                    "d_drive_restore_confirm_body",
+                    "${item.deviceName}$whenStr",
+                    fallback = "This replaces this computer's listening history, playlists, and settings with the backup from %1\$s. Sign-ins aren't included.",
+                )
+            }
+            Text(body, style = MaterialTheme.typography.bodyMedium, color = DesktopSecondary)
+
+            if (item.deviceKind == RemoteDeviceKind.DESKTOP && !isThisComputer) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DesktopInk.copy(alpha = 0.04f))
+                        .border(0.75.dp, DesktopCardEdge, RoundedCornerShape(12.dp))
+                        .clickable { onAdoptChange(!adoptSession) }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = adoptSession,
+                            onCheckedChange = onAdoptChange,
+                            colors = CheckboxDefaults.colors(checkedColor = DesktopAccent, checkmarkColor = DesktopOnAccent),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = DesktopStrings.format(
+                                "d_drive_restore_adopt_option",
+                                item.deviceName,
+                                fallback = "Continue syncing as %1\$s (adopt its device session)",
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = DesktopInk,
+                        )
+                    }
+                    Text(
+                        text = DesktopStrings[
+                            "d_drive_restore_adopt_hint",
+                            "Recommended when migrating a device so Replay stats are not counted twice across devices.",
+                        ],
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DesktopSecondary,
+                        modifier = Modifier.padding(start = 42.dp),
+                    )
+                }
+            }
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColors(contentColor = DesktopInk),
+                ) {
+                    Text(DesktopStrings["cancel", "Cancel"])
+                }
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = onConfirm,
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(containerColor = DesktopDestructive, contentColor = Color.White),
+                ) {
+                    Text(DesktopStrings["d_drive_restore_action", "Restore"], fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DriveRenameDeviceDialog(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit,
+) {
+    DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 420, popup = true) {
+        Column(Modifier.fillMaxWidth().padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                DesktopStrings["d_drive_rename_title", "Rename this device"],
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = DesktopInk,
+            )
+            DesktopGlassTextField(
+                value = value,
+                onValueChange = onValueChange,
+                label = DesktopStrings["d_drive_rename_placeholder", "Device name"],
+                placeholder = DesktopDriveBackup.defaultDeviceName(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.textButtonColors(contentColor = DesktopInk),
+                ) {
+                    Text(DesktopStrings["cancel", "Cancel"])
+                }
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = onSave,
+                    enabled = value.isNotBlank(),
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(containerColor = DesktopAccent, contentColor = DesktopOnAccent),
+                ) {
+                    Text(DesktopStrings["save", "Save"], fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
     }
 }
 
@@ -1030,6 +1618,13 @@ private fun driveFrequencyLabel(frequency: DesktopBackupFrequency): String = whe
     DesktopBackupFrequency.DAILY -> DesktopStrings["d_freq_daily", "Daily"]
     DesktopBackupFrequency.WEEKLY -> DesktopStrings["d_freq_weekly", "Weekly"]
     DesktopBackupFrequency.MONTHLY -> DesktopStrings["d_freq_monthly", "Monthly"]
+}
+
+private fun driveRetentionLabel(retention: DesktopBackupRetention): String = when (retention) {
+    DesktopBackupRetention.FIVE -> "5"
+    DesktopBackupRetention.TEN -> "10"
+    DesktopBackupRetention.TWENTY -> "20"
+    DesktopBackupRetention.UNLIMITED -> DesktopStrings["d_drive_retention_all", "All"]
 }
 
 private fun formatTimestamp(epochMs: Long): String =

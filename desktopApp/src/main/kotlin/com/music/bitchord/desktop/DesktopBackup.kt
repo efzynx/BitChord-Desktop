@@ -228,12 +228,7 @@ internal object DesktopBackup {
         runCatching { prefs.flush() }
 
         // Refresh observable singleton settings right away where applicable.
-        DesktopAppearanceSettings.setSwipeBackGesture(
-            persistence.boolean("swipe_back_gesture", true),
-        )
-        DesktopAppearanceSettings.setHideLyricsPreview(
-            persistence.boolean("hide_lyrics_preview", false),
-        )
+        refreshSingletonSettings(persistence)
 
         return Summary(
             months = file.listening.size,
@@ -242,6 +237,50 @@ internal object DesktopBackup {
             settingsCount = file.booleans.size + file.strings.size + file.ints.size,
             fromVersion = file.versionName,
             exportedAt = file.exportedAt,
+        )
+    }
+
+    /**
+     * Applies compatible non-credential preferences exported from a BitChord Mobile device
+     * manifest, returning how many settings matched desktop's allowlist.
+     */
+    fun applyMobilePreferences(
+        booleans: Map<String, Boolean>,
+        strings: Map<String, String>,
+        ints: Map<String, Int>,
+        persistence: DesktopPersistence = DesktopPersistence(),
+    ): Int {
+        val prefs = persistence.preferences
+        var applied = 0
+        booleans.forEach { (key, value) ->
+            if (key in BOOLEAN_KEYS) {
+                prefs.putBoolean(key, value)
+                applied++
+            }
+        }
+        strings.forEach { (key, value) ->
+            if (key in STRING_KEYS) {
+                DesktopPreferenceChunks.write(prefs, key, value)
+                applied++
+            }
+        }
+        ints.forEach { (key, value) ->
+            if (key in INT_KEYS) {
+                prefs.putInt(key, value)
+                applied++
+            }
+        }
+        runCatching { prefs.flush() }
+        refreshSingletonSettings(persistence)
+        return applied
+    }
+
+    private fun refreshSingletonSettings(persistence: DesktopPersistence) {
+        DesktopAppearanceSettings.setSwipeBackGesture(
+            persistence.boolean("swipe_back_gesture", true),
+        )
+        DesktopAppearanceSettings.setHideLyricsPreview(
+            persistence.boolean("hide_lyrics_preview", false),
         )
     }
 

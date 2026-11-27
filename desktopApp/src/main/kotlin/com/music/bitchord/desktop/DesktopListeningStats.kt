@@ -190,6 +190,10 @@ object DesktopListeningStats {
 
     fun peerDeviceCount(): Int = synchronized(lock) { readPeerIds().size }
 
+    fun hasPeerDevice(deviceId: String): Boolean = synchronized(lock) {
+        deviceId.isNotBlank() && readPeerIds().contains(deviceId)
+    }
+
     private fun readPeerIds(): List<String> = DesktopPreferenceChunks.read(peerPreferences, KEY_PEER_IDS)
         .orEmpty()
         .lineSequence()
