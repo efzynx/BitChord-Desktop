@@ -29,7 +29,8 @@ AppSupportURL=https://github.com/efzynx/BitChord-Desktop/issues
 AppUpdatesURL=https://github.com/efzynx/BitChord-Desktop/releases
 VersionInfoVersion={#NumericVersion}
 VersionInfoProductName=BitChord Desktop
-VersionInfoProductVersion={#AppVersion}
+VersionInfoProductVersion={#NumericVersion}
+VersionInfoTextVersion={#AppVersion}
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 DefaultDirName={autopf}\BitChord
@@ -53,8 +54,8 @@ WizardStyle=modern
 CloseApplications=yes
 CloseApplicationsFilter=BitChord.exe,party-server.exe
 RestartApplications=no
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
