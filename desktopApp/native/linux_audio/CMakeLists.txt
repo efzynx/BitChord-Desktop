@@ -24,4 +24,9 @@ else()
 endif()
 
 target_compile_options(bitchord_linux_audio PRIVATE -O2)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+    # GitHub's ubuntu-26.04 runners enable x86-64-v3 (AVX/AVX2) by default, which crashes with
+    # SIGILL on non-AVX x86_64 CPUs (e.g. Pentium Silver / Celeron). Pin baseline x86-64.
+    target_compile_options(bitchord_linux_audio PRIVATE -march=x86-64 -mtune=generic -mno-avx -mno-avx2)
+endif()
 target_link_libraries(bitchord_linux_audio PRIVATE ${CMAKE_DL_LIBS})

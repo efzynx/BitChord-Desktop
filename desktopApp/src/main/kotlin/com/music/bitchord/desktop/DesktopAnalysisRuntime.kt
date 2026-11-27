@@ -88,10 +88,19 @@ internal object DesktopAnalysisRuntime {
             val connection = javaClass.getResource(resource)?.openConnection()
             val expected = connection?.contentLengthLong ?: -1L
             val builtAt = connection?.lastModified ?: 0L
-            if (Files.exists(target) && expected > 0 && Files.size(target) == expected &&
-                Files.getLastModifiedTime(target).toMillis() >= builtAt
-            ) {
-                return target
+            if (Files.exists(target) && expected > 0 && Files.size(target) == expected) {
+                if (expected <= SMALL_NATIVE_VERIFY_BYTES) {
+                    val resourceBytes = input.readAllBytes()
+                    if (Files.readAllBytes(target).contentEquals(resourceBytes)) {
+                        return target
+                    }
+                    val partial = home.resolve("$name.partial")
+                    Files.write(partial, resourceBytes)
+                    Files.move(partial, target, StandardCopyOption.REPLACE_EXISTING)
+                    return target
+                } else if (Files.getLastModifiedTime(target).toMillis() >= builtAt) {
+                    return target
+                }
             }
             val partial = home.resolve("$name.partial")
             Files.copy(input, partial, StandardCopyOption.REPLACE_EXISTING)
@@ -99,4 +108,6 @@ internal object DesktopAnalysisRuntime {
         }
         return target
     }
+
+    private const val SMALL_NATIVE_VERIFY_BYTES = 2L * 1024L * 1024L
 }

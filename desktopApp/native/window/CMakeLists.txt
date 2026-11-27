@@ -23,6 +23,10 @@ else()
     target_include_directories(bitchord_window PRIVATE ${JNI_INCLUDE_DIRS})
 endif()
 
+target_compile_options(bitchord_window PRIVATE -O2)
+if(NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+    target_compile_options(bitchord_window PRIVATE -march=x86-64 -mtune=generic -mno-avx -mno-avx2)
+endif()
 target_link_libraries(bitchord_window PRIVATE user32 dwmapi ole32 uuid)
 
 if(MINGW)

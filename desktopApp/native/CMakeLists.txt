@@ -70,6 +70,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows" AND NOT CMAKE_HOST_WIN32)
 endif()
 
 target_compile_options(bitchord_analysis PRIVATE -O2)
+if(NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+    # Ensure portable baseline x86-64 instructions across non-AVX CPUs (e.g. Pentium Silver / Celeron).
+    target_compile_options(bitchord_analysis PRIVATE -march=x86-64 -mtune=generic -mno-avx -mno-avx2)
+endif()
 
 # `System.mapLibraryName` asks for `bitchord_analysis.dll` on Windows, with no
 # prefix — but MinGW's CMake defaults to the Unix `lib` one, so a cross-built
