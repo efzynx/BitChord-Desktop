@@ -9352,7 +9352,7 @@ private fun DesktopLocalMusicPage(
             val openContextMenu = LocalDesktopContextMenu.current
             val scope = rememberCoroutineScope()
             val gridState = rememberLazyGridState()
-            var stickyPinnedLock by remember(persistenceKey) { mutableStateOf(false) }
+            var pendingPinScrollOnTabSwitch by remember(persistenceKey) { mutableStateOf(false) }
             val stickyHaze = remember(persistenceKey) { HazeState() }
             val stickyBackdrop = rememberDesktopLayerBackdrop()
             val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
@@ -9364,7 +9364,6 @@ private fun DesktopLocalMusicPage(
             }
             val stickyTopPx by remember {
                 derivedStateOf {
-                    if (stickyPinnedLock) return@derivedStateOf 0
                     val layout = gridState.layoutInfo
                     val placeholder = layout.visibleItemsInfo.firstOrNull { it.key == "local:controls-placeholder" }
                     when {
@@ -9379,7 +9378,6 @@ private fun DesktopLocalMusicPage(
             }
             val isPinned by remember {
                 derivedStateOf {
-                    if (stickyPinnedLock) return@derivedStateOf true
                     val layout = gridState.layoutInfo
                     val placeholder = layout.visibleItemsInfo.firstOrNull { it.key == "local:controls-placeholder" }
                     when {
@@ -9388,28 +9386,12 @@ private fun DesktopLocalMusicPage(
                     }
                 }
             }
-            LaunchedEffect(selectedTab, stickyPinnedLock) {
-                if (stickyPinnedLock) {
-                    gridState.scrollToItem(0, 0)
-                }
-            }
-            val unpinAtTopNestedScroll = remember(gridState) {
-                object : NestedScrollConnection {
-                    override fun onPostScroll(
-                        consumed: androidx.compose.ui.geometry.Offset,
-                        available: androidx.compose.ui.geometry.Offset,
-                        source: NestedScrollSource,
-                    ): androidx.compose.ui.geometry.Offset {
-                        if (stickyPinnedLock &&
-                            source == NestedScrollSource.UserInput &&
-                            available.y > 4f &&
-                            gridState.firstVisibleItemIndex == 0 &&
-                            gridState.firstVisibleItemScrollOffset == 0
-                        ) {
-                            stickyPinnedLock = false
-                        }
-                        return androidx.compose.ui.geometry.Offset.Zero
-                    }
+            LaunchedEffect(selectedTab) {
+                if (pendingPinScrollOnTabSwitch) {
+                    pendingPinScrollOnTabSwitch = false
+                    // Keep local:hero at index 0 and schedule the scroll via requestScrollToItem so
+                    // LazyVerticalGrid lays out the new tab cleanly without re-entrant forceRemeasure.
+                    gridState.requestScrollToItem(1, 0)
                 }
             }
             val glassAlpha by animateFloatAsState(
@@ -9425,7 +9407,6 @@ private fun DesktopLocalMusicPage(
                     state = gridState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .nestedScroll(unpinAtTopNestedScroll)
                         .hazeSource(stickyHaze)
                         .desktopLayerBackdrop(stickyBackdrop, enabled = stickyGlassActive && glassAlpha > 0.01f)
                         .desktopStickyTopMask(strength = glassAlpha),
@@ -9433,26 +9414,24 @@ private fun DesktopLocalMusicPage(
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    if (!stickyPinnedLock) {
-                        item(key = "local:hero", span = { GridItemSpan(maxLineSpan) }) {
-                            DesktopSectionHeroHeader(
-                                heroKey = "hero:$persistenceKey",
-                                gradientColors = heroColors,
-                                icon = heroIcon,
-                                title = title,
-                                subtitle = heroSubtitle,
-                                showActions = playableTracks.isNotEmpty(),
-                                isPlaying = isGlobalPlaying,
-                                onShuffle = { onShuffleAll(playableTracks, globalSource) },
-                                onPlayPause = {
-                                    if (isGlobalActive) {
-                                        onTogglePlayPause()
-                                    } else if (playableTracks.isNotEmpty()) {
-                                        onPlaySongs(playableTracks, 0, globalSource)
-                                    }
-                                },
-                            )
-                        }
+                    item(key = "local:hero", span = { GridItemSpan(maxLineSpan) }) {
+                        DesktopSectionHeroHeader(
+                            heroKey = "hero:$persistenceKey",
+                            gradientColors = heroColors,
+                            icon = heroIcon,
+                            title = title,
+                            subtitle = heroSubtitle,
+                            showActions = playableTracks.isNotEmpty(),
+                            isPlaying = isGlobalPlaying,
+                            onShuffle = { onShuffleAll(playableTracks, globalSource) },
+                            onPlayPause = {
+                                if (isGlobalActive) {
+                                    onTogglePlayPause()
+                                } else if (playableTracks.isNotEmpty()) {
+                                    onPlaySongs(playableTracks, 0, globalSource)
+                                }
+                            },
+                        )
                     }
                     // Reserve exact space of the floating/sticky controls so scrolling up to the
                     // hero tracks 1:1 with zero layout jump and pins seamlessly to the top as Liquid Glass.
@@ -9655,17 +9634,17 @@ private fun DesktopLocalMusicPage(
                                     options = tabOptions,
                                     selectedIndex = selectedTab.coerceIn(tabOptions.indices),
                                     onSelect = { index ->
+                                        val switched = index != selectedTab
                                         val wasPinned = shouldKeepLocalHeaderPinnedOnTabSwitch(
                                             isPinned = isPinned,
-                                            alreadyLocked = stickyPinnedLock,
+                                            alreadyLocked = false,
                                         )
                                         tabDirection = if (index >= selectedTab) 1f else -1f
                                         selectedTab = index
                                         drillDownState = null
                                         persistence.saveInt("${persistenceKey}_tab", index)
-                                        if (wasPinned) {
-                                            stickyPinnedLock = true
-                                            scope.launch { gridState.scrollToItem(0, 0) }
+                                        if (switched && wasPinned) {
+                                            pendingPinScrollOnTabSwitch = true
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth().widthIn(max = 560.dp),

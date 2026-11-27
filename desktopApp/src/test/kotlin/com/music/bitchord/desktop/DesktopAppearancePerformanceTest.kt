@@ -2,21 +2,40 @@ package com.music.bitchord.desktop
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import org.jetbrains.skia.Bitmap
 import org.jetbrains.skia.ColorAlphaType
@@ -807,5 +826,246 @@ class DesktopAppearancePerformanceTest {
         }
         assertTrue(resolveHeroIconInk(isDark = false).luminance() < 0.05f)
         assertTrue(resolveHeroIconInk(isDark = true).luminance() > 0.90f)
+    }
+
+    @Test
+    fun `Liquid Glass sibling with shadow updates backdrop blur after large-to-small window restore`() {
+        val prevLiquid = DesktopAppearanceSettings.liquidGlass.value
+        val prevReduceBlur = DesktopAppearanceSettings.reduceDynamicBlur.value
+        val prevPerf = DesktopAppearanceSettings.glassPerformance.value
+        val prevHighPerf = DesktopAppearanceSettings.highPerformanceMode.value
+        val prevLevel = DesktopAppearanceSettings.liquidGlassLevel.value
+        try {
+            DesktopAppearanceSettings.setHighPerformanceMode(false)
+            DesktopAppearanceSettings.setReduceDynamicBlur(false)
+            DesktopAppearanceSettings.setGlassPerformance(false)
+            DesktopAppearanceSettings.setLiquidGlass(false)
+            DesktopAppearanceSettings.setLiquidGlassLevel(DesktopLiquidGlassLevel.HIGH)
+
+            var widthPx by mutableStateOf(1220)
+            var heightPx by mutableStateOf(780)
+            var bgColor by mutableStateOf(Color(0xFF102040))
+
+            // Use explicit constraints inside a fixed 1920x1080 scene so we can shrink the
+            // root container dynamically just like restoring a maximized desktop window.
+            val scene = ImageComposeScene(width = 1920, height = 1080) {
+                val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
+                val backdrop = rememberDesktopLayerBackdrop()
+                val pillShape = RoundedCornerShape(percent = 50)
+                Box(Modifier.size(widthPx.dp, heightPx.dp)) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(Color.Transparent)
+                            .desktopLayerBackdrop(backdrop, enabled = liquidGlass),
+                    ) {
+                        // Draw bright vivid stripes at the bottom edge of whatever window height
+                        // is active so the bottom-centered glass bar directly over it must pick up
+                        // strong color (if sampling the restored bounds) or stay near zero/clear
+                        // (if stuck sampling the old maximized y-offset).
+                        Box(
+                            Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .height(120.dp)
+                                .background(bgColor),
+                        )
+                    }
+                    Box(
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 16.dp)
+                            .width(760.dp)
+                            .height(60.dp)
+                            .shadow(16.dp, pillShape)
+                            .clip(pillShape)
+                            .then(
+                                if (liquidGlass) {
+                                    Modifier.desktopLiquidGlass(
+                                        shape = pillShape,
+                                        backdrop = backdrop,
+                                        tintAlpha = 0.25f,
+                                        borderAlpha = 0.15f,
+                                    )
+                                } else {
+                                    Modifier.background(Color(0xCC202024))
+                                },
+                            ),
+                    )
+                }
+            }
+            try {
+                // 1. Start in small window with Liquid Glass OFF.
+                scene.render(0L).close()
+
+                // 2. Maximize, then enable Liquid Glass.
+                Snapshot.withMutableSnapshot {
+                    widthPx = 1920
+                    heightPx = 1040
+                    DesktopAppearanceSettings.setLiquidGlass(true)
+                }
+                Snapshot.sendApplyNotifications()
+                scene.render(16_000_000L).close()
+                scene.render(32_000_000L).close()
+
+                // 3. Restore to small window with bright orange at the bottom edge; the pill keeps
+                // the same 760x60 size inside shadow/clip layers and moves from y~964 to y~704.
+                Snapshot.withMutableSnapshot {
+                    widthPx = 1220
+                    heightPx = 780
+                    bgColor = Color(0xFFFF6D00)
+                }
+                Snapshot.sendApplyNotifications()
+                scene.render(48_000_000L).close()
+                val restoredImg = scene.render(64_000_000L)
+                try {
+                    val bmp = Bitmap().apply {
+                        allocPixels(ImageInfo.makeN32Premul(1920, 1080))
+                        assertTrue(restoredImg.readPixels(this, 0, 0))
+                    }
+                    // Sample the center of the restored pill (x = 610, y = 734).
+                    val px = bmp.getColor(610, 734)
+                    val red = ((px ushr 16) and 0xFF) / 255f
+                    val blue = (px and 0xFF) / 255f
+                    assertTrue(
+                        red > 0.35f && red > blue + 0.20f,
+                        "Expected restored Liquid Glass bottom bar to blur orange backdrop at restored bounds (r=$red, b=$blue)",
+                    )
+                } finally {
+                    restoredImg.close()
+                }
+            } finally {
+                scene.close()
+            }
+        } finally {
+            DesktopAppearanceSettings.setHighPerformanceMode(prevHighPerf)
+            DesktopAppearanceSettings.setReduceDynamicBlur(prevReduceBlur)
+            DesktopAppearanceSettings.setGlassPerformance(prevPerf)
+            DesktopAppearanceSettings.setLiquidGlass(prevLiquid)
+            DesktopAppearanceSettings.setLiquidGlassLevel(prevLevel)
+        }
+    }
+
+    @Test
+    fun `Sticky local header stays aligned and unpins cleanly when switching between long and short tabs`() {
+        var tab by mutableStateOf(0)
+        var pendingPinScroll by mutableStateOf(false)
+        lateinit var gridStateRef: LazyGridState
+        var stickyTopPxRef = -1
+        var isPinnedRef = false
+
+        val scene = ImageComposeScene(width = 800, height = 600) {
+            val gridState = rememberLazyGridState()
+            gridStateRef = gridState
+            val stickyTopPx by remember {
+                derivedStateOf {
+                    val layout = gridState.layoutInfo
+                    val placeholder = layout.visibleItemsInfo.firstOrNull { it.key == "local:controls-placeholder" }
+                    when {
+                        placeholder != null -> placeholder.offset.y.coerceAtLeast(0)
+                        gridState.firstVisibleItemIndex >= 2 -> 0
+                        else -> {
+                            val hero = layout.visibleItemsInfo.firstOrNull { it.key == "local:hero" }
+                            hero?.let { (it.offset.y + it.size.height).coerceAtLeast(0) } ?: 0
+                        }
+                    }
+                }
+            }
+            val isPinned by remember {
+                derivedStateOf {
+                    val layout = gridState.layoutInfo
+                    val placeholder = layout.visibleItemsInfo.firstOrNull { it.key == "local:controls-placeholder" }
+                    when {
+                        placeholder != null -> placeholder.offset.y <= 1
+                        else -> gridState.firstVisibleItemIndex >= 2
+                    }
+                }
+            }
+            LaunchedEffect(tab) {
+                if (pendingPinScroll) {
+                    pendingPinScroll = false
+                    gridState.requestScrollToItem(1, 0)
+                }
+            }
+            Box(Modifier.fillMaxSize()) {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 180.dp),
+                    state = gridState,
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    item(key = "local:hero", span = { GridItemSpan(maxLineSpan) }) {
+                        Spacer(Modifier.fillMaxWidth().height(160.dp))
+                    }
+                    item(key = "local:controls-placeholder", span = { GridItemSpan(maxLineSpan) }) {
+                        Spacer(Modifier.fillMaxWidth().height(96.dp))
+                    }
+                    val itemCount = when (tab) {
+                        0 -> 40
+                        1 -> 2 // short tab (fits on screen without scrolling)
+                        else -> 36
+                    }
+                    items(itemCount, span = { GridItemSpan(maxLineSpan) }) {
+                        Spacer(Modifier.fillMaxWidth().height(56.dp))
+                    }
+                }
+                Box(
+                    Modifier
+                        .offset {
+                            stickyTopPxRef = stickyTopPx
+                            isPinnedRef = isPinned
+                            IntOffset(0, stickyTopPx)
+                        }
+                        .fillMaxWidth()
+                        .height(96.dp),
+                )
+            }
+        }
+        try {
+            scene.render(0L).close()
+            assertFalse(isPinnedRef)
+            assertTrue(stickyTopPxRef > 100)
+
+            // Scroll far down on Songs (tab 0) so header is pinned at top (y = 0).
+            gridStateRef.requestScrollToItem(10, 0)
+            scene.render(16_000_000L).close()
+            assertTrue(isPinnedRef)
+            assertEquals(0, stickyTopPxRef)
+
+            // Switch to another long tab (tab 2) while pinned -> header stays pinned at y = 0.
+            Snapshot.withMutableSnapshot {
+                pendingPinScroll = true
+                tab = 2
+            }
+            Snapshot.sendApplyNotifications()
+            scene.render(32_000_000L).close()
+            scene.render(48_000_000L).close()
+            assertTrue(isPinnedRef, "Expected header to remain pinned when switching to long tab")
+            assertEquals(0, stickyTopPxRef)
+            assertEquals(1, gridStateRef.firstVisibleItemIndex)
+
+            // Scrolling back up to index 0 on tab 2 cleanly unpins the header and reveals the hero.
+            gridStateRef.requestScrollToItem(0, 0)
+            scene.render(56_000_000L).close()
+            assertFalse(isPinnedRef, "Expected header to unpin when scrolling back to hero")
+            assertTrue(stickyTopPxRef > 100, "Expected stickyTopPx ($stickyTopPxRef) below hero at top")
+
+            // Re-pin on tab 2, then switch to short tab (tab 1) -> hero stays at index 0, grid clamps cleanly instead of trapping.
+            gridStateRef.requestScrollToItem(10, 0)
+            scene.render(60_000_000L).close()
+            assertTrue(isPinnedRef)
+            Snapshot.withMutableSnapshot {
+                pendingPinScroll = true
+                tab = 1
+            }
+            Snapshot.sendApplyNotifications()
+            scene.render(64_000_000L).close()
+            scene.render(80_000_000L).close()
+            assertFalse(isPinnedRef, "Expected short tab to unpin cleanly and reveal hero")
+            assertEquals(0, gridStateRef.firstVisibleItemIndex)
+            assertTrue(stickyTopPxRef > 100, "Expected stickyTopPx ($stickyTopPxRef) below hero on short tab")
+        } finally {
+            scene.close()
+        }
     }
 }

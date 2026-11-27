@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
@@ -276,10 +277,17 @@ internal class DesktopLayerBackdrop internal constructor(
         }
     }
 
-    internal fun notifyConsumers(firstFrame: Boolean) {
+    internal fun notifyConsumers(firstFrame: Boolean = false) {
         if (consumers.isEmpty()) return
-        for (consumer in consumers) {
-            if (!consumer.isSelfContained() && (firstFrame || consumer.isDetachedFromBackdrop(this))) {
+        if (consumers.size == 1) {
+            val consumer = consumers.first()
+            if (!consumer.isSelfContained()) {
+                consumer.invalidateDraw()
+            }
+            return
+        }
+        for (consumer in consumers.toList()) {
+            if (!consumer.isSelfContained()) {
                 consumer.invalidateDraw()
             }
         }
@@ -319,6 +327,9 @@ private class DesktopLayerBackdropElement(
 internal class DesktopLayerBackdropNode(
     var backdrop: DesktopLayerBackdrop,
 ) : DrawModifierNode, GlobalPositionAwareModifierNode, Modifier.Node() {
+    private var lastWindowPosition: Offset = Offset.Unspecified
+    private var lastLayoutSize: IntSize = IntSize.Zero
+
     override fun onAttach() {
         backdrop.hostNode = this
     }
@@ -352,11 +363,22 @@ internal class DesktopLayerBackdropNode(
 
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
         if (coordinates.isAttached) {
+            val wasUnset = backdrop.layerCoordinates == null
             backdrop.layerCoordinates = coordinates
+            val windowPos = runCatching { coordinates.positionInWindow() }.getOrNull() ?: Offset.Unspecified
+            val layoutSize = coordinates.size
+            if (wasUnset || windowPos != lastWindowPosition || layoutSize != lastLayoutSize) {
+                lastWindowPosition = windowPos
+                lastLayoutSize = layoutSize
+                invalidateDraw()
+                backdrop.notifyConsumers(firstFrame = wasUnset)
+            }
         }
     }
 
     override fun onDetach() {
+        lastWindowPosition = Offset.Unspecified
+        lastLayoutSize = IntSize.Zero
         if (backdrop.hostNode === this) backdrop.hostNode = null
         backdrop.layerCoordinates = null
         backdrop.hasRecorded = false
@@ -400,19 +422,25 @@ internal fun Modifier.desktopLiquidGlass(
     val effectiveAlpha = (tintAlpha * level.surfaceAlphaScale * themeAlphaFactor).coerceIn(0f, 0.92f)
     val tint = surfaceTint?.copy(alpha = (surfaceTint.alpha * level.surfaceAlphaScale).coerceIn(0f, 0.92f))
         ?: palette.liquidGlassTint.copy(alpha = effectiveAlpha)
-    return this then DesktopLiquidGlassElement(
-        backdrop = backdrop,
-        underlayBackdrop = underlayBackdrop,
-        shape = shape,
-        surfaceTint = tint,
-        borderAlpha = borderAlpha,
-        level = level,
-        rainbowScale = rainbowScale,
-        outlineReflectionScale = outlineReflectionScale,
-        isDark = isDark,
-        glassPerformance = glassPerformance,
-        disableBlendEffects = disableBlendEffects,
-    )
+    // Isolate draw invalidations to this surface's own RenderNode so backdrop notifications never
+    // bubble up into the backdrop host and cause redundant frame loops.
+    return this
+        .graphicsLayer()
+        .then(
+            DesktopLiquidGlassElement(
+                backdrop = backdrop,
+                underlayBackdrop = underlayBackdrop,
+                shape = shape,
+                surfaceTint = tint,
+                borderAlpha = borderAlpha,
+                level = level,
+                rainbowScale = rainbowScale,
+                outlineReflectionScale = outlineReflectionScale,
+                isDark = isDark,
+                glassPerformance = glassPerformance,
+                disableBlendEffects = disableBlendEffects,
+            ),
+        )
 }
 
 /**
@@ -593,6 +621,8 @@ internal class DesktopLiquidGlassNode(
 
     private var glassLayer: GraphicsLayer? = null
     private var coords: LayoutCoordinates? = null
+    private var lastWindowPosition: Offset = Offset.Unspecified
+    private var lastLayoutSize: IntSize = IntSize.Zero
     private var clipPath: Path? = null
     private var retainedBackdrop: DesktopLayerBackdrop? = null
     private var retainedUnderlay: DesktopLayerBackdrop? = null
@@ -657,6 +687,8 @@ internal class DesktopLiquidGlassNode(
 
     override fun onDetach() {
         coords = null
+        lastWindowPosition = Offset.Unspecified
+        lastLayoutSize = IntSize.Zero
         detachedTree = false
         blockedBySelfRecursion = false
         selfContainedBackdrop = null
@@ -671,7 +703,15 @@ internal class DesktopLiquidGlassNode(
 
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
         if (coordinates.isAttached) {
+            val wasUnset = coords == null
             coords = coordinates
+            val windowPos = runCatching { coordinates.positionInWindow() }.getOrNull() ?: Offset.Unspecified
+            val layoutSize = coordinates.size
+            if (wasUnset || windowPos != lastWindowPosition || layoutSize != lastLayoutSize) {
+                lastWindowPosition = windowPos
+                lastLayoutSize = layoutSize
+                invalidateDraw()
+            }
         }
     }
 
