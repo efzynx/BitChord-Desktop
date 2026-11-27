@@ -778,6 +778,8 @@ compose.desktop {
                 "java.xml",
                 "jdk.crypto.ec",
                 "jdk.dynalink",
+                // DesktopDriveAuth's loopback OAuth callback uses com.sun.net.httpserver.HttpServer.
+                "jdk.httpserver",
                 // JavaFX WebEngine returns JavaScript objects through netscape.javascript.JSObject.
                 // Without this module the slim production runtime crashes in twkExecuteScript,
                 // while development runs work because the full JDK already contains it.
