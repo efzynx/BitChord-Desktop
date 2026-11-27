@@ -77,6 +77,10 @@ jobs:
     env:
       VERSION: ${{ needs.prepare-preview.outputs.version }}
       PKG: ${{ github.event.inputs.linux_package || 'appimage' }}
+      GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+      GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+      LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+      LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -187,6 +191,10 @@ jobs:
     env:
       VERSION: ${{ needs.prepare-preview.outputs.version }}
       PKG: ${{ github.event.inputs.windows_package || 'exe' }}
+      GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+      GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+      LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+      LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4

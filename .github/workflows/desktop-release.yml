@@ -94,6 +94,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
+      GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+      GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+      LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+      LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -164,6 +168,10 @@ jobs:
     runs-on: windows-latest
     env:
       VERSION: ${{ needs.prepare-release.outputs.version }}
+      GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+      GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+      LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+      LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
