@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Preview Version (blank uses build.gradle.kts version)'
+        description: 'Preview Version (blank uses <base>-preview.<run_number>)'
         required: false
         default: ''
       platform:
-        description: 'Target platforms to build'
+        description: 'Target OS platforms'
         type: choice
         required: true
         default: 'all'
@@ -16,6 +16,27 @@ on:
           - all
           - linux
           - windows
+      linux_package:
+        description: 'Linux package format (ignored if platform=windows)'
+        type: choice
+        required: true
+        default: 'appimage'
+        options:
+          - appimage
+          - deb
+          - rpm
+          - tar.gz
+          - all
+      windows_package:
+        description: 'Windows package format (ignored if platform=linux)'
+        type: choice
+        required: true
+        default: 'exe'
+        options:
+          - exe
+          - msi
+          - portable-zip
+          - all
 
 permissions:
   contents: read
@@ -49,12 +70,13 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
   build-linux:
-    name: Build Linux Preview (AppImage, DEB, RPM, Tar.gz)
+    name: Build Linux Preview (${{ github.event.inputs.linux_package || 'appimage' }})
     needs: prepare-preview
     if: github.event.inputs.platform == 'all' || github.event.inputs.platform == 'linux'
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.prepare-preview.outputs.version }}
+      PKG: ${{ github.event.inputs.linux_package || 'appimage' }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -76,50 +98,95 @@ jobs:
           chmod +x gradlew
           chmod +x desktopApp/packaging/appimage.sh
 
-      - name: Build Linux Distributable & Packages
+      - name: Build Selected Linux Gradle Tasks
         run: |
-          ./gradlew :desktopApp:createDistributable :desktopApp:packageDeb :desktopApp:packageRpm -Pbitchord.version="${{ env.VERSION }}" --no-daemon
+          TASKS=""
+          case "${{ env.PKG }}" in
+            appimage|tar.gz) TASKS=":desktopApp:createDistributable" ;;
+            deb)             TASKS=":desktopApp:packageDeb" ;;
+            rpm)             TASKS=":desktopApp:packageRpm" ;;
+            all)             TASKS=":desktopApp:createDistributable :desktopApp:packageDeb :desktopApp:packageRpm" ;;
+            *)               echo "Unsupported linux_package: ${{ env.PKG }}"; exit 1 ;;
+          esac
+          ./gradlew $TASKS -Pbitchord.version="${{ env.VERSION }}" --no-daemon
 
       - name: Package Linux Tar.gz Portable
+        if: env.PKG == 'tar.gz' || env.PKG == 'all'
         run: |
-          mkdir -p dist/linux
-          tar -czvf "dist/linux/BitChord-${{ env.VERSION }}-linux-x64.tar.gz" -C desktopApp/build/compose/binaries/main/app BitChord
+          mkdir -p dist/linux-tar
+          tar -czvf "dist/linux-tar/BitChord-${{ env.VERSION }}-linux-x64.tar.gz" -C desktopApp/build/compose/binaries/main/app BitChord
+          ls -lh dist/linux-tar/
 
       - name: Package AppImage
+        if: env.PKG == 'appimage' || env.PKG == 'all'
         run: |
-          mkdir -p dist/linux
+          mkdir -p dist/linux-appimage
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
           ./desktopApp/packaging/appimage.sh \
             desktopApp/build/compose/binaries/main/app/BitChord \
-            "dist/linux/BitChord-${{ env.VERSION }}-x86_64.AppImage" \
+            "dist/linux-appimage/BitChord-${{ env.VERSION }}-x86_64.AppImage" \
             "$PWD/appimagetool"
+          ls -lh dist/linux-appimage/
 
-      - name: Collect DEB and RPM packages
+      - name: Collect DEB Package
+        if: env.PKG == 'deb' || env.PKG == 'all'
         run: |
-          mkdir -p dist/linux
+          mkdir -p dist/linux-deb
           for f in $(find desktopApp/build/compose/binaries -name "*.deb"); do
-            cp "$f" "dist/linux/bitchord_${{ env.VERSION }}_amd64.deb"
+            cp "$f" "dist/linux-deb/bitchord_${{ env.VERSION }}_amd64.deb"
           done
-          for f in $(find desktopApp/build/compose/binaries -name "*.rpm"); do
-            cp "$f" "dist/linux/bitchord-${{ env.VERSION }}.x86_64.rpm"
-          done
-          ls -lh dist/linux/
+          ls -lh dist/linux-deb/
 
-      - name: Upload Linux Preview Artifacts
+      - name: Collect RPM Package
+        if: env.PKG == 'rpm' || env.PKG == 'all'
+        run: |
+          mkdir -p dist/linux-rpm
+          for f in $(find desktopApp/build/compose/binaries -name "*.rpm"); do
+            cp "$f" "dist/linux-rpm/bitchord-${{ env.VERSION }}.x86_64.rpm"
+          done
+          ls -lh dist/linux-rpm/
+
+      - name: Upload Linux AppImage Artifact
+        if: env.PKG == 'appimage' || env.PKG == 'all'
         uses: actions/upload-artifact@v4
         with:
-          name: bitchord-linux-preview
-          path: dist/linux/*
+          name: bitchord-linux-appimage
+          path: dist/linux-appimage/*
+          retention-days: 14
+
+      - name: Upload Linux DEB Artifact
+        if: env.PKG == 'deb' || env.PKG == 'all'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitchord-linux-deb
+          path: dist/linux-deb/*
+          retention-days: 14
+
+      - name: Upload Linux RPM Artifact
+        if: env.PKG == 'rpm' || env.PKG == 'all'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitchord-linux-rpm
+          path: dist/linux-rpm/*
+          retention-days: 14
+
+      - name: Upload Linux Tar.gz Artifact
+        if: env.PKG == 'tar.gz' || env.PKG == 'all'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitchord-linux-tar
+          path: dist/linux-tar/*
           retention-days: 14
 
   build-windows:
-    name: Build Windows Preview (Setup EXE, MSI, Portable Zip)
+    name: Build Windows Preview (${{ github.event.inputs.windows_package || 'exe' }})
     needs: prepare-preview
     if: github.event.inputs.platform == 'all' || github.event.inputs.platform == 'windows'
     runs-on: windows-latest
     env:
       VERSION: ${{ needs.prepare-preview.outputs.version }}
+      PKG: ${{ github.event.inputs.windows_package || 'exe' }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -132,6 +199,7 @@ jobs:
           cache: gradle
 
       - name: Ensure Inno Setup 6 is Available
+        if: env.PKG == 'exe' || env.PKG == 'all'
         shell: powershell
         run: |
           $isccPaths = @(
@@ -152,29 +220,64 @@ jobs:
           }
 
       - name: Build Windows Portable Zip
+        if: env.PKG == 'portable-zip' || env.PKG == 'all'
         shell: cmd
         run: |
           call gradlew.bat :desktopApp:windowsPortable -Pbitchord.target=windows -Pbitchord.version="%VERSION%" --no-daemon
 
-      - name: Build Windows Setup EXE (Inno Setup) and MSI
+      - name: Build Windows Setup EXE (Inno Setup)
+        if: env.PKG == 'exe' || env.PKG == 'all'
         shell: cmd
         run: |
-          call gradlew.bat :desktopApp:packageWindowsInstaller :desktopApp:packageReleaseMsi -Pbitchord.target=windows -Pbitchord.version="%VERSION%" --no-daemon
+          call gradlew.bat :desktopApp:packageWindowsInstaller -Pbitchord.target=windows -Pbitchord.version="%VERSION%" --no-daemon
 
-      - name: Collect Windows Packages
+      - name: Build Windows MSI
+        if: env.PKG == 'msi' || env.PKG == 'all'
+        shell: cmd
+        run: |
+          call gradlew.bat :desktopApp:packageReleaseMsi -Pbitchord.target=windows -Pbitchord.version="%VERSION%" --no-daemon
+
+      - name: Collect Selected Windows Packages
         shell: bash
         run: |
-          mkdir -p dist/windows
-          find desktopApp/build/distributions -name "*windows-portable.zip" -exec cp {} dist/windows/ \;
-          cp "desktopApp/build/distributions/BitChord-${{ env.VERSION }}.exe" "dist/windows/BitChord-${{ env.VERSION }}.exe"
-          for f in $(find desktopApp/build/compose/binaries -name "*.msi"); do
-            cp "$f" "dist/windows/BitChord-${{ env.VERSION }}.msi"
-          done
-          ls -lh dist/windows/
+          if [ "${{ env.PKG }}" = "portable-zip" ] || [ "${{ env.PKG }}" = "all" ]; then
+            mkdir -p dist/windows-portable
+            find desktopApp/build/distributions -name "*windows-portable.zip" -exec cp {} dist/windows-portable/ \;
+            ls -lh dist/windows-portable/
+          fi
+          if [ "${{ env.PKG }}" = "exe" ] || [ "${{ env.PKG }}" = "all" ]; then
+            mkdir -p dist/windows-exe
+            cp "desktopApp/build/distributions/BitChord-${{ env.VERSION }}.exe" "dist/windows-exe/BitChord-${{ env.VERSION }}.exe"
+            ls -lh dist/windows-exe/
+          fi
+          if [ "${{ env.PKG }}" = "msi" ] || [ "${{ env.PKG }}" = "all" ]; then
+            mkdir -p dist/windows-msi
+            for f in $(find desktopApp/build/compose/binaries -name "*.msi"); do
+              cp "$f" "dist/windows-msi/BitChord-${{ env.VERSION }}.msi"
+            done
+            ls -lh dist/windows-msi/
+          fi
 
-      - name: Upload Windows Preview Artifacts
+      - name: Upload Windows Setup EXE Artifact
+        if: env.PKG == 'exe' || env.PKG == 'all'
         uses: actions/upload-artifact@v4
         with:
-          name: bitchord-windows-preview
-          path: dist/windows/*
+          name: bitchord-windows-exe
+          path: dist/windows-exe/*
+          retention-days: 14
+
+      - name: Upload Windows MSI Artifact
+        if: env.PKG == 'msi' || env.PKG == 'all'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitchord-windows-msi
+          path: dist/windows-msi/*
+          retention-days: 14
+
+      - name: Upload Windows Portable ZIP Artifact
+        if: env.PKG == 'portable-zip' || env.PKG == 'all'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitchord-windows-portable
+          path: dist/windows-portable/*
           retention-days: 14
