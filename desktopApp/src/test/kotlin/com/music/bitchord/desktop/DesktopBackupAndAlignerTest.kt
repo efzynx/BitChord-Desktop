@@ -592,7 +592,35 @@ class DesktopBackupAndAlignerTest {
         assertEquals(480, DesktopMusicVideoEngine.nextLowerQualityHeight(720, heights))
         assertEquals(null, DesktopMusicVideoEngine.nextLowerQualityHeight(480, heights))
         assertTrue(DesktopVideoYuvShaders.supportsYuvPlanar)
-        assertTrue(DesktopVideoYuvShaders.supportsNv12)
+
+        val interleaved = byteArrayOf(10, 20, 30, 40, 50, 60, 70, 80)
+        val uOut = ByteArray(4)
+        val vOut = ByteArray(4)
+        DesktopMusicVideoDecoder.deinterleaveNv12Plane(interleaved, uOut, vOut, 4)
+        assertEquals(listOf<Byte>(10, 30, 50, 70), uOut.toList())
+        assertEquals(listOf<Byte>(20, 40, 60, 80), vOut.toList())
+
+        val yImg = org.jetbrains.skia.Image.makeRaster(
+            org.jetbrains.skia.ImageInfo(4, 4, org.jetbrains.skia.ColorType.GRAY_8, org.jetbrains.skia.ColorAlphaType.OPAQUE),
+            ByteArray(16) { 64 },
+            4,
+        )
+        val uImg = org.jetbrains.skia.Image.makeRaster(
+            org.jetbrains.skia.ImageInfo(2, 2, org.jetbrains.skia.ColorType.GRAY_8, org.jetbrains.skia.ColorAlphaType.OPAQUE),
+            uOut,
+            2,
+        )
+        val vImg = org.jetbrains.skia.Image.makeRaster(
+            org.jetbrains.skia.ImageInfo(2, 2, org.jetbrains.skia.ColorType.GRAY_8, org.jetbrains.skia.ColorAlphaType.OPAQUE),
+            vOut,
+            2,
+        )
+        assertEquals(4, yImg.width)
+        assertEquals(2, uImg.width)
+        assertEquals(2, vImg.width)
+        yImg.close()
+        uImg.close()
+        vImg.close()
     }
 
     @Test

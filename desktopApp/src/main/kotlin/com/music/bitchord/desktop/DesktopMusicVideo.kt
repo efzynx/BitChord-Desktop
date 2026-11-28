@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -156,20 +156,12 @@ internal sealed interface DesktopVideoFrame {
         val fullRange: Boolean,
         val bt709: Boolean,
     ) : DesktopVideoFrame
-
-    class Nv12(
-        override val width: Int,
-        override val height: Int,
-        val yImage: Image,
-        val uvImage: Image,
-        val fullRange: Boolean,
-        val bt709: Boolean,
-    ) : DesktopVideoFrame
 }
 
 /**
  * Compiles and executes SkSL YUV->RGB shaders on Skia's GPU canvas so video decoding stays free
- * of `sws_scale` BGRA CPU overhead on supported streams.
+ * of `sws_scale` BGRA CPU overhead on supported streams. Both YUV420P and NV12 feed planar
+ * `GRAY_8` images because Skia's `makeRaster` rejects `R8G8_UNORM` across desktop backends.
  */
 internal object DesktopVideoYuvShaders {
 
@@ -214,48 +206,7 @@ internal object DesktopVideoYuvShaders {
         }.getOrNull()
     }
 
-    private val nv12Effect: RuntimeEffect? by lazy {
-        runCatching {
-            RuntimeEffect.makeForShader(
-                """
-                uniform shader yTex;
-                uniform shader uvTex;
-                uniform float fullRange;
-                uniform float bt709;
-                half4 main(float2 coord) {
-                    float y = yTex.eval(coord).r;
-                    float2 uv = uvTex.eval(coord * 0.5).rg;
-                    float u = uv.x;
-                    float v = uv.y;
-                    if (fullRange < 0.5) {
-                        y = (y - 16.0 / 255.0) * (255.0 / 219.0);
-                        u = (u - 128.0 / 255.0) * (255.0 / 224.0);
-                        v = (v - 128.0 / 255.0) * (255.0 / 224.0);
-                    } else {
-                        u = u - 128.0 / 255.0;
-                        v = v - 128.0 / 255.0;
-                    }
-                    float r;
-                    float g;
-                    float b;
-                    if (bt709 > 0.5) {
-                        r = y + 1.5748 * v;
-                        g = y - 0.187324 * u - 0.468124 * v;
-                        b = y + 1.8556 * u;
-                    } else {
-                        r = y + 1.402 * v;
-                        g = y - 0.344136 * u - 0.714136 * v;
-                        b = y + 1.772 * u;
-                    }
-                    return half4(clamp(r, 0.0, 1.0), clamp(g, 0.0, 1.0), clamp(b, 0.0, 1.0), 1.0);
-                }
-                """.trimIndent(),
-            )
-        }.getOrNull()
-    }
-
     val supportsYuvPlanar: Boolean get() = yuvPlanarEffect != null
-    val supportsNv12: Boolean get() = nv12Effect != null
 
     fun drawYuvPlanar(
         canvas: org.jetbrains.skia.Canvas,
@@ -283,47 +234,6 @@ internal object DesktopVideoYuvShaders {
             yShader.close()
             uShader.close()
             vShader.close()
-        }
-        val paint = Paint().apply {
-            shader = composite
-            setAlphaf(alpha)
-        }
-        try {
-            canvas.save()
-            canvas.translate(left, top)
-            canvas.scale(drawW / frame.width.toFloat(), drawH / frame.height.toFloat())
-            canvas.drawRect(SkRect.makeXYWH(0f, 0f, frame.width.toFloat(), frame.height.toFloat()), paint)
-            canvas.restore()
-            return true
-        } finally {
-            paint.close()
-            composite.close()
-        }
-    }
-
-    fun drawNv12(
-        canvas: org.jetbrains.skia.Canvas,
-        frame: DesktopVideoFrame.Nv12,
-        left: Float,
-        top: Float,
-        drawW: Float,
-        drawH: Float,
-        alpha: Float,
-    ): Boolean {
-        val effect = nv12Effect ?: return false
-        val yShader = frame.yImage.makeShader(FilterTileMode.CLAMP, FilterTileMode.CLAMP, SamplingMode.LINEAR)
-        val uvShader = frame.uvImage.makeShader(FilterTileMode.CLAMP, FilterTileMode.CLAMP, SamplingMode.LINEAR)
-        val builder = RuntimeShaderBuilder(effect)
-        val composite = try {
-            builder.child("yTex", yShader)
-            builder.child("uvTex", uvShader)
-            builder.uniform("fullRange", if (frame.fullRange) 1f else 0f)
-            builder.uniform("bt709", if (frame.bt709) 1f else 0f)
-            builder.makeShader()
-        } finally {
-            builder.close()
-            yShader.close()
-            uvShader.close()
         }
         val paint = Paint().apply {
             shader = composite
@@ -616,7 +526,8 @@ internal class DesktopMusicVideoDecoder : AutoCloseable {
             }
             if (pkt.stream_index() == streamIndex) {
                 val sendRes = avcodec_send_packet(context, pkt)
-                if (sendRes < 0 && hwDeviceCtx != null) {
+                if (sendRes < 0 && sendRes != -11 && hwDeviceCtx != null) {
+                    DesktopTrackLog.log("video: hwaccel send_packet failed ($sendRes), falling back to CPU")
                     av_packet_unref(pkt)
                     return DecodedFrame(decoded = false, ptsMs = -1L, frame = null, hwError = true)
                 }
@@ -633,23 +544,25 @@ internal class DesktopMusicVideoDecoder : AutoCloseable {
         val cs = src.colorspace()
         val bt709 = cs == AVCOL_SPC_BT709 || (cs == AVCOL_SPC_UNSPECIFIED && h >= 720)
 
-        if (pixFmt == AV_PIX_FMT_NV12 && DesktopVideoYuvShaders.supportsNv12) {
+        if (pixFmt == AV_PIX_FMT_NV12 && DesktopVideoYuvShaders.supportsYuvPlanar) {
             val yImg = copySingleChannelImage(src, plane = 0, w = w, h = h, isY = true)
             val uvW = (w + 1) / 2
             val uvH = (h + 1) / 2
-            val uvImg = copyInterleavedChromaImage(src, plane = 1, uvW = uvW, uvH = uvH)
-            if (yImg != null && uvImg != null) {
-                return DesktopVideoFrame.Nv12(
+            val chroma = extractNv12Chroma(src, plane = 1, uvW = uvW, uvH = uvH)
+            if (yImg != null && chroma != null) {
+                return DesktopVideoFrame.YuvPlanar(
                     width = w,
                     height = h,
                     yImage = yImg,
-                    uvImage = uvImg,
+                    uImage = chroma.first,
+                    vImage = chroma.second,
                     fullRange = fullRange,
                     bt709 = bt709,
                 )
             }
             yImg?.close()
-            uvImg?.close()
+            chroma?.first?.close()
+            chroma?.second?.close()
         }
 
         if (pixFmt == AV_PIX_FMT_YUV420P && DesktopVideoYuvShaders.supportsYuvPlanar) {
@@ -681,7 +594,9 @@ internal class DesktopMusicVideoDecoder : AutoCloseable {
             pixels.rewind()
             pixels.get(bgraPixels, 0, minOf(bgraPixels.size, width * height * 4))
         }
-        return DesktopVideoFrame.Rgba(Image.makeRaster(info, bgraPixels, width * 4).toComposeImageBitmap())
+        return runCatching {
+            DesktopVideoFrame.Rgba(Image.makeRaster(info, bgraPixels, width * 4).toComposeImageBitmap())
+        }.getOrNull()
     }
 
     private fun copySingleChannelImage(
@@ -712,22 +627,34 @@ internal class DesktopMusicVideoDecoder : AutoCloseable {
             }
         }
         copyPlaneRows(ptr, linesize, rowBytes = w, rows = h, dst = scratch)
-        val info = ImageInfo(w, h, ColorType.GRAY_8, ColorAlphaType.OPAQUE)
-        return Image.makeRaster(info, scratch, w)
+        return makeGray8Image(scratch, w, h)
     }
 
-    private fun copyInterleavedChromaImage(src: AVFrame, plane: Int, uvW: Int, uvH: Int): Image? {
+    private fun extractNv12Chroma(src: AVFrame, plane: Int, uvW: Int, uvH: Int): Pair<Image, Image>? {
         val ptr = src.data(plane) ?: return null
         if (ptr.isNull) return null
         val rowBytes = uvW * 2
         val linesize = src.linesize(plane)
         if (linesize < rowBytes || uvW <= 0 || uvH <= 0) return null
-        val size = rowBytes * uvH
-        if (uvScratch.size != size) uvScratch = ByteArray(size)
+        val rawSize = rowBytes * uvH
+        if (uvScratch.size != rawSize) uvScratch = ByteArray(rawSize)
         copyPlaneRows(ptr, linesize, rowBytes = rowBytes, rows = uvH, dst = uvScratch)
-        val info = ImageInfo(uvW, uvH, ColorType.R8G8_UNORM, ColorAlphaType.OPAQUE)
-        return Image.makeRaster(info, uvScratch, rowBytes)
+        val planeSize = uvW * uvH
+        if (uScratch.size != planeSize) uScratch = ByteArray(planeSize)
+        if (vScratch.size != planeSize) vScratch = ByteArray(planeSize)
+        deinterleaveNv12Plane(uvScratch, uScratch, vScratch, planeSize)
+        val uImg = makeGray8Image(uScratch, uvW, uvH) ?: return null
+        val vImg = makeGray8Image(vScratch, uvW, uvH)
+        if (vImg == null) {
+            uImg.close()
+            return null
+        }
+        return uImg to vImg
     }
+
+    private fun makeGray8Image(bytes: ByteArray, w: Int, h: Int): Image? = runCatching {
+        Image.makeRaster(ImageInfo(w, h, ColorType.GRAY_8, ColorAlphaType.OPAQUE), bytes, w)
+    }.getOrNull()
 
     private fun copyPlaneRows(ptr: BytePointer, linesize: Int, rowBytes: Int, rows: Int, dst: ByteArray) {
         val buf = BytePointer(ptr).capacity(linesize.toLong() * rows).asByteBuffer()
@@ -868,6 +795,20 @@ internal class DesktopMusicVideoDecoder : AutoCloseable {
             val w = (((sourceWidth * scale).toInt() / 2) * 2).coerceAtLeast(2)
             val h = (((sourceHeight * scale).toInt() / 2) * 2).coerceAtLeast(2)
             return w to h
+        }
+
+        /** Splits packed interleaved NV12 `[U0, V0, U1, V1, ...]` chroma pairs into separate U/V planes. */
+        internal fun deinterleaveNv12Plane(
+            nv12Interleaved: ByteArray,
+            uOut: ByteArray,
+            vOut: ByteArray,
+            pixelCount: Int,
+        ) {
+            for (i in 0 until pixelCount) {
+                val pairOffset = i shl 1
+                uOut[i] = nv12Interleaved[pairOffset]
+                vOut[i] = nv12Interleaved[pairOffset + 1]
+            }
         }
     }
 }
@@ -1238,6 +1179,9 @@ internal object DesktopMusicVideoEngine {
                     lastPresentedPtsMs = res.ptsMs
                 }
             }
+        } catch (e: Throwable) {
+            if (e is CancellationException) throw e
+            DesktopTrackLog.log("video: loop failed for $videoId (${e.message})")
         } finally {
             decoder.close()
         }
@@ -1346,18 +1290,7 @@ internal fun DesktopMusicVideoSurface(
                 )
                 is DesktopVideoFrame.YuvPlanar -> drawIntoCanvas { canvas ->
                     DesktopVideoYuvShaders.drawYuvPlanar(
-                        canvas = canvas.nativeCanvas,
-                        frame = active,
-                        left = left.toFloat(),
-                        top = top.toFloat(),
-                        drawW = dstW.toFloat(),
-                        drawH = dstH.toFloat(),
-                        alpha = 1f,
-                    )
-                }
-                is DesktopVideoFrame.Nv12 -> drawIntoCanvas { canvas ->
-                    DesktopVideoYuvShaders.drawNv12(
-                        canvas = canvas.nativeCanvas,
+                        canvas = canvas.skiaCanvas,
                         frame = active,
                         left = left.toFloat(),
                         top = top.toFloat(),
