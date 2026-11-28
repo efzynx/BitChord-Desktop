@@ -55,6 +55,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -63,13 +65,16 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 
 // The look every modal card in the app shares.
 
@@ -244,6 +249,97 @@ internal fun DesktopSettingsSubPageHeader(
 }
 
 /**
+ * Tracks optimistic `TextFieldValue` edits against parent `String` props so delayed portal
+ * or `StateFlow` updates never clamp the caret back to an earlier offset mid-typing.
+ */
+internal class DesktopTextFieldSyncState(
+    initialValue: String,
+) {
+    var lastPropValue: String = initialValue
+    var lastEmittedValue: String = initialValue
+    private val unconfirmed = ArrayDeque<String>()
+
+    fun syncFromProp(
+        propValue: String,
+        current: TextFieldValue,
+    ): TextFieldValue {
+        if (propValue == lastPropValue) return current
+        lastPropValue = propValue
+        if (propValue == current.text) {
+            unconfirmed.clear()
+            return current
+        }
+        val matchedIndex = unconfirmed.indexOf(propValue)
+        if (matchedIndex >= 0) {
+            repeat(matchedIndex + 1) { unconfirmed.removeFirst() }
+            return current
+        }
+        val wasTyping = unconfirmed.isNotEmpty()
+        val wasAtEnd = current.selection.collapsed && current.selection.start == current.text.length
+        val wasEmpty = current.text.isEmpty()
+        unconfirmed.clear()
+        lastEmittedValue = propValue
+        val nextSelection = if (!wasTyping && (wasAtEnd || wasEmpty)) {
+            TextRange(propValue.length)
+        } else {
+            TextRange(
+                current.selection.start.coerceIn(0, propValue.length),
+                current.selection.end.coerceIn(0, propValue.length),
+            )
+        }
+        return current.copy(text = propValue, selection = nextSelection, composition = null)
+    }
+
+    fun onUserChanged(
+        next: TextFieldValue,
+        emit: (String) -> Unit,
+    ): TextFieldValue {
+        if (next.text != lastEmittedValue) {
+            lastEmittedValue = next.text
+            unconfirmed.addLast(next.text)
+            if (unconfirmed.size > 16) unconfirmed.removeFirst()
+            emit(next.text)
+        }
+        return next
+    }
+
+    fun forceReconcile(
+        propValue: String,
+        current: TextFieldValue,
+    ): TextFieldValue {
+        unconfirmed.clear()
+        lastPropValue = propValue
+        lastEmittedValue = propValue
+        if (current.text == propValue) return current
+        return current.copy(
+            text = propValue,
+            selection = TextRange(
+                current.selection.start.coerceIn(0, propValue.length),
+                current.selection.end.coerceIn(0, propValue.length),
+            ),
+            composition = null,
+        )
+    }
+}
+
+/** Clamps a [TextFieldValue] to [maxLength] while keeping caret selection within bounds. */
+internal fun limitTextFieldValue(
+    value: TextFieldValue,
+    maxLength: Int,
+): TextFieldValue {
+    if (value.text.length <= maxLength) return value
+    val clampedText = value.text.take(maxLength)
+    return value.copy(
+        text = clampedText,
+        selection = TextRange(
+            value.selection.start.coerceIn(0, clampedText.length),
+            value.selection.end.coerceIn(0, clampedText.length),
+        ),
+        composition = null,
+    )
+}
+
+/**
  * Frosted translucent text input field synced with Liquid Glass, Ambient artwork glow,
  * Reduce dynamic blur, and interactive glass press animations.
  */
@@ -258,6 +354,64 @@ internal fun DesktopGlassTextField(
     isPassword: Boolean = false,
     imeAction: ImeAction = ImeAction.Done,
     onSubmit: () -> Unit = {},
+    focusRequester: FocusRequester? = null,
+) {
+    val sync = remember { DesktopTextFieldSyncState(value) }
+    var textFieldValueState by remember {
+        mutableStateOf(
+            TextFieldValue(
+                text = value,
+                selection = TextRange(value.length),
+            ),
+        )
+    }
+    val displayValue = sync.syncFromProp(value, textFieldValueState)
+    SideEffect {
+        if (displayValue != textFieldValueState) {
+            textFieldValueState = displayValue
+        }
+    }
+    LaunchedEffect(value, textFieldValueState.text) {
+        if (value != textFieldValueState.text) {
+            delay(120)
+            if (value != textFieldValueState.text) {
+                textFieldValueState = sync.forceReconcile(value, textFieldValueState)
+            }
+        }
+    }
+
+    DesktopGlassTextField(
+        value = displayValue,
+        onValueChange = { next ->
+            textFieldValueState = sync.onUserChanged(next, onValueChange)
+        },
+        placeholder = placeholder,
+        modifier = modifier,
+        label = label,
+        enabled = enabled,
+        isPassword = isPassword,
+        imeAction = imeAction,
+        onSubmit = onSubmit,
+        focusRequester = focusRequester,
+    )
+}
+
+/**
+ * [TextFieldValue] overload of [DesktopGlassTextField] preserving explicit caret selection
+ * and IME composition ranges without string round-tripping.
+ */
+@Composable
+internal fun DesktopGlassTextField(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    enabled: Boolean = true,
+    isPassword: Boolean = false,
+    imeAction: ImeAction = ImeAction.Done,
+    onSubmit: () -> Unit = {},
+    focusRequester: FocusRequester? = null,
 ) {
     val palette = LocalDesktopPalette.current
     val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
@@ -348,7 +502,7 @@ internal fun DesktopGlassTextField(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.weight(1f)) {
-                if (value.isEmpty()) {
+                if (value.text.isEmpty()) {
                     Text(
                         text = placeholder,
                         style = MaterialTheme.typography.bodyLarge,
@@ -369,10 +523,11 @@ internal fun DesktopGlassTextField(
                     keyboardActions = KeyboardActions(onDone = { onSubmit() }),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
                         .onFocusChanged { isFocused = it.isFocused },
                 )
             }
-            if (value.isNotEmpty() && enabled) {
+            if (value.text.isNotEmpty() && enabled) {
                 val clearInteraction = remember { MutableInteractionSource() }
                 Spacer(Modifier.width(6.dp))
                 Box(
@@ -381,7 +536,10 @@ internal fun DesktopGlassTextField(
                         .clip(CircleShape)
                         .desktopGlassPress(CircleShape, interactionSource = clearInteraction, pressScale = 0.90f)
                         .background(DesktopInk.copy(alpha = 0.12f))
-                        .clickable(interactionSource = clearInteraction, indication = null) { onValueChange("") },
+                        .clickable(interactionSource = clearInteraction, indication = null) {
+                            onValueChange(TextFieldValue(text = "", selection = TextRange.Zero))
+                            runCatching { focusRequester?.requestFocus() }
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -540,8 +698,14 @@ internal fun Modifier.desktopRowClickable(enabled: Boolean = true, onClick: () -
 @Stable
 internal class DesktopModalEntry(
     val id: Any,
-    val contentState: MutableState<@Composable () -> Unit>,
-)
+    onDismiss: () -> Unit,
+    maxWidth: Int,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    var onDismiss by mutableStateOf(onDismiss)
+    var maxWidth by mutableStateOf(maxWidth)
+    var content by mutableStateOf(content)
+}
 
 /**
  * Window-level host for popup panels opened from inside scrollers or captured backdrop trees.
@@ -570,7 +734,11 @@ internal val LocalDesktopInRootOverlay = staticCompositionLocalOf { false }
 internal fun DesktopModalPortalHost(state: DesktopModalHostState) {
     for (entry in state.entries) {
         key(entry.id) {
-            entry.contentState.value()
+            DesktopDialogModalFrame(
+                onDismiss = entry.onDismiss,
+                maxWidth = entry.maxWidth,
+                content = entry.content,
+            )
         }
     }
 }
@@ -601,23 +769,15 @@ internal fun DesktopDialogPanel(
         val entry = remember(modalHost) {
             DesktopModalEntry(
                 id = Any(),
-                contentState = mutableStateOf<@Composable () -> Unit>({
-                    DesktopDialogModalFrame(
-                        onDismiss = onDismiss,
-                        maxWidth = maxWidth,
-                        content = content,
-                    )
-                }),
+                onDismiss = onDismiss,
+                maxWidth = maxWidth,
+                content = content,
             )
         }
         SideEffect {
-            entry.contentState.value = {
-                DesktopDialogModalFrame(
-                    onDismiss = onDismiss,
-                    maxWidth = maxWidth,
-                    content = content,
-                )
-            }
+            entry.onDismiss = onDismiss
+            entry.maxWidth = maxWidth
+            entry.content = content
         }
         DisposableEffect(modalHost, entry) {
             modalHost.register(entry)

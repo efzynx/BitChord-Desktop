@@ -70,9 +70,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.music.bitchord.ui.components.PillSegmentedControl
@@ -294,7 +297,7 @@ internal fun DesktopGoogleDriveBackupPage(
     var adoptSessionOnRestore by remember { mutableStateOf(false) }
     var pendingDeleteSnapshot by remember { mutableStateOf<DesktopDriveBackup.RemoteBackup?>(null) }
     var pendingDeleteDevice by remember { mutableStateOf<DesktopDriveBackup.RemoteDeviceGroup?>(null) }
-    var renamingDevice by remember { mutableStateOf<String?>(null) }
+    var showRenameDialog by remember { mutableStateOf(false) }
     var confirmNewSession by remember { mutableStateOf(false) }
     val expandedDevices = remember { mutableStateMapOf<String, Boolean>() }
 
@@ -527,7 +530,7 @@ internal fun DesktopGoogleDriveBackupPage(
                                 )
                             }
                             TextButton(
-                                onClick = { renamingDevice = settings.deviceName },
+                                onClick = { showRenameDialog = true },
                                 enabled = !isBusy,
                                 colors = ButtonDefaults.textButtonColors(contentColor = DesktopInk),
                             ) {
@@ -878,14 +881,13 @@ internal fun DesktopGoogleDriveBackupPage(
         )
     }
 
-    renamingDevice?.let { draft ->
+    if (showRenameDialog) {
         DriveRenameDeviceDialog(
-            value = draft,
-            onValueChange = { renamingDevice = it.take(60) },
-            onDismiss = { renamingDevice = null },
-            onSave = {
-                DesktopDriveBackup.setDeviceName(draft)
-                renamingDevice = null
+            initialName = settings.deviceName,
+            onDismiss = { showRenameDialog = false },
+            onSave = { newName ->
+                DesktopDriveBackup.setDeviceName(newName)
+                showRenameDialog = false
             },
         )
     }
@@ -1270,12 +1272,30 @@ private fun DriveRestoreDialog(
 
 @Composable
 private fun DriveRenameDeviceDialog(
-    value: String,
-    onValueChange: (String) -> Unit,
+    initialName: String,
     onDismiss: () -> Unit,
-    onSave: () -> Unit,
+    onSave: (String) -> Unit,
 ) {
     DesktopDialogPanel(onDismiss = onDismiss, maxWidth = 420, popup = true) {
+        val focusRequester = remember { FocusRequester() }
+        var draft by remember(initialName) {
+            val clamped = initialName.take(60)
+            mutableStateOf(
+                TextFieldValue(
+                    text = clamped,
+                    selection = TextRange(clamped.length),
+                ),
+            )
+        }
+        LaunchedEffect(Unit) {
+            runCatching { focusRequester.requestFocus() }
+        }
+        fun saveIfValid() {
+            val trimmed = draft.text.trim()
+            if (trimmed.isNotEmpty()) {
+                onSave(trimmed)
+            }
+        }
         Column(Modifier.fillMaxWidth().padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 DesktopStrings["d_drive_rename_title", "Rename this device"],
@@ -1284,10 +1304,12 @@ private fun DriveRenameDeviceDialog(
                 color = DesktopInk,
             )
             DesktopGlassTextField(
-                value = value,
-                onValueChange = onValueChange,
+                value = draft,
+                onValueChange = { next -> draft = limitTextFieldValue(next, maxLength = 60) },
                 label = DesktopStrings["d_drive_rename_placeholder", "Device name"],
                 placeholder = DesktopDriveBackup.defaultDeviceName(),
+                onSubmit = ::saveIfValid,
+                focusRequester = focusRequester,
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -1299,8 +1321,8 @@ private fun DriveRenameDeviceDialog(
                 }
                 Spacer(Modifier.width(8.dp))
                 Button(
-                    onClick = onSave,
-                    enabled = value.isNotBlank(),
+                    onClick = ::saveIfValid,
+                    enabled = draft.text.isNotBlank(),
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(containerColor = DesktopAccent, contentColor = DesktopOnAccent),
                 ) {
@@ -1316,17 +1338,18 @@ private fun DriveConnectDialog(
     onDismiss: () -> Unit,
     onConnected: () -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
-    val hasBuiltIn = remember { DesktopDriveAuth.hasBuiltInClient() }
-    var mode by remember { mutableStateOf(if (hasBuiltIn) 0 else 1) } // 0 = Built-in, 1 = Custom BYO, 2 = Access Token
-    var clientId by remember { mutableStateOf(DesktopDriveAuth.savedClientId()) }
-    var clientSecret by remember { mutableStateOf(DesktopDriveAuth.savedClientSecret()) }
-    var accessToken by remember { mutableStateOf("") }
-    var showByoGuide by remember { mutableStateOf(!hasBuiltIn && clientId.isBlank()) }
     var busy by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
 
     DesktopDialogPanel(onDismiss = { if (!busy) onDismiss() }, maxWidth = 540, popup = true) {
+        val scope = rememberCoroutineScope()
+        val hasBuiltIn = remember { DesktopDriveAuth.hasBuiltInClient() }
+        var mode by remember { mutableStateOf(if (hasBuiltIn) 0 else 1) } // 0 = Built-in, 1 = Custom BYO, 2 = Access Token
+        var clientId by remember { mutableStateOf(DesktopDriveAuth.savedClientId()) }
+        var clientSecret by remember { mutableStateOf(DesktopDriveAuth.savedClientSecret()) }
+        var accessToken by remember { mutableStateOf("") }
+        var showByoGuide by remember { mutableStateOf(!hasBuiltIn && clientId.isBlank()) }
+        var error by remember { mutableStateOf<String?>(null) }
+
         Column(
             Modifier
                 .fillMaxWidth()

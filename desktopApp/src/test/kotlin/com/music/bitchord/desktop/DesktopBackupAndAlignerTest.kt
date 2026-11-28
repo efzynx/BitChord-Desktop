@@ -450,4 +450,52 @@ class DesktopBackupAndAlignerTest {
             runCatching { targetPrefs.removeNode() }
         }
     }
+
+    @Test
+    fun `text field sync preserves cursor during async portal lag and honors external coercions`() {
+        val sync = DesktopTextFieldSyncState(initialValue = "")
+        var tfv = androidx.compose.ui.text.input.TextFieldValue("")
+
+        // Fast typing while parent still supplies stale "" over a delayed SideEffect frame:
+        // cursor must advance cleanly rather than resetting back to index 0.
+        val emitted = mutableListOf<String>()
+        tfv = sync.onUserChanged(
+            androidx.compose.ui.text.input.TextFieldValue("c", androidx.compose.ui.text.TextRange(1)),
+        ) { emitted.add(it) }
+        tfv = sync.syncFromProp("", tfv)
+        assertEquals("c", tfv.text)
+        assertEquals(androidx.compose.ui.text.TextRange(1), tfv.selection)
+
+        tfv = sync.onUserChanged(
+            androidx.compose.ui.text.input.TextFieldValue("ca", androidx.compose.ui.text.TextRange(2)),
+        ) { emitted.add(it) }
+        // Stale echo of first keystroke "c" arrives before "ca": must not drop "a" or move cursor.
+        tfv = sync.syncFromProp("c", tfv)
+        assertEquals("ca", tfv.text)
+        assertEquals(androidx.compose.ui.text.TextRange(2), tfv.selection)
+
+        // Final echo "ca" arrives cleanly.
+        tfv = sync.syncFromProp("ca", tfv)
+        assertEquals(listOf("c", "ca"), emitted)
+        assertEquals("ca", tfv.text)
+        assertEquals(androidx.compose.ui.text.TextRange(2), tfv.selection)
+
+        // Caller rejects/truncates an over-limit edit silently without prop change: forceReconcile snaps cleanly.
+        val limited = limitTextFieldValue(
+            androidx.compose.ui.text.input.TextFieldValue(
+                "abcdef",
+                androidx.compose.ui.text.TextRange(6),
+            ),
+            maxLength = 4,
+        )
+        assertEquals("abcd", limited.text)
+        assertEquals(androidx.compose.ui.text.TextRange(4), limited.selection)
+
+        val overLimit = sync.onUserChanged(
+            androidx.compose.ui.text.input.TextFieldValue("cax", androidx.compose.ui.text.TextRange(3)),
+        ) { }
+        val reconciled = sync.forceReconcile("ca", overLimit)
+        assertEquals("ca", reconciled.text)
+        assertEquals(androidx.compose.ui.text.TextRange(2), reconciled.selection)
+    }
 }
