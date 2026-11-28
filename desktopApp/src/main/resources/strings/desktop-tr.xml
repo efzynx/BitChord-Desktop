@@ -490,4 +490,6 @@
     <string name="d_switch_to_audio">Yalnızca ses moduna geç</string>
     <string name="d_no_video_version">Bu şarkı için video sürümü bulunamadı</string>
     <string name="d_version_switch_in_party">Listen Together içinde herkes aynı sürümü dinler</string>
+    <string name="d_auto_hide_video_lyrics">Video modunda şarkı sözlerini gizle</string>
+    <string name="d_auto_hide_video_lyrics_subtitle">Müzik videosu izlerken ilerleme çubuğu üzerindeki söz satırını otomatik gizler; menüden tekrar açabilirsiniz</string>
 </resources>

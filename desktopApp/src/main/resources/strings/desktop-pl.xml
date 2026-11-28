@@ -490,4 +490,6 @@
     <string name="d_switch_to_audio">Przełącz na samo audio</string>
     <string name="d_no_video_version">Nie znaleziono wersji wideo dla tego utworu</string>
     <string name="d_version_switch_in_party">Wszyscy w Listen Together słyszą tę samą wersję</string>
+    <string name="d_auto_hide_video_lyrics">Ukryj tekst w trybie wideo</string>
+    <string name="d_auto_hide_video_lyrics_subtitle">Automatycznie ukrywa pasek tekstu nad suwakiem czasu podczas odtwarzania teledysku; można go włączyć ponownie w menu</string>
 </resources>

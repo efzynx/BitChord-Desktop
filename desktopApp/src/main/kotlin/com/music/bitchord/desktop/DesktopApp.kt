@@ -4388,11 +4388,34 @@ fun BitChordDesktopApp() {
                                             onSearchLyrics = { title, artist -> searchLyrics(title, artist) },
                                             lyricsOffsetMs = lyricsOffsetMs,
                                             onSetLyricsOffset = { DesktopPlayerSettings.setLyricsOffsetMs(it) },
-                                            hideLyricsPreview = DesktopAppearanceSettings.hideLyricsPreview.collectAsState().value,
+                                            hideLyricsPreview = com.music.bitchord.ui.player.effectiveHideLyricsPreview(
+                                                hideLyricsPreview = DesktopAppearanceSettings.hideLyricsPreview.collectAsState().value,
+                                                autoHideLyricsInVideo = DesktopAppearanceSettings.autoHideLyricsInVideo.collectAsState().value,
+                                                showingVideo = playerShowingVideo,
+                                                revealedVideoId = DesktopAppearanceSettings.revealedVideoLyricsId.collectAsState().value,
+                                                songVideoId = current.videoId,
+                                            ),
                                             onToggleHideLyricsPreview = {
-                                                DesktopAppearanceSettings.setHideLyricsPreview(
-                                                    !DesktopAppearanceSettings.hideLyricsPreview.value,
-                                                )
+                                                val rawHidden = DesktopAppearanceSettings.hideLyricsPreview.value
+                                                val autoHide = DesktopAppearanceSettings.autoHideLyricsInVideo.value
+                                                val revealedId = DesktopAppearanceSettings.revealedVideoLyricsId.value
+                                                if (playerShowingVideo && autoHide) {
+                                                    val currentlyHidden = com.music.bitchord.ui.player.effectiveHideLyricsPreview(
+                                                        hideLyricsPreview = rawHidden,
+                                                        autoHideLyricsInVideo = true,
+                                                        showingVideo = true,
+                                                        revealedVideoId = revealedId,
+                                                        songVideoId = current.videoId,
+                                                    )
+                                                    if (currentlyHidden) {
+                                                        if (rawHidden) DesktopAppearanceSettings.setHideLyricsPreview(false)
+                                                        DesktopAppearanceSettings.setVideoLyricsRevealed(current.videoId, true)
+                                                    } else {
+                                                        DesktopAppearanceSettings.setVideoLyricsRevealed(current.videoId, false)
+                                                    }
+                                                } else {
+                                                    DesktopAppearanceSettings.setHideLyricsPreview(!rawHidden)
+                                                }
                                             },
                                             usePopup = false,
                                             onDismiss = {

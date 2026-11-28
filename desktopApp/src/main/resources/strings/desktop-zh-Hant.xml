@@ -490,4 +490,6 @@
     <string name="d_switch_to_audio">切換為僅音訊</string>
     <string name="d_no_video_version">找不到此歌曲的視訊版本</string>
     <string name="d_version_switch_in_party">一起聽中的所有成員都會聆聽相同版本</string>
+    <string name="d_auto_hide_video_lyrics">影片模式下自動隱藏歌詞</string>
+    <string name="d_auto_hide_video_lyrics_subtitle">播放音樂影片時自動隱藏進度條上方的歌詞列；仍可在選單中重新開啟</string>
 </resources>

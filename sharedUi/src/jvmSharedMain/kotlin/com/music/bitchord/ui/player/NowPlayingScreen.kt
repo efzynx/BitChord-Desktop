@@ -1034,7 +1034,9 @@ fun NowPlayingScreen(
     val openListenTogetherMembers: () -> Unit = { showListenTogetherMembers = true }
 
     val syncedLyricsEnabled by PlayerSettings.syncedLyrics.collectAsStateWithLifecycle()
-    val hideLyricsPreview by PlayerSettings.hideLyricsPreview.collectAsStateWithLifecycle()
+    val hideLyricsPreviewSetting by PlayerSettings.hideLyricsPreview.collectAsStateWithLifecycle()
+    val autoHideLyricsInVideo by PlayerSettings.autoHideLyricsInVideo.collectAsStateWithLifecycle()
+    val revealedVideoLyricsId by PlayerSettings.revealedVideoLyricsId.collectAsStateWithLifecycle()
     val lyricsOffsetMs by PlayerSettings.lyricsOffsetMs.collectAsStateWithLifecycle()
     // A lambda, not a value: read by the lyric strip and panel in scopes of
     // their own, so a tick recomposes them and not the player around them.
@@ -1060,6 +1062,13 @@ fun NowPlayingScreen(
     // A music video plays its own picture where the sleeve is — see
     // [MusicVideoSurface] — and takes the place of any animated cover.
     val videoMode = showsMusicVideo(song)
+    val hideLyricsPreview = effectiveHideLyricsPreview(
+        hideLyricsPreview = hideLyricsPreviewSetting,
+        autoHideLyricsInVideo = autoHideLyricsInVideo,
+        showingVideo = videoMode,
+        revealedVideoId = revealedVideoLyricsId,
+        songVideoId = song.videoId,
+    )
     // Square video thumbnails: the picture takes the sleeve's own slot, cropped
     // to it, in place of the full-width box at the video's shape.
     val squareVideo = videoMode && VideoThumbnails.square
@@ -2573,7 +2582,13 @@ fun NowPlayingScreen(
                                         lyricsUnavailable = lyricsUnavailable,
                                         loadingText = lyricsLoadingText,
                                         onClick = openLyrics,
-                                        onHide = { PlayerSettings.setHideLyricsPreview(true) },
+                                        onHide = {
+                                            if (videoMode && autoHideLyricsInVideo) {
+                                                PlayerSettings.setVideoLyricsRevealed(song.videoId, false)
+                                            } else {
+                                                PlayerSettings.setHideLyricsPreview(true)
+                                            }
+                                        },
                                     )
                                 }
                             } else {
@@ -4619,7 +4634,13 @@ fun NowPlayingScreen(
                             // the queue behind it the same way the "Up next" glyph
                             // closes lyrics behind the queue.
                             onClick = openLyrics,
-                            onHide = { PlayerSettings.setHideLyricsPreview(true) },
+                            onHide = {
+                                if (videoMode && autoHideLyricsInVideo) {
+                                    PlayerSettings.setVideoLyricsRevealed(song.videoId, false)
+                                } else {
+                                    PlayerSettings.setHideLyricsPreview(true)
+                                }
+                            },
                         )
                     }
                     if (!lyricsOpen && !syncedLyricsEnabled) {

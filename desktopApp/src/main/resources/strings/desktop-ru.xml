@@ -490,4 +490,6 @@
     <string name="d_switch_to_audio">Переключить только на аудио</string>
     <string name="d_no_video_version">Видеоверсия для этого трека не найдена</string>
     <string name="d_version_switch_in_party">В Listen Together все слушают одну и ту же версию</string>
+    <string name="d_auto_hide_video_lyrics">Скрывать текст в режиме видео</string>
+    <string name="d_auto_hide_video_lyrics_subtitle">Автоматически скрывает строку текста над полосой перемотки при просмотре клипа; можно снова включить в меню</string>
 </resources>

@@ -1634,16 +1634,28 @@ internal fun DesktopSettingsRouter(
                                     )
                                 }
                                 val hideLyricsPreview by DesktopAppearanceSettings.hideLyricsPreview.collectAsState()
+                                val autoHideVideoLyrics by DesktopAppearanceSettings.autoHideLyricsInVideo.collectAsState()
                                 row(
                                     DesktopStrings["d_hide_player_lyrics", "Hide lyrics preview in player"],
                                     DesktopStrings["d_hide_player_lyrics_subtitle", "Hides the synced lyric line above the scrubber in the main player"],
-                                    divided = false,
                                 ) {
                                     DesktopSettingsSubRow(
                                         title = DesktopStrings["d_hide_player_lyrics", "Hide lyrics preview in player"],
                                         subtitle = DesktopStrings["d_hide_player_lyrics_subtitle", "Hides the synced lyric line above the scrubber in the main player"],
                                         checked = hideLyricsPreview,
                                         onCheckedChange = DesktopAppearanceSettings::setHideLyricsPreview,
+                                    )
+                                }
+                                row(
+                                    DesktopStrings["d_auto_hide_video_lyrics", "Auto-hide lyrics in video mode"],
+                                    DesktopStrings["d_auto_hide_video_lyrics_subtitle", "Hides the lyric strip above the scrubber while watching a music video; you can still re-enable it from the menu"],
+                                    divided = false,
+                                ) {
+                                    DesktopSettingsSubRow(
+                                        title = DesktopStrings["d_auto_hide_video_lyrics", "Auto-hide lyrics in video mode"],
+                                        subtitle = DesktopStrings["d_auto_hide_video_lyrics_subtitle", "Hides the lyric strip above the scrubber while watching a music video; you can still re-enable it from the menu"],
+                                        checked = autoHideVideoLyrics,
+                                        onCheckedChange = DesktopAppearanceSettings::setAutoHideLyricsInVideo,
                                     )
                                 }
                                 row(DesktopStrings["lyrics_sources", "Lyrics sources"]) {

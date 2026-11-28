@@ -500,4 +500,6 @@
     <string name="d_switch_to_audio">Beralih ke audio saja</string>
     <string name="d_no_video_version">Versi video tidak ditemukan untuk lagu ini</string>
     <string name="d_version_switch_in_party">Semua orang di Listen Together mendengar versi yang sama</string>
+    <string name="d_auto_hide_video_lyrics">Sembunyikan lirik di mode video</string>
+    <string name="d_auto_hide_video_lyrics_subtitle">Otomatis menyembunyikan baris lirik di atas slider waktu saat memutar video musik; tetap bisa diaktifkan lagi dari menu</string>
 </resources>

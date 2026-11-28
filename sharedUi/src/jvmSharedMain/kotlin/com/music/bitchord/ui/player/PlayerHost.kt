@@ -274,6 +274,10 @@ interface PlayerSettingsSource {
     val hideSongStatus: StateFlow<Boolean>
     /** Hides the lyrics preview strip on the main and mini player screens. */
     val hideLyricsPreview: StateFlow<Boolean>
+    /** Automatically hides the lyric strip above the scrubber while playing a music video. */
+    val autoHideLyricsInVideo: StateFlow<Boolean> get() = defaultAutoHideLyricsInVideo
+    /** Video ID whose lyric strip the user temporarily revealed during video playback. */
+    val revealedVideoLyricsId: StateFlow<String?> get() = defaultRevealedVideoLyricsId
     val showQueueHistory: StateFlow<Boolean>
     val hideVolumeBar: StateFlow<Boolean>
     /** Hide the device status bar while the player is up. Always false where there is none. */
@@ -326,6 +330,8 @@ interface PlayerSettingsSource {
     fun setLastPlayerScreen(value: LastPlayerScreen)
     fun setLyricsOffsetMs(value: Int)
     fun setHideLyricsPreview(value: Boolean) {}
+    fun setAutoHideLyricsInVideo(value: Boolean) {}
+    fun setVideoLyricsRevealed(videoId: String, revealed: Boolean) {}
     /** Whether the mix popup is up, so the host lays out [smartMixPreview] for it. */
     fun setMixViewOpen(open: Boolean)
 }
@@ -335,6 +341,21 @@ internal val PlayerSettings: PlayerSettingsSource
     get() = PlayerPlatform.host.settings
 
 private val defaultAutoMixArtwork: StateFlow<AutoMixArtworkPreferences> = MutableStateFlow(AutoMixArtworkPreferences())
+private val defaultAutoHideLyricsInVideo: StateFlow<Boolean> = MutableStateFlow(false)
+private val defaultRevealedVideoLyricsId: StateFlow<String?> = MutableStateFlow(null)
+
+/** Effective lyric-strip visibility accounting for global setting and video-mode auto-hide. */
+fun effectiveHideLyricsPreview(
+    hideLyricsPreview: Boolean,
+    autoHideLyricsInVideo: Boolean,
+    showingVideo: Boolean,
+    revealedVideoId: String?,
+    songVideoId: String,
+): Boolean = when {
+    hideLyricsPreview -> true
+    showingVideo && autoHideLyricsInVideo -> revealedVideoId != songVideoId
+    else -> false
+}
 
 /** The lyric offset sheet's range, in milliseconds either way. */
 const val MIN_LYRICS_OFFSET_MS = -5_000

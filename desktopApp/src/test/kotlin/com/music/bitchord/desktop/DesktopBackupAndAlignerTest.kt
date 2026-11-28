@@ -581,4 +581,76 @@ class DesktopBackupAndAlignerTest {
         assertTrue(DesktopMusicVideoEngine.shouldScaleForCadence(highFrameRate = true, ptsMs = 33L, lastPresentedPtsMs = 0L))
         assertTrue(DesktopMusicVideoEngine.shouldScaleForCadence(highFrameRate = true, ptsMs = 5L, lastPresentedPtsMs = 1200L))
     }
+
+    @Test
+    fun `video auto quality prefers 720p windowed 1080p fullscreen and steps down smoothly`() {
+        assertEquals(720, DesktopMusicVideoEngine.autoHeightFor(fullscreen = false))
+        assertEquals(1080, DesktopMusicVideoEngine.autoHeightFor(fullscreen = true))
+        val heights = listOf(2160, 1440, 1080, 720, 480, 360)
+        assertEquals(1440, DesktopMusicVideoEngine.nextLowerQualityHeight(2160, heights))
+        assertEquals(720, DesktopMusicVideoEngine.nextLowerQualityHeight(1080, heights))
+        assertEquals(480, DesktopMusicVideoEngine.nextLowerQualityHeight(720, heights))
+        assertEquals(null, DesktopMusicVideoEngine.nextLowerQualityHeight(480, heights))
+        assertTrue(DesktopVideoYuvShaders.supportsYuvPlanar)
+        assertTrue(DesktopVideoYuvShaders.supportsNv12)
+    }
+
+    @Test
+    fun `video mode auto-hides lyric strip by default without mutating audio preference`() {
+        assertFalse(
+            com.music.bitchord.ui.player.effectiveHideLyricsPreview(
+                hideLyricsPreview = false,
+                autoHideLyricsInVideo = true,
+                showingVideo = false,
+                revealedVideoId = null,
+                songVideoId = "vid-1",
+            ),
+        )
+        assertTrue(
+            com.music.bitchord.ui.player.effectiveHideLyricsPreview(
+                hideLyricsPreview = false,
+                autoHideLyricsInVideo = true,
+                showingVideo = true,
+                revealedVideoId = null,
+                songVideoId = "vid-1",
+            ),
+        )
+        assertFalse(
+            com.music.bitchord.ui.player.effectiveHideLyricsPreview(
+                hideLyricsPreview = false,
+                autoHideLyricsInVideo = true,
+                showingVideo = true,
+                revealedVideoId = "vid-1",
+                songVideoId = "vid-1",
+            ),
+        )
+        assertTrue(
+            com.music.bitchord.ui.player.effectiveHideLyricsPreview(
+                hideLyricsPreview = false,
+                autoHideLyricsInVideo = true,
+                showingVideo = true,
+                revealedVideoId = "vid-1",
+                songVideoId = "vid-2",
+            ),
+        )
+        assertTrue(
+            com.music.bitchord.ui.player.effectiveHideLyricsPreview(
+                hideLyricsPreview = true,
+                autoHideLyricsInVideo = true,
+                showingVideo = true,
+                revealedVideoId = "vid-1",
+                songVideoId = "vid-1",
+            ),
+        )
+
+        val prev = DesktopAppearanceSettings.autoHideLyricsInVideo.value
+        try {
+            DesktopAppearanceSettings.setAutoHideLyricsInVideo(false)
+            assertFalse(DesktopAppearanceSettings.autoHideLyricsInVideo.value)
+            DesktopAppearanceSettings.setAutoHideLyricsInVideo(true)
+            assertTrue(DesktopAppearanceSettings.autoHideLyricsInVideo.value)
+        } finally {
+            DesktopAppearanceSettings.setAutoHideLyricsInVideo(prev)
+        }
+    }
 }

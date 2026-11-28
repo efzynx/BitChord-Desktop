@@ -490,4 +490,6 @@
     <string name="d_switch_to_audio">Nur zu Audio wechseln</string>
     <string name="d_no_video_version">Keine Videoversion für diesen Titel gefunden</string>
     <string name="d_version_switch_in_party">In Listen Together hören alle dieselbe Version</string>
+    <string name="d_auto_hide_video_lyrics">Liedtexte im Videomodus ausblenden</string>
+    <string name="d_auto_hide_video_lyrics_subtitle">Blendet die Liedtextzeile über dem Fortschrittsbalken während eines Musikvideos automatisch aus; lässt sich über das Menü wieder einblenden</string>
 </resources>

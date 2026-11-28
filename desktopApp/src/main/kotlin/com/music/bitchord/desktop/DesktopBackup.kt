@@ -61,6 +61,7 @@ internal object DesktopBackup {
         "automix_mini_art_transition",
         "dont_repeat_suggestions",
         "hide_lyrics_preview",
+        DesktopAppearanceSettings.KEY_AUTO_HIDE_LYRICS_IN_VIDEO,
         "swipe_back_gesture",
         "ambient_backdrop",
         "reduce_animation",
@@ -283,6 +284,9 @@ internal object DesktopBackup {
         )
         DesktopAppearanceSettings.setHideLyricsPreview(
             persistence.boolean("hide_lyrics_preview", false),
+        )
+        DesktopAppearanceSettings.setAutoHideLyricsInVideo(
+            persistence.boolean(DesktopAppearanceSettings.KEY_AUTO_HIDE_LYRICS_IN_VIDEO, true),
         )
         DesktopAppearanceSettings.setAmbientBackdrop(
             persistence.boolean(

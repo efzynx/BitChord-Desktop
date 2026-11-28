@@ -166,6 +166,8 @@ internal object DesktopAppearanceSettings {
     )
     private val _hideVolumeBar = flag(KEY_HIDE_VOLUME_BAR, false)
     private val _hideLyricsPreview = flag(KEY_HIDE_LYRICS_PREVIEW, false)
+    private val _autoHideLyricsInVideo = flag(KEY_AUTO_HIDE_LYRICS_IN_VIDEO, true)
+    private val _revealedVideoLyricsId = MutableStateFlow<String?>(null)
     private val _swipeBackGesture = flag(KEY_SWIPE_BACK_GESTURE, true)
     private val _ambientBackdrop = flag(KEY_AMBIENT_BACKDROP, false)
     private val _ambientBackdropStyle = MutableStateFlow(
@@ -214,6 +216,12 @@ internal object DesktopAppearanceSettings {
 
     /** Hides the live lyric preview strip on the main player screen. */
     val hideLyricsPreview: StateFlow<Boolean> = _hideLyricsPreview
+
+    /** Automatically hides the live lyric strip while music video mode is active. */
+    val autoHideLyricsInVideo: StateFlow<Boolean> = _autoHideLyricsInVideo
+
+    /** Video ID whose lyric strip the user temporarily re-enabled during video playback. */
+    val revealedVideoLyricsId: StateFlow<String?> = _revealedVideoLyricsId
 
     /** Enables navigating back with mouse Back button or left-to-right two-finger trackpad swipe. */
     val swipeBackGesture: StateFlow<Boolean> = _swipeBackGesture
@@ -333,6 +341,12 @@ internal object DesktopAppearanceSettings {
 
     fun setHideLyricsPreview(value: Boolean) = write(KEY_HIDE_LYRICS_PREVIEW, value, _hideLyricsPreview)
 
+    fun setAutoHideLyricsInVideo(value: Boolean) = write(KEY_AUTO_HIDE_LYRICS_IN_VIDEO, value, _autoHideLyricsInVideo)
+
+    fun setVideoLyricsRevealed(videoId: String, revealed: Boolean) {
+        _revealedVideoLyricsId.value = if (revealed) videoId else if (_revealedVideoLyricsId.value == videoId) null else _revealedVideoLyricsId.value
+    }
+
     fun setSwipeBackGesture(value: Boolean) = write(KEY_SWIPE_BACK_GESTURE, value, _swipeBackGesture)
 
     fun setAmbientBackdrop(value: Boolean) = write(KEY_AMBIENT_BACKDROP, value, _ambientBackdrop)
@@ -364,6 +378,7 @@ internal object DesktopAppearanceSettings {
     internal const val KEY_PERFORMANCE_REFRESH_RATE = "performance_refresh_rate"
     internal const val KEY_HIDE_VOLUME_BAR = "hide_volume_bar"
     internal const val KEY_HIDE_LYRICS_PREVIEW = "hide_lyrics_preview"
+    internal const val KEY_AUTO_HIDE_LYRICS_IN_VIDEO = "auto_hide_lyrics_in_video"
     internal const val KEY_SWIPE_BACK_GESTURE = "swipe_back_gesture"
     internal const val KEY_AMBIENT_BACKDROP = "ambient_backdrop"
     internal const val KEY_AMBIENT_BACKDROP_STYLE = "ambient_backdrop_style"

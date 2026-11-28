@@ -502,4 +502,6 @@
     <string name="d_switch_to_audio">Switch to audio only</string>
     <string name="d_no_video_version">No video version found for this song</string>
     <string name="d_version_switch_in_party">Everyone in Listen Together hears the same version</string>
+    <string name="d_auto_hide_video_lyrics">Auto-hide lyrics in video mode</string>
+    <string name="d_auto_hide_video_lyrics_subtitle">Hides the lyric strip above the scrubber while watching a music video; you can still re-enable it from the menu</string>
 </resources>

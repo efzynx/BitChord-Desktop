@@ -490,4 +490,6 @@
     <string name="d_switch_to_audio">オーディオのみに切り替え</string>
     <string name="d_no_video_version">この曲のビデオ版が見つかりませんでした</string>
     <string name="d_version_switch_in_party">Listen Together では全員が同じバージョンを再生します</string>
+    <string name="d_auto_hide_video_lyrics">動画モードで歌詞を自動非表示</string>
+    <string name="d_auto_hide_video_lyrics_subtitle">ミュージックビデオ再生時にシークバー上の歌詞ラインを自動で非表示にします（メニューから再表示可能）</string>
 </resources>

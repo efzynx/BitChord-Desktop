@@ -247,6 +247,8 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     override val showTotalDuration = MutableStateFlow(persistence.boolean(KEY_SHOW_TOTAL_DURATION, false))
     override val hideSongStatus = MutableStateFlow(false)
     override val hideLyricsPreview = DesktopAppearanceSettings.hideLyricsPreview
+    override val autoHideLyricsInVideo = DesktopAppearanceSettings.autoHideLyricsInVideo
+    override val revealedVideoLyricsId = DesktopAppearanceSettings.revealedVideoLyricsId
     override val showQueueHistory = MutableStateFlow(false)
     override val hideVolumeBar = DesktopAppearanceSettings.hideVolumeBar
     // A desktop window has no status bar to hide.
@@ -309,6 +311,11 @@ internal object DesktopPlayerSettings : PlayerSettingsSource {
     override fun setMixViewOpen(open: Boolean) {}
 
     override fun setHideLyricsPreview(value: Boolean) = DesktopAppearanceSettings.setHideLyricsPreview(value)
+
+    override fun setAutoHideLyricsInVideo(value: Boolean) = DesktopAppearanceSettings.setAutoHideLyricsInVideo(value)
+
+    override fun setVideoLyricsRevealed(videoId: String, revealed: Boolean) =
+        DesktopAppearanceSettings.setVideoLyricsRevealed(videoId, revealed)
 
     fun setShowTotalDuration(value: Boolean) {
         showTotalDuration.value = value

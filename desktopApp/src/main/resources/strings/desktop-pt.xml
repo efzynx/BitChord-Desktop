@@ -490,4 +490,6 @@
     <string name="d_switch_to_audio">Alternar para apenas áudio</string>
     <string name="d_no_video_version">Nenhuma versão em vídeo encontrada para esta música</string>
     <string name="d_version_switch_in_party">Todos no Listen Together ouvem a mesma versão</string>
+    <string name="d_auto_hide_video_lyrics">Ocultar letras no modo vídeo</string>
+    <string name="d_auto_hide_video_lyrics_subtitle">Oculta automaticamente a linha de letra acima da barra de progresso durante um videoclipe; você pode reativá-la no menu</string>
 </resources>

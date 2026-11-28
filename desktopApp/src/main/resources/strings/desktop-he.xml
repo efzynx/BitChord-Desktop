@@ -490,4 +490,6 @@
     <string name="d_switch_to_audio">עבור לאודיו בלבד</string>
     <string name="d_no_video_version">לא נמצאה גרסת וידאו לשיר זה</string>
     <string name="d_version_switch_in_party">כולם בהאזנה משותפת שומעים את אותה גרסה</string>
+    <string name="d_auto_hide_video_lyrics">הסתר מילים במצב וידאו</string>
+    <string name="d_auto_hide_video_lyrics_subtitle">מסתיר אוטומטית את שורת המילים מעל פס ההתקדמות בזמן צפייה בקליפ; ניתן להפעיל מחדש מהתפריט</string>
 </resources>

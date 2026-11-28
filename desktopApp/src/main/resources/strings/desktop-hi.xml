@@ -490,4 +490,6 @@
     <string name="d_switch_to_audio">केवल ऑडियो पर स्विच करें</string>
     <string name="d_no_video_version">इस गाने के लिए कोई वीडियो संस्करण नहीं मिला</string>
     <string name="d_version_switch_in_party">Listen Together में सभी लोग एक ही संस्करण सुनते हैं</string>
+    <string name="d_auto_hide_video_lyrics">वीडियो मोड में लिरिक्स छिपाएं</string>
+    <string name="d_auto_hide_video_lyrics_subtitle">म्यूज़िक वीडियो देखते समय सीक बार के ऊपर की लिरिक्स पट्टी अपने आप छिपाता है; आप इसे मेन्यू से फिर से चालू कर सकते हैं</string>
 </resources>
