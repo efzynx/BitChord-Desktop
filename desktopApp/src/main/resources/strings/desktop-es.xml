@@ -481,4 +481,13 @@
     <string name="d_drive_delete_device_title">¿Eliminar dispositivo %1$s?</string>
     <string name="d_drive_delete_device_body">Esto elimina permanentemente los %1$d archivos de copia de este dispositivo en la carpeta de la app en Google Drive.</string>
     <string name="d_drive_delete_snapshot_title">¿Eliminar copia de %1$s?</string>
+    <string name="d_ambient_style_label">Estilo de brillo</string>
+    <string name="d_ambient_style_mesh">Malla de portada</string>
+    <string name="d_ambient_style_flat">Color plano</string>
+    <string name="d_ambient_style_flat_hint">Usa un único color plano extraído del tono dominante de la portada actual.</string>
+    <string name="d_ambient_style_mesh_hint">Combina una malla suave multicolor tomada directamente de la portada.</string>
+    <string name="d_switch_to_video">Cambiar a vídeo</string>
+    <string name="d_switch_to_audio">Cambiar a solo audio</string>
+    <string name="d_no_video_version">No se encontró versión de vídeo para esta canción</string>
+    <string name="d_version_switch_in_party">Todos en Escuchar juntos escuchan la misma versión</string>
 </resources>

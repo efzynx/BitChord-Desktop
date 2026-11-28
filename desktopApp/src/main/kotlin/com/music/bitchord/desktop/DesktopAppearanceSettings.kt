@@ -106,6 +106,21 @@ internal enum class DesktopThemeMode {
 }
 
 /**
+ * Backdrop rendering mode when [DesktopAppearanceSettings.ambientBackdrop] is active:
+ * - [MESH]: Diffused multi-cell artwork color mesh.
+ * - [FLAT_DOMINANT]: Single flat solid color extracted from the cover's dominant tone.
+ */
+internal enum class DesktopAmbientBackdropStyle {
+    MESH,
+    FLAT_DOMINANT;
+
+    companion object {
+        fun stored(raw: String): DesktopAmbientBackdropStyle =
+            entries.firstOrNull { it.name.equals(raw, ignoreCase = true) } ?: MESH
+    }
+}
+
+/**
  * The toggles read far from the Settings sheet that sets them.
  *
  * Mirrors Android's `AppSettings` for these few: a composable deep in the player or the lyrics
@@ -153,6 +168,11 @@ internal object DesktopAppearanceSettings {
     private val _hideLyricsPreview = flag(KEY_HIDE_LYRICS_PREVIEW, false)
     private val _swipeBackGesture = flag(KEY_SWIPE_BACK_GESTURE, true)
     private val _ambientBackdrop = flag(KEY_AMBIENT_BACKDROP, false)
+    private val _ambientBackdropStyle = MutableStateFlow(
+        DesktopAmbientBackdropStyle.stored(
+            DesktopPersistence().string(KEY_AMBIENT_BACKDROP_STYLE, DesktopAmbientBackdropStyle.MESH.name),
+        ),
+    )
     private val _smoothTransitions = flag(KEY_SMOOTH_TRANSITIONS, true)
     private val _glassClickAnimations = flag(KEY_GLASS_CLICK_ANIMATIONS, true)
 
@@ -200,6 +220,9 @@ internal object DesktopAppearanceSettings {
 
     /** Diffuses current artwork colors under the window glass chrome like Apple Music. */
     val ambientBackdrop: StateFlow<Boolean> = _ambientBackdrop
+
+    /** Active ambient glow rendering style (`MESH` or `FLAT_DOMINANT`). */
+    val ambientBackdropStyle: StateFlow<DesktopAmbientBackdropStyle> = _ambientBackdropStyle
 
     /** Smooth crossfade and directional slide transitions across desktop pages and segmented tabs. */
     val smoothTransitions: StateFlow<Boolean> = _smoothTransitions
@@ -314,6 +337,11 @@ internal object DesktopAppearanceSettings {
 
     fun setAmbientBackdrop(value: Boolean) = write(KEY_AMBIENT_BACKDROP, value, _ambientBackdrop)
 
+    fun setAmbientBackdropStyle(style: DesktopAmbientBackdropStyle) {
+        DesktopPersistence().saveString(KEY_AMBIENT_BACKDROP_STYLE, style.name)
+        _ambientBackdropStyle.value = style
+    }
+
     fun setSmoothTransitions(value: Boolean) = write(KEY_SMOOTH_TRANSITIONS, value, _smoothTransitions)
 
     fun setGlassClickAnimations(value: Boolean) = write(KEY_GLASS_CLICK_ANIMATIONS, value, _glassClickAnimations)
@@ -338,6 +366,7 @@ internal object DesktopAppearanceSettings {
     internal const val KEY_HIDE_LYRICS_PREVIEW = "hide_lyrics_preview"
     internal const val KEY_SWIPE_BACK_GESTURE = "swipe_back_gesture"
     internal const val KEY_AMBIENT_BACKDROP = "ambient_backdrop"
+    internal const val KEY_AMBIENT_BACKDROP_STYLE = "ambient_backdrop_style"
     internal const val KEY_SMOOTH_TRANSITIONS = "smooth_transitions"
     internal const val KEY_GLASS_CLICK_ANIMATIONS = "glass_click_animations"
 }

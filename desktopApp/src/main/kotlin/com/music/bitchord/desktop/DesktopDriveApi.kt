@@ -123,6 +123,25 @@ internal object DesktopDriveApi {
         execute(request).use { it.bodyJson().toDriveFile() ?: error("Drive returned no file metadata") }
     }
 
+    suspend fun updateProperties(
+        token: String,
+        fileId: String,
+        properties: Map<String, String>,
+    ): DriveFile = withContext(Dispatchers.IO) {
+        val metadata = buildJsonObject {
+            put("appProperties", buildJsonObject { properties.forEach { (k, v) -> put(k, v) } })
+        }.toString().toRequestBody(jsonType)
+        val url = "$API/files/$fileId".toHttpUrl().newBuilder()
+            .addQueryParameter("fields", FIELDS)
+            .build()
+        val request = Request.Builder()
+            .url(url)
+            .authorized(token)
+            .patch(metadata)
+            .build()
+        execute(request).use { it.bodyJson().toDriveFile() ?: error("Drive returned no file metadata") }
+    }
+
     suspend fun download(
         token: String,
         id: String,

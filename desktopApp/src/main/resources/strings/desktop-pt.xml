@@ -481,4 +481,13 @@
     <string name="d_drive_delete_device_title">Excluir dispositivo %1$s?</string>
     <string name="d_drive_delete_device_body">Remove permanentemente todos os %1$d arquivos de backup deste dispositivo da pasta do app no Google Drive.</string>
     <string name="d_drive_delete_snapshot_title">Excluir backup de %1$s?</string>
+    <string name="d_ambient_style_label">Estilo de brilho</string>
+    <string name="d_ambient_style_mesh">Malha da capa</string>
+    <string name="d_ambient_style_flat">Cor plana</string>
+    <string name="d_ambient_style_flat_hint">Usa uma única cor sólida extraída do tom dominante da capa atual.</string>
+    <string name="d_ambient_style_mesh_hint">Mistura uma malha multicolorida suave obtida diretamente da capa.</string>
+    <string name="d_switch_to_video">Alternar para vídeo</string>
+    <string name="d_switch_to_audio">Alternar para apenas áudio</string>
+    <string name="d_no_video_version">Nenhuma versão em vídeo encontrada para esta música</string>
+    <string name="d_version_switch_in_party">Todos no Listen Together ouvem a mesma versão</string>
 </resources>

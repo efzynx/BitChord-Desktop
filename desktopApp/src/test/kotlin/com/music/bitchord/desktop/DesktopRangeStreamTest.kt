@@ -126,4 +126,20 @@ class DesktopRangeStreamTest {
         }
         assertContentEquals(whole, seen.get())
     }
+
+    @Test
+    fun `async prefetch reads full media accurately across multiple windows`() = serve { url, requested ->
+        val stream = DesktopRangeStream(url, windowBytes = 32 * 1024, prefetchNextWindow = true)
+        val collected = ArrayList<Byte>(body.size)
+        val buffer = ByteArray(16 * 1024)
+        stream.use {
+            while (true) {
+                val taken = it.read(buffer, buffer.size)
+                if (taken <= 0) break
+                repeat(taken) { idx -> collected += buffer[idx] }
+            }
+        }
+        assertContentEquals(body, collected.toByteArray())
+        assertTrue(requested.size >= 10, "expected full ranged fetch sequence, got ${requested.size}")
+    }
 }

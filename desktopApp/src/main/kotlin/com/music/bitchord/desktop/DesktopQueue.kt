@@ -26,6 +26,14 @@ internal data class DesktopQueue(
     /** What is still to come, which is what "Up Next" means. */
     val upcoming: List<Song> get() = if (index >= songs.lastIndex) emptyList() else songs.drop(index + 1)
 
+    /** Replaces the active track version (Song <-> Video) in place without altering the rest of the queue. */
+    fun replaceCurrentVersion(sourceVideoId: String, target: Song): DesktopQueue {
+        val at = if (current?.videoId == sourceVideoId) index else songs.indexOfFirst { it.videoId == sourceVideoId }
+        if (at < 0) return this
+        val updated = songs.toMutableList().apply { set(at, target) }
+        return copy(songs = updated)
+    }
+
     /**
      * Moves to [target]. Backwards is a plain seek through history; forwards is the phone's queue
      * jump, which keeps everything the listener queued by hand and drops only what was skipped.

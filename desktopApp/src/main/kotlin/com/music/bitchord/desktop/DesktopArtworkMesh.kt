@@ -39,10 +39,80 @@ internal object DesktopArtworkMesh {
         val pixels = IntArray(width * height)
         source.readPixels(pixels, 0, 0, width, height)
 
-        // A cell nothing lands in would come out black, so the grid never asks for more cells than
-        // the artwork has pixels.
         val cols = min(MESH_GRID, width)
         val rows = min(MESH_GRID, height)
+        val means = sampleGridMeans(pixels, width, height, rows, cols)
+        val dominant = if (lightTheme) findDominantChroma(means) else null
+        val grid = IntArray(means.size) { cell ->
+            val mean = means[cell]
+            if (lightTheme) mean.liftedLight(dominant) else mean.lifted()
+        }
+        val texels = grid.rotatedBelowSeam(cols, rows, seed).resampled(cols, rows, MESH_TEX)
+        return texels.toImageBitmap(MESH_TEX)
+    }
+
+    /** Extracts a single flat backdrop tone calibrated from [source]'s dominant cover color. */
+    fun dominantFlatColor(
+        source: ImageBitmap,
+        lightTheme: Boolean = false,
+    ): androidx.compose.ui.graphics.Color {
+        val width = source.width
+        val height = source.height
+        if (width < 1 || height < 1) {
+            return if (lightTheme) androidx.compose.ui.graphics.Color(0xFFE9ECF2) else androidx.compose.ui.graphics.Color(0xFF15161A)
+        }
+        val pixels = IntArray(width * height)
+        source.readPixels(pixels, 0, 0, width, height)
+        return androidx.compose.ui.graphics.Color(dominantFlatArgbFromPixels(pixels, width, height, lightTheme))
+    }
+
+    internal fun dominantFlatArgbFromPixels(
+        pixels: IntArray,
+        width: Int,
+        height: Int,
+        lightTheme: Boolean = false,
+    ): Int {
+        if (width < 1 || height < 1 || pixels.isEmpty()) {
+            return if (lightTheme) 0xFFE9ECF2.toInt() else 0xFF15161A.toInt()
+        }
+        val cols = min(MESH_GRID, width)
+        val rows = min(MESH_GRID, height)
+        val means = sampleGridMeans(pixels, width, height, rows, cols)
+        val dominant = findDominantChroma(means)
+        if (dominant != null) {
+            val (hue, domSat) = dominant
+            return if (lightTheme) {
+                hslToArgb(hue, (domSat * 0.56f).coerceIn(0.20f, 0.42f), 0.84f)
+            } else {
+                hslToArgb(hue, domSat.coerceIn(0.30f, 0.68f), 0.19f)
+            }
+        }
+        var sumR = 0L
+        var sumG = 0L
+        var sumB = 0L
+        for (c in means) {
+            sumR += (c shr 16) and 0xFF
+            sumG += (c shr 8) and 0xFF
+            sumB += c and 0xFF
+        }
+        val avgR = (sumR / means.size) / 255f
+        val avgG = (sumG / means.size) / 255f
+        val avgB = (sumB / means.size) / 255f
+        val avgL = (maxOf(avgR, avgG, avgB) + minOf(avgR, avgG, avgB)) / 2f
+        return if (lightTheme) {
+            hslToArgb(220f, 0.08f, (0.83f + avgL * 0.06f).coerceIn(0.83f, 0.90f))
+        } else {
+            hslToArgb(220f, 0.08f, (0.12f + avgL * 0.08f).coerceIn(0.12f, 0.20f))
+        }
+    }
+
+    private fun sampleGridMeans(
+        pixels: IntArray,
+        width: Int,
+        height: Int,
+        rows: Int,
+        cols: Int,
+    ): IntArray {
         val rowStep = max(1, height / MESH_SAMPLE)
         val colStep = max(1, width / MESH_SAMPLE)
         val cells = rows * cols
@@ -68,17 +138,10 @@ internal object DesktopArtworkMesh {
             y += rowStep
         }
 
-        val means = IntArray(cells) { cell ->
+        return IntArray(cells) { cell ->
             val n = max(1, count[cell])
             argb((red[cell] / n).toInt(), (green[cell] / n).toInt(), (blue[cell] / n).toInt())
         }
-        val dominant = if (lightTheme) findDominantChroma(means) else null
-        val grid = IntArray(cells) { cell ->
-            val mean = means[cell]
-            if (lightTheme) mean.liftedLight(dominant) else mean.lifted()
-        }
-        val texels = grid.rotatedBelowSeam(cols, rows, seed).resampled(cols, rows, MESH_TEX)
-        return texels.toImageBitmap(MESH_TEX)
     }
 
     /** Every row but row 0. */

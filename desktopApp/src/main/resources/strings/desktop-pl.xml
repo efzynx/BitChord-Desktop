@@ -481,4 +481,13 @@
     <string name="d_drive_delete_device_title">Usunąć urządzenie %1$s?</string>
     <string name="d_drive_delete_device_body">Trwale usuwa wszystkie %1$d pliki kopii zapasowych tego urządzenia z folderu aplikacji na Dysku Google.</string>
     <string name="d_drive_delete_snapshot_title">Usunąć kopię z %1$s?</string>
+    <string name="d_ambient_style_label">Styl poświaty</string>
+    <string name="d_ambient_style_mesh">Siatka okładki</string>
+    <string name="d_ambient_style_flat">Jednolity kolor</string>
+    <string name="d_ambient_style_flat_hint">Używa jednego płaskiego koloru pobranego z dominującego tonu bieżącej okładki.</string>
+    <string name="d_ambient_style_mesh_hint">Miesza miękką wielobarwną siatkę pobraną bezpośrednio z okładki.</string>
+    <string name="d_switch_to_video">Przełącz na wideo</string>
+    <string name="d_switch_to_audio">Przełącz na samo audio</string>
+    <string name="d_no_video_version">Nie znaleziono wersji wideo dla tego utworu</string>
+    <string name="d_version_switch_in_party">Wszyscy w Listen Together słyszą tę samą wersję</string>
 </resources>

@@ -481,4 +481,13 @@
     <string name="d_drive_delete_device_title">Удалить устройство %1$s?</string>
     <string name="d_drive_delete_device_body">Безвозвратно удаляет все %1$d файлов резервных копий этого устройства из папки приложения на Google Диске.</string>
     <string name="d_drive_delete_snapshot_title">Удалить копию от %1$s?</string>
+    <string name="d_ambient_style_label">Стиль свечения</string>
+    <string name="d_ambient_style_mesh">Сетка обложки</string>
+    <string name="d_ambient_style_flat">Однотонный цвет</string>
+    <string name="d_ambient_style_flat_hint">Использует один ровный цвет, извлечённый из доминирующего оттенка обложки.</string>
+    <string name="d_ambient_style_mesh_hint">Смешивает мягкую многоцветную сетку напрямую из изображения обложки.</string>
+    <string name="d_switch_to_video">Переключить на видео</string>
+    <string name="d_switch_to_audio">Переключить только на аудио</string>
+    <string name="d_no_video_version">Видеоверсия для этого трека не найдена</string>
+    <string name="d_version_switch_in_party">В Listen Together все слушают одну и ту же версию</string>
 </resources>

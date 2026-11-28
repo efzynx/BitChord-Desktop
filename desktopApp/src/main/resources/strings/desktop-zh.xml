@@ -481,4 +481,13 @@
     <string name="d_drive_delete_device_title">删除设备 %1$s？</string>
     <string name="d_drive_delete_device_body">这将从 Google 云端硬盘应用文件夹中永久移除该设备的全部 %1$d 个备份文件。</string>
     <string name="d_drive_delete_snapshot_title">删除 %1$s 的备份？</string>
+    <string name="d_ambient_style_label">环境光风格</string>
+    <string name="d_ambient_style_mesh">封面网格</string>
+    <string name="d_ambient_style_flat">纯色模式</string>
+    <string name="d_ambient_style_flat_hint">使用从当前封面主色调提取的单一纯平背景色。</string>
+    <string name="d_ambient_style_mesh_hint">混合直接从封面图像采样的柔和多色网格。</string>
+    <string name="d_switch_to_video">切换为视频模式</string>
+    <string name="d_switch_to_audio">切换为仅音频</string>
+    <string name="d_no_video_version">未找到该歌曲的视频版本</string>
+    <string name="d_version_switch_in_party">一起听中的每位成员都会收听同一版本</string>
 </resources>

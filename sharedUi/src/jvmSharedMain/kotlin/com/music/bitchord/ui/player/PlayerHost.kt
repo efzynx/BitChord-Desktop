@@ -97,6 +97,9 @@ interface PlayerHost {
     /** Holds the picture at [height] from now on, or lets it choose with null. Remembered. */
     fun setMusicVideoQuality(height: Int?) = Unit
 
+    /** Notifies the host when the in-app fullscreen music-video layout is showing. */
+    fun setVideoFullscreen(active: Boolean) = Unit
+
     /**
      * Artwork for [song], resolving covers that live inside a remote file
      * (WebDAV, SMB) where the platform can. Returns [Song.thumbnailUrl] otherwise.

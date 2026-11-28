@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.HighQuality
+import androidx.compose.material.icons.rounded.OndemandVideo
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.material.icons.rounded.Share
@@ -202,6 +203,10 @@ internal fun DesktopSongMenuFor(
     onSetLyricsOffset: ((Int) -> Unit)? = null,
     hideLyricsPreview: Boolean? = null,
     onToggleHideLyricsPreview: (() -> Unit)? = null,
+    onToggleAudioVideo: (() -> Unit)? = null,
+    isShowingVideo: Boolean = false,
+    audioVersionMissing: Boolean = false,
+    audioVersionSwitching: Boolean = false,
     usePopup: Boolean = true,
 ) {
     val close = onDismiss
@@ -251,6 +256,10 @@ internal fun DesktopSongMenuFor(
         onSetLyricsOffset = onSetLyricsOffset,
         hideLyricsPreview = hideLyricsPreview,
         onToggleHideLyricsPreview = onToggleHideLyricsPreview?.let { { it(); close() } },
+        onToggleAudioVideo = onToggleAudioVideo?.let { { it(); close() } },
+        isShowingVideo = isShowingVideo,
+        audioVersionMissing = audioVersionMissing,
+        audioVersionSwitching = audioVersionSwitching,
         usePopup = usePopup,
         onDismiss = close,
     )
@@ -304,6 +313,10 @@ internal fun DesktopSongMenu(
     onSetLyricsOffset: ((Int) -> Unit)? = null,
     hideLyricsPreview: Boolean? = null,
     onToggleHideLyricsPreview: (() -> Unit)? = null,
+    onToggleAudioVideo: (() -> Unit)? = null,
+    isShowingVideo: Boolean = false,
+    audioVersionMissing: Boolean = false,
+    audioVersionSwitching: Boolean = false,
     usePopup: Boolean = true,
     onDismiss: () -> Unit,
 ) {
@@ -389,6 +402,20 @@ internal fun DesktopSongMenu(
                 icon = if (onRevertToOriginal != null) Icons.AutoMirrored.Rounded.Undo else Icons.Rounded.HighQuality,
                 label = if (onRevertToOriginal != null) "Revert to original" else "Upgrade quality",
                 onClick = action,
+            )
+            if (onToggleAudioVideo == null) DesktopMenuDivider()
+        }
+        onToggleAudioVideo?.let { toggle ->
+            DesktopMenuRow(
+                icon = if (isShowingVideo) BitChordIcons.MusicNote else Icons.Rounded.OndemandVideo,
+                label = when {
+                    audioVersionMissing && !isShowingVideo -> DesktopStrings["d_no_video_version", "No video version found for this song"]
+                    isShowingVideo -> DesktopStrings["d_switch_to_audio", "Switch to audio only"]
+                    else -> DesktopStrings["d_switch_to_video", "Switch to video"]
+                },
+                busy = audioVersionSwitching,
+                enabled = !audioVersionMissing && !audioVersionSwitching,
+                onClick = toggle,
             )
             DesktopMenuDivider()
         }

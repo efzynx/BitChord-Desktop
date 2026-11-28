@@ -481,4 +481,13 @@
     <string name="d_drive_delete_device_title">%1$s cihazı silinsin mi?</string>
     <string name="d_drive_delete_device_body">Bu cihazın tüm %1$d yedek dosyasını Google Drive uygulama klasörünüzden kalıcı olarak kaldırır.</string>
     <string name="d_drive_delete_snapshot_title">%1$s tarihli yedek silinsin mi?</string>
+    <string name="d_ambient_style_label">Parlama stili</string>
+    <string name="d_ambient_style_mesh">Kapak dokusu</string>
+    <string name="d_ambient_style_flat">Düz renk</string>
+    <string name="d_ambient_style_flat_hint">Geçerli kapak görselinin baskın tonundan çıkarılan tek bir düz renk kullanır.</string>
+    <string name="d_ambient_style_mesh_hint">Doğrudan kapak görselinden örneklenen yumuşak çok renkli bir doku oluşturur.</string>
+    <string name="d_switch_to_video">Video moduna geç</string>
+    <string name="d_switch_to_audio">Yalnızca ses moduna geç</string>
+    <string name="d_no_video_version">Bu şarkı için video sürümü bulunamadı</string>
+    <string name="d_version_switch_in_party">Listen Together içinde herkes aynı sürümü dinler</string>
 </resources>

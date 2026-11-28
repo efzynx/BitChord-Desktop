@@ -481,4 +481,13 @@
     <string name="d_drive_delete_device_title">डिवाइस %1$s हटाएँ?</string>
     <string name="d_drive_delete_device_body">यह आपके Google Drive ऐप फ़ोल्डर से इस डिवाइस की सभी %1$d बैकअप फ़ाइलें स्थायी रूप से हटा देता है।</string>
     <string name="d_drive_delete_snapshot_title">%1$s का बैकअप हटाएँ?</string>
+    <string name="d_ambient_style_label">ग्लो शैली</string>
+    <string name="d_ambient_style_mesh">कवर मेश</string>
+    <string name="d_ambient_style_flat">सपाट रंग</string>
+    <string name="d_ambient_style_flat_hint">वर्तमान कवर के मुख्य रंग से निकाला गया एक सपाट रंग उपयोग करता है।</string>
+    <string name="d_ambient_style_mesh_hint">सीधे कवर आर्टवर्क से लिए गए कई रंगों का हल्का मिश्रण दिखाता है।</string>
+    <string name="d_switch_to_video">वीडियो पर स्विच करें</string>
+    <string name="d_switch_to_audio">केवल ऑडियो पर स्विच करें</string>
+    <string name="d_no_video_version">इस गाने के लिए कोई वीडियो संस्करण नहीं मिला</string>
+    <string name="d_version_switch_in_party">Listen Together में सभी लोग एक ही संस्करण सुनते हैं</string>
 </resources>

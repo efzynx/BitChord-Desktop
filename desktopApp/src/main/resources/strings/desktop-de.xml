@@ -481,4 +481,13 @@
     <string name="d_drive_delete_device_title">Gerät %1$s löschen?</string>
     <string name="d_drive_delete_device_body">Dadurch werden alle %1$d Backup-Dateien dieses Geräts dauerhaft aus dem Google Drive-App-Ordner entfernt.</string>
     <string name="d_drive_delete_snapshot_title">Backup vom %1$s löschen?</string>
+    <string name="d_ambient_style_label">Glow-Stil</string>
+    <string name="d_ambient_style_mesh">Cover-Verlauf</string>
+    <string name="d_ambient_style_flat">Flache Farbe</string>
+    <string name="d_ambient_style_flat_hint">Verwendet eine einzelne flache Farbe aus dem dominanten Farbton des aktuellen Covers.</string>
+    <string name="d_ambient_style_mesh_hint">Mischt ein weiches Mehrfarben-Raster direkt aus dem Cover-Bild.</string>
+    <string name="d_switch_to_video">Zu Video wechseln</string>
+    <string name="d_switch_to_audio">Nur zu Audio wechseln</string>
+    <string name="d_no_video_version">Keine Videoversion für diesen Titel gefunden</string>
+    <string name="d_version_switch_in_party">In Listen Together hören alle dieselbe Version</string>
 </resources>

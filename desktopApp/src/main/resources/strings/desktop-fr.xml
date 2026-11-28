@@ -481,4 +481,13 @@
     <string name="d_drive_delete_device_title">Supprimer l\'appareil %1$s ?</string>
     <string name="d_drive_delete_device_body">Supprime définitivement les %1$d fichiers de sauvegarde de cet appareil du dossier applicatif Google Drive.</string>
     <string name="d_drive_delete_snapshot_title">Supprimer la sauvegarde du %1$s ?</string>
+    <string name="d_ambient_style_label">Style de halo</string>
+    <string name="d_ambient_style_mesh">Trame de pochette</string>
+    <string name="d_ambient_style_flat">Couleur unie</string>
+    <string name="d_ambient_style_flat_hint">Utilise une couleur unie extraite de la teinte dominante de la pochette actuelle.</string>
+    <string name="d_ambient_style_mesh_hint">Mélange une trame multicolore douce échantillonnée depuis la pochette.</string>
+    <string name="d_switch_to_video">Passer en vidéo</string>
+    <string name="d_switch_to_audio">Passer en audio uniquement</string>
+    <string name="d_no_video_version">Aucune version vidéo trouvée pour ce titre</string>
+    <string name="d_version_switch_in_party">Tout le monde dans Listen Together entend la même version</string>
 </resources>

@@ -71,6 +71,7 @@ internal fun DesktopPlayerSheet(
     val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
     val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
     val glassRecordActive = liquidGlass && DesktopPlatform.supportsLiquidGlass && !reduceDynamicBlur
+    val videoFullscreen by DesktopPlayerHost.videoFullscreen.collectAsState()
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val windowWidth = maxWidth
@@ -119,13 +120,13 @@ internal fun DesktopPlayerSheet(
                 ) {
                     content(windowWidth, windowHeight)
                 }
-                // Desktop close button in the top-left corner
-                Box(
-                    Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 22.dp, top = 18.dp),
-                ) {
-                    DesktopClosePlayerButton(onClick = onDismiss)
+                if (!videoFullscreen) {
+                    DesktopClosePlayerButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(start = 22.dp, top = 18.dp),
+                    )
                 }
             }
         }

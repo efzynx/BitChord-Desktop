@@ -491,4 +491,13 @@
     <string name="d_drive_delete_device_title">Hapus perangkat %1$s?</string>
     <string name="d_drive_delete_device_body">Tindakan ini menghapus permanen seluruh %1$d file backup untuk perangkat ini dari folder aplikasi Google Drive Anda.</string>
     <string name="d_drive_delete_snapshot_title">Hapus backup dari %1$s?</string>
+    <string name="d_ambient_style_label">Gaya cahaya ambient</string>
+    <string name="d_ambient_style_mesh">Mesh cover</string>
+    <string name="d_ambient_style_flat">Warna flat</string>
+    <string name="d_ambient_style_flat_hint">Menggunakan satu warna datar yang diambil dari warna dominan cover lagu.</string>
+    <string name="d_ambient_style_mesh_hint">Memadukan gradasi multi-warna lembut yang diambil langsung dari cover lagu.</string>
+    <string name="d_switch_to_video">Beralih ke mode video</string>
+    <string name="d_switch_to_audio">Beralih ke audio saja</string>
+    <string name="d_no_video_version">Versi video tidak ditemukan untuk lagu ini</string>
+    <string name="d_version_switch_in_party">Semua orang di Listen Together mendengar versi yang sama</string>
 </resources>

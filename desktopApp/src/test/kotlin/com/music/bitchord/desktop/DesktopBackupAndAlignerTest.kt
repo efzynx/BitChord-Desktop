@@ -498,4 +498,87 @@ class DesktopBackupAndAlignerTest {
         assertEquals("ca", reconciled.text)
         assertEquals(androidx.compose.ui.text.TextRange(2), reconciled.selection)
     }
+
+    @Test
+    fun `ambient flat dominant color adapts saturation and lightness for dark and light themes`() {
+        val redBluePixels = IntArray(24 * 24) { idx ->
+            if (idx % 3 == 0) 0xFF202020.toInt() else 0xFFE53935.toInt()
+        }
+        val darkArgb = DesktopArtworkMesh.dominantFlatArgbFromPixels(redBluePixels, 24, 24, lightTheme = false)
+        val lightArgb = DesktopArtworkMesh.dominantFlatArgbFromPixels(redBluePixels, 24, 24, lightTheme = true)
+
+        val darkRed = (darkArgb shr 16) and 0xFF
+        val darkBlue = darkArgb and 0xFF
+        assertTrue(darkRed > darkBlue, "expected warm red hue to dominate in dark flat color")
+        assertTrue(darkRed in 40..130, "expected calibrated dark-mode red channel, got $darkRed")
+
+        val lightRed = (lightArgb shr 16) and 0xFF
+        val lightGreen = (lightArgb shr 8) and 0xFF
+        assertTrue(lightRed > lightGreen, "expected warm hue preserved in light pastel mode")
+        assertTrue(lightRed >= 200, "expected readable pastel light channel, got $lightRed")
+
+        val grayPixels = IntArray(16 * 16) { 0xFF808080.toInt() }
+        val grayDark = DesktopArtworkMesh.dominantFlatArgbFromPixels(grayPixels, 16, 16, lightTheme = false)
+        val grayLight = DesktopArtworkMesh.dominantFlatArgbFromPixels(grayPixels, 16, 16, lightTheme = true)
+        assertTrue(((grayDark shr 16) and 0xFF) < 80)
+        assertTrue(((grayLight shr 16) and 0xFF) >= 195)
+
+        assertEquals(DesktopAmbientBackdropStyle.MESH, DesktopAmbientBackdropStyle.stored("unknown"))
+        assertEquals(DesktopAmbientBackdropStyle.FLAT_DOMINANT, DesktopAmbientBackdropStyle.stored("flat_dominant"))
+    }
+
+    @Test
+    fun `queue replaceCurrentVersion swaps audio and video versions without disturbing upcoming queue`() {
+        val a = Song(videoId = "aud-1", title = "Track A", artist = "Artist", thumbnailUrl = null, isVideo = false)
+        val b = Song(videoId = "aud-2", title = "Track B", artist = "Artist", thumbnailUrl = null, isVideo = false)
+        val c = Song(videoId = "aud-3", title = "Track C", artist = "Artist", thumbnailUrl = null, isVideo = false)
+        val vidB = b.copy(videoId = "vid-2", isVideo = true)
+
+        val q = DesktopQueue(songs = listOf(a, b, c), index = 1)
+        val swapped = q.replaceCurrentVersion("aud-2", vidB)
+        assertEquals(1, swapped.index)
+        assertEquals(listOf("aud-1", "vid-2", "aud-3"), swapped.songs.map { it.videoId })
+        assertTrue(swapped.current?.isVideo == true)
+    }
+
+    @Test
+    fun `video live audio position holds steady when paused or awaiting audio`() {
+        val paused = DesktopPlaybackState(
+            isPlaying = false,
+            positionMs = 12_500L,
+            positionSampledAtNanos = System.nanoTime() - 500_000_000L,
+        )
+        assertEquals(12_500L, DesktopMusicVideoEngine.liveAudioPositionMs(paused))
+
+        val awaiting = DesktopPlaybackState(
+            isPlaying = true,
+            awaitingAudio = true,
+            positionMs = 18_000L,
+            positionSampledAtNanos = System.nanoTime() - 400_000_000L,
+        )
+        assertEquals(18_000L, DesktopMusicVideoEngine.liveAudioPositionMs(awaiting))
+
+        val playing = DesktopPlaybackState(
+            isPlaying = true,
+            awaitingAudio = false,
+            positionMs = 20_000L,
+            positionSampledAtNanos = System.nanoTime() - 150_000_000L,
+        )
+        val live = DesktopMusicVideoEngine.liveAudioPositionMs(playing)
+        assertTrue(live in 20_100L..20_600L, "expected live position ~20150ms, got $live")
+    }
+
+    @Test
+    fun `video decoder adaptive scaling and high-fps cadence behave predictably`() {
+        assertEquals(768 to 432, DesktopMusicVideoDecoder.scaledDimensions(1920, 1080, 768))
+        assertEquals(1280 to 720, DesktopMusicVideoDecoder.scaledDimensions(3840, 2160, 1280))
+        assertEquals(768, DesktopMusicVideoEngine.renderMaxEdgeFor(fullscreen = false))
+        assertEquals(1280, DesktopMusicVideoEngine.renderMaxEdgeFor(fullscreen = true))
+
+        assertTrue(DesktopMusicVideoEngine.shouldScaleForCadence(highFrameRate = false, ptsMs = 16L, lastPresentedPtsMs = 0L))
+        assertTrue(DesktopMusicVideoEngine.shouldScaleForCadence(highFrameRate = true, ptsMs = 0L, lastPresentedPtsMs = Long.MIN_VALUE))
+        assertTrue(!DesktopMusicVideoEngine.shouldScaleForCadence(highFrameRate = true, ptsMs = 16L, lastPresentedPtsMs = 0L))
+        assertTrue(DesktopMusicVideoEngine.shouldScaleForCadence(highFrameRate = true, ptsMs = 33L, lastPresentedPtsMs = 0L))
+        assertTrue(DesktopMusicVideoEngine.shouldScaleForCadence(highFrameRate = true, ptsMs = 5L, lastPresentedPtsMs = 1200L))
+    }
 }

@@ -62,6 +62,7 @@ internal object DesktopBackup {
         "dont_repeat_suggestions",
         "hide_lyrics_preview",
         "swipe_back_gesture",
+        "ambient_backdrop",
         "reduce_animation",
         "smooth_transitions",
         "reduce_dynamic_blur",
@@ -90,6 +91,7 @@ internal object DesktopBackup {
         "theme_mode",
         "liquid_glass_level",
         "ambient_backdrop",
+        "ambient_backdrop_style",
         "performance_refresh_rate",
         "last_player_screen",
         "app_language",
@@ -281,6 +283,20 @@ internal object DesktopBackup {
         )
         DesktopAppearanceSettings.setHideLyricsPreview(
             persistence.boolean("hide_lyrics_preview", false),
+        )
+        DesktopAppearanceSettings.setAmbientBackdrop(
+            persistence.boolean(
+                DesktopAppearanceSettings.KEY_AMBIENT_BACKDROP,
+                DesktopAppearanceSettings.ambientBackdrop.value,
+            ),
+        )
+        DesktopAppearanceSettings.setAmbientBackdropStyle(
+            DesktopAmbientBackdropStyle.stored(
+                persistence.string(
+                    DesktopAppearanceSettings.KEY_AMBIENT_BACKDROP_STYLE,
+                    DesktopAmbientBackdropStyle.MESH.name,
+                ),
+            ),
         )
     }
 

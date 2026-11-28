@@ -414,63 +414,104 @@ class DesktopPlaybackEngine(
         return true
     }
 
+    /** Switches the currently playing track between alternate versions (e.g. Song <-> Video) in place. */
+    suspend fun swapToVersion(sourceSong: Song, targetSong: Song): Result<Unit> = runCatching {
+        val current = _state.value
+        check(current.song?.videoId == sourceSong.videoId) { "Track changed before version switch completed" }
+        val stream = DesktopDownloadManager.savedFile(targetSong)?.toAbsolutePath()?.toString()
+            ?.let { DesktopStream(it) }
+            ?: DesktopMusicSources.resolve(targetSong, audioQuality).getOrThrow()
+        swapTrackInternal(
+            sourceSong = sourceSong,
+            targetSong = targetSong,
+            stream = stream,
+            positionMs = current.positionMs,
+            surfaceFailures = false,
+        ).getOrThrow()
+    }
+
     /** Re-opens the current track on a different stream, carrying the playhead over. */
     private fun swapStream(song: Song, stream: DesktopStream, positionMs: Long) {
+        scope.launch {
+            swapTrackInternal(
+                sourceSong = song,
+                targetSong = song,
+                stream = stream,
+                positionMs = positionMs,
+                surfaceFailures = true,
+            )
+        }
+    }
+
+    private suspend fun swapTrackInternal(
+        sourceSong: Song,
+        targetSong: Song,
+        stream: DesktopStream,
+        positionMs: Long,
+        surfaceFailures: Boolean,
+    ): Result<Unit> {
         val sourceStream = activeStream
         val shouldAlign = smartVersionAlignmentEnabled &&
             sourceStream != null &&
             sourceStream.url.isNotBlank() &&
             stream.url.isNotBlank() &&
-            DesktopVersionAudioAligner.renditionKey(song, sourceStream) !=
-                DesktopVersionAudioAligner.renditionKey(song, stream)
-        scope.launch {
-            if (shouldAlign) {
-                DesktopPlayerSettings.versionAlignmentInProgress.value = true
-            }
-            try {
-                val offsetMs = if (shouldAlign) {
-                    val result = withTimeoutOrNull(30_000L) {
-                        DesktopVersionAudioAligner.findOffsetMs(song, sourceStream, song, stream)
-                    } ?: 0L
-                    if (result != 0L) {
-                        DesktopTrackLog.log("smart audio alignment for '${song.title}': offset=${result}ms")
-                    }
-                    result
-                } else {
-                    0L
+            DesktopVersionAudioAligner.renditionKey(sourceSong, sourceStream) !=
+                DesktopVersionAudioAligner.renditionKey(targetSong, stream)
+        if (shouldAlign) {
+            DesktopPlayerSettings.versionAlignmentInProgress.value = true
+        }
+        return try {
+            val offsetMs = if (shouldAlign) {
+                val result = withTimeoutOrNull(30_000L) {
+                    DesktopVersionAudioAligner.findOffsetMs(sourceSong, sourceStream, targetSong, stream)
+                } ?: 0L
+                if (result != 0L) {
+                    DesktopTrackLog.log("smart audio alignment for '${targetSong.title}': offset=${result}ms")
                 }
-                if (_state.value.song?.videoId != song.videoId) return@launch
-                val openPosMs = (_state.value.positionMs.coerceAtLeast(positionMs) + offsetMs).coerceAtLeast(0L)
-                openTrack(song, stream, openPosMs).fold(
-                    onSuccess = { track ->
-                        val latest = _state.value
-                        if (latest.song?.videoId != song.videoId) {
-                            track.decoder.close()
-                            return@fold
-                        }
-                        // Resolving, aligning, and opening the better rendition can take a few
-                        // seconds. Hand it over at the live aligned playhead rather than jumping
-                        // back to the position at which the swap began.
-                        val targetPosMs = (latest.positionMs + offsetMs).coerceAtLeast(0L)
-                        if (kotlin.math.abs(targetPosMs - openPosMs) >= UPGRADE_RESEEK_THRESHOLD_MS) {
-                            track.decoder.seek(targetPosMs * 1_000)
-                            track.startUs = targetPosMs * 1_000
-                        }
-                        commands += Command.ReplaceCurrent(track, playWhenReady = latest.isPlaying)
-                    },
-                    onFailure = { failure ->
-                        DesktopTrackLog.log(
-                            "could not open the copy of '${song.title}' from " +
-                                "${DesktopMusicSources.sourceNameFor(stream)}: ${failure.message}",
-                        )
-                        _state.update { it.copy(
-                            error = "Could not switch version: ${failure.message ?: "that copy would not open"}",
-                        ) }
-                    },
-                )
-            } finally {
-                DesktopPlayerSettings.versionAlignmentInProgress.value = false
+                result
+            } else {
+                0L
             }
+            if (_state.value.song?.videoId != sourceSong.videoId) {
+                return Result.failure(IllegalStateException("Track changed during version switch"))
+            }
+            val openPosMs = (_state.value.positionMs.coerceAtLeast(positionMs) + offsetMs).coerceAtLeast(0L)
+            val opened = openTrack(targetSong, stream, openPosMs)
+            opened.fold(
+                onSuccess = { track ->
+                    val latest = _state.value
+                    if (latest.song?.videoId != sourceSong.videoId) {
+                        track.decoder.close()
+                        return Result.failure(IllegalStateException("Track changed during version switch"))
+                    }
+                    // Resolving, aligning, and opening the better rendition can take a few
+                    // seconds. Hand it over at the live aligned playhead rather than jumping
+                    // back to the position at which the swap began.
+                    val targetPosMs = (latest.positionMs + offsetMs).coerceAtLeast(0L)
+                    if (kotlin.math.abs(targetPosMs - openPosMs) >= UPGRADE_RESEEK_THRESHOLD_MS) {
+                        track.decoder.seek(targetPosMs * 1_000)
+                        track.startUs = targetPosMs * 1_000
+                    }
+                    commands += Command.ReplaceCurrent(track, playWhenReady = latest.isPlaying)
+                    Result.success(Unit)
+                },
+                onFailure = { failure ->
+                    DesktopTrackLog.log(
+                        "could not open the copy of '${targetSong.title}' from " +
+                            "${DesktopMusicSources.sourceNameFor(stream)}: ${failure.message}",
+                    )
+                    if (surfaceFailures) {
+                        _state.update {
+                            it.copy(
+                                error = "Could not switch version: ${failure.message ?: "that copy would not open"}",
+                            )
+                        }
+                    }
+                    Result.failure(failure)
+                },
+            )
+        } finally {
+            DesktopPlayerSettings.versionAlignmentInProgress.value = false
         }
     }
 

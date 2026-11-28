@@ -481,4 +481,13 @@
     <string name="d_drive_delete_device_title">刪除裝置 %1$s？</string>
     <string name="d_drive_delete_device_body">這會從 Google 雲端硬碟應用程式資料夾永久移除此裝置的全部 %1$d 個備份檔案。</string>
     <string name="d_drive_delete_snapshot_title">刪除 %1$s 的備份？</string>
+    <string name="d_ambient_style_label">環境光樣式</string>
+    <string name="d_ambient_style_mesh">封面網格</string>
+    <string name="d_ambient_style_flat">單一純色</string>
+    <string name="d_ambient_style_flat_hint">使用從目前封面主色調擷取的單一平坦純色。</string>
+    <string name="d_ambient_style_mesh_hint">混合直接從封面影像取樣的柔和多色網格。</string>
+    <string name="d_switch_to_video">切換為視訊模式</string>
+    <string name="d_switch_to_audio">切換為僅音訊</string>
+    <string name="d_no_video_version">找不到此歌曲的視訊版本</string>
+    <string name="d_version_switch_in_party">一起聽中的所有成員都會聆聽相同版本</string>
 </resources>

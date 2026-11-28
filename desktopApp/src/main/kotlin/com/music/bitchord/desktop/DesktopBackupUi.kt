@@ -302,8 +302,14 @@ internal fun DesktopGoogleDriveBackupPage(
     val expandedDevices = remember { mutableStateMapOf<String, Boolean>() }
 
     LaunchedEffect(settings.connected) {
-        if (settings.connected && backupsState is DesktopDriveBackup.BackupsState.Unknown) {
-            DesktopDriveBackup.refreshBackupsAsync(onReplaySynced = onReplaySynced)
+        if (!settings.connected) return@LaunchedEffect
+        val alreadyLoaded = DesktopDriveBackup.backups.value is DesktopDriveBackup.BackupsState.Loaded
+        DesktopDriveBackup.refreshBackups(silent = alreadyLoaded, onReplaySynced = onReplaySynced)
+        while (true) {
+            kotlinx.coroutines.delay(15_000L)
+            if (DesktopDriveBackup.progress.value !is DesktopDriveBackup.Progress.Running) {
+                DesktopDriveBackup.refreshBackups(silent = true, onReplaySynced = onReplaySynced)
+            }
         }
     }
 

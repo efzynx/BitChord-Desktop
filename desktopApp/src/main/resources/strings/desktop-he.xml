@@ -481,4 +481,13 @@
     <string name="d_drive_delete_device_title">למחוק את המכשיר %1$s?</string>
     <string name="d_drive_delete_device_body">פעולה זו מסירה לצמיתות את כל %1$d קובצי הגיבוי של מכשיר זה מתיקיית האפליקציה ב-Google Drive.</string>
     <string name="d_drive_delete_snapshot_title">למחוק גיבוי מתאריך %1$s?</string>
+    <string name="d_ambient_style_label">סגנון תאורה</string>
+    <string name="d_ambient_style_mesh">רשת עטיפה</string>
+    <string name="d_ambient_style_flat">צבע אחיד</string>
+    <string name="d_ambient_style_flat_hint">משתמש בצבע אחיד אחד המופק מהגוון השולט של העטיפה הנוכחית.</string>
+    <string name="d_ambient_style_mesh_hint">משלב רשת רכה מרובת צבעים הנדגמת ישירות מתמונת העטיפה.</string>
+    <string name="d_switch_to_video">עבור לווידאו</string>
+    <string name="d_switch_to_audio">עבור לאודיו בלבד</string>
+    <string name="d_no_video_version">לא נמצאה גרסת וידאו לשיר זה</string>
+    <string name="d_version_switch_in_party">כולם בהאזנה משותפת שומעים את אותה גרסה</string>
 </resources>

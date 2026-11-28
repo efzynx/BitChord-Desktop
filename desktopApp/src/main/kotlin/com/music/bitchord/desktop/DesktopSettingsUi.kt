@@ -1298,7 +1298,8 @@ internal fun DesktopSettingsRouter(
                                     }
                                 }
                             }
-                            row(DesktopStrings["d_ambient_backdrop", "Ambient artwork glow"], "ambient", "backdrop", "glow", "artwork", "mesh") {
+                            row(DesktopStrings["d_ambient_backdrop", "Ambient artwork glow"], "ambient", "backdrop", "glow", "artwork", "mesh", "flat", "dominant", "color") {
+                                val ambientStyle by DesktopAppearanceSettings.ambientBackdropStyle.collectAsState()
                                 Column(Modifier.fillMaxWidth()) {
                                     DesktopSettingsRow(
                                         icon = Icons.Rounded.Computer,
@@ -1313,6 +1314,55 @@ internal fun DesktopSettingsRouter(
                                         onClick = { DesktopAppearanceSettings.setAmbientBackdrop(!ambient) },
                                     )
                                     if (ambient) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(horizontal = 16.dp),
+                                            thickness = 0.5.dp,
+                                            color = DesktopCardEdge,
+                                        )
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            Text(
+                                                text = DesktopStrings["d_ambient_style_label", "Glow style"],
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                color = DesktopInk,
+                                            )
+                                            val styles = listOf(
+                                                DesktopAmbientBackdropStyle.MESH,
+                                                DesktopAmbientBackdropStyle.FLAT_DOMINANT,
+                                            )
+                                            PillSegmentedControl(
+                                                options = listOf(
+                                                    DesktopStrings["d_ambient_style_mesh", "Cover mesh"],
+                                                    DesktopStrings["d_ambient_style_flat", "Flat color"],
+                                                ),
+                                                selectedIndex = styles.indexOf(ambientStyle).coerceAtLeast(0),
+                                                onSelect = { idx -> DesktopAppearanceSettings.setAmbientBackdropStyle(styles[idx]) },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(CircleShape)
+                                                    .background(DesktopInk.copy(alpha = 0.06f)),
+                                            )
+                                            Text(
+                                                text = if (ambientStyle == DesktopAmbientBackdropStyle.FLAT_DOMINANT) {
+                                                    DesktopStrings[
+                                                        "d_ambient_style_flat_hint",
+                                                        "Uses one flat color extracted from the current cover's dominant tone.",
+                                                    ]
+                                                } else {
+                                                    DesktopStrings[
+                                                        "d_ambient_style_mesh_hint",
+                                                        "Blends a soft multi-color mesh sampled directly from the cover artwork.",
+                                                    ]
+                                                },
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = DesktopSecondary,
+                                            )
+                                        }
                                         when {
                                             disableBlend -> DesktopSettingsEffectNote(
                                                 text = DesktopStrings[

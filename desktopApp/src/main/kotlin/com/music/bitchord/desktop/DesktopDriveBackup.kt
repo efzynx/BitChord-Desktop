@@ -207,6 +207,7 @@ internal object DesktopDriveBackup {
     private val syncMutex = Mutex()
     private val mobileManifestCache = ConcurrentHashMap<String, Pair<String?, MobileDeviceManifest>>()
     private var schedulerJob: Job? = null
+    private var renameSyncJob: Job? = null
 
     private val _settings = MutableStateFlow(loadSettings())
     val settings: StateFlow<Settings> = _settings.asStateFlow()
@@ -264,6 +265,52 @@ internal object DesktopDriveBackup {
                     bs
                 }
             }
+            if (_settings.value.connected && !_settings.value.needsDeviceSetup) {
+                renameSyncJob?.cancel()
+                renameSyncJob = scope.launch { syncDeviceNameToDrive(currentId) }
+            }
+        }
+    }
+
+    private suspend fun syncDeviceNameToDrive(deviceId: String) = syncMutex.withLock {
+        val state = _settings.value
+        if (!state.connected || state.needsDeviceSetup || state.deviceId != deviceId) return@withLock
+        val targetName = clampDriveProperty(DEVICE_NAME_KEY, state.deviceName.ifBlank { defaultDeviceName() })
+        runCatching {
+            withAuthorizedToken { token ->
+                val files = DesktopDriveApi.listAll(token)
+                val ownFiles = files.filter { file ->
+                    isDesktopBackupFile(file) && resolvedDesktopDeviceId(file) == deviceId
+                }
+                var updatedAny = false
+                ownFiles.forEach { file ->
+                    if (file.properties[DEVICE_NAME_KEY] != targetName) {
+                        DesktopDriveApi.updateProperties(
+                            token = token,
+                            fileId = file.id,
+                            properties = mapOf(DEVICE_NAME_KEY to targetName),
+                        )
+                        updatedAny = true
+                    }
+                }
+                if (updatedAny) {
+                    val refreshedFiles = DesktopDriveApi.listAll(token)
+                    val current = _settings.value
+                    val groups = loadDeviceGroupsFromFiles(token, refreshedFiles, current.deviceId, current.deviceName)
+                    _backups.value = BackupsState.Loaded(
+                        items = flattenDeviceSnapshots(groups),
+                        devices = groups,
+                    )
+                }
+            }
+        }.onFailure { e ->
+            if (e is CancellationException) throw e
+            if (e is DesktopDriveApi.Unauthorized) {
+                prefs.putBoolean(KEY_NEEDS_SIGN_IN, true)
+                runCatching { prefs.flush() }
+                _settings.value = loadSettings()
+            }
+            DesktopTrackLog.log("drive: device name sync skipped (${e.message})")
         }
     }
 
@@ -478,17 +525,22 @@ internal object DesktopDriveBackup {
     }
 
     fun refreshBackupsAsync(onReplaySynced: () -> Unit = {}) {
-        scope.launch { refreshBackups(onReplaySynced = onReplaySynced) }
+        scope.launch { refreshBackups(silent = false, onReplaySynced = onReplaySynced) }
     }
 
-    suspend fun refreshBackups(onReplaySynced: () -> Unit = {}) {
+    suspend fun refreshBackups(
+        silent: Boolean = false,
+        onReplaySynced: () -> Unit = {},
+    ) {
         if (!_settings.value.connected) return
-        val syncedChanged = syncMutex.withLock { refreshBackupsAndSyncPeersLocked() }
+        val syncedChanged = syncMutex.withLock { refreshBackupsAndSyncPeersLocked(silent = silent) }
         if (syncedChanged) onReplaySynced()
     }
 
-    private suspend fun refreshBackupsAndSyncPeersLocked(): Boolean {
-        _backups.value = BackupsState.Loading
+    private suspend fun refreshBackupsAndSyncPeersLocked(silent: Boolean = false): Boolean {
+        if (!silent || _backups.value !is BackupsState.Loaded) {
+            _backups.value = BackupsState.Loading
+        }
         var replayChanged = false
         runCatching {
             withAuthorizedToken { token ->
@@ -511,7 +563,9 @@ internal object DesktopDriveBackup {
                     runCatching { prefs.flush() }
                     _settings.value = loadSettings()
                 }
-                _backups.value = BackupsState.Failed(e.message ?: "Could not load backups from Google Drive")
+                if (!silent || _backups.value !is BackupsState.Loaded) {
+                    _backups.value = BackupsState.Failed(e.message ?: "Could not load backups from Google Drive")
+                }
             },
         )
         return replayChanged
@@ -970,10 +1024,13 @@ internal object DesktopDriveBackup {
             file.name.startsWith("bitchord-desktop-backup-") ||
             file.name == DesktopDriveApi.LEGACY_FILE_NAME
 
-    private fun toRemoteBackup(file: DesktopDriveApi.DriveFile): RemoteBackup {
-        val deviceId = file.properties[DEVICE_ID_KEY]?.takeIf(String::isNotBlank)
+    private fun resolvedDesktopDeviceId(file: DesktopDriveApi.DriveFile): String =
+        file.properties[DEVICE_ID_KEY]?.takeIf(String::isNotBlank)
             ?: extractLegacyDeviceId(file.name)
             ?: LEGACY_DEVICE_ID
+
+    private fun toRemoteBackup(file: DesktopDriveApi.DriveFile): RemoteBackup {
+        val deviceId = resolvedDesktopDeviceId(file)
         val deviceName = file.properties[DEVICE_NAME_KEY]?.takeIf(String::isNotBlank)
             ?: if (deviceId != LEGACY_DEVICE_ID) deviceId.take(8) else "Desktop Backup"
         val updatedAtMs = file.properties[UPDATED_AT_KEY]?.toLongOrNull()

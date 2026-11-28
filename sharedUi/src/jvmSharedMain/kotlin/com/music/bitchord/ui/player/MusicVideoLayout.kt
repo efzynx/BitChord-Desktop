@@ -41,6 +41,7 @@ import com.music.bitchord.ui.haptics.rememberHaptics
 import dev.chrisbanes.haze.HazeState
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -89,6 +90,10 @@ internal fun FullscreenVideoPlayer(
     modifier: Modifier = Modifier,
 ) {
     HideSystemBars(true)
+    DisposableEffect(Unit) {
+        PlayerPlatform.host.setVideoFullscreen(true)
+        onDispose { PlayerPlatform.host.setVideoFullscreen(false) }
+    }
     var controlsShown by remember { mutableStateOf(true) }
     // Bumped by every touch on the controls, so the idle timer starts over.
     var touches by remember { mutableIntStateOf(0) }

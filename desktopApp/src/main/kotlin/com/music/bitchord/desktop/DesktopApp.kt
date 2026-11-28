@@ -2036,6 +2036,7 @@ fun BitChordDesktopApp() {
     // draws it — see PlaybackPosition — so a tick never recomposes the player.
     val playerPosition = remember { PlaybackPosition() }
     LaunchedEffect(playbackEngine) {
+        DesktopMusicVideoEngine.attach(playbackEngine)
         playbackEngine.state.collect {
             // The audio thread's own timestamp, not this collector's: it runs on the UI thread and
             // gets to a reading as late as the UI is busy.
@@ -3723,6 +3724,7 @@ fun BitChordDesktopApp() {
         typography = desktopTypography(),
     ) {
         val ambientBackdrop by DesktopAppearanceSettings.ambientBackdrop.collectAsState()
+        val ambientBackdropStyle by DesktopAppearanceSettings.ambientBackdropStyle.collectAsState()
         val reduceAnimation by DesktopAppearanceSettings.reduceAnimation.collectAsState()
         val smoothTransitions by DesktopAppearanceSettings.smoothTransitions.collectAsState()
         val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
@@ -3762,6 +3764,7 @@ fun BitChordDesktopApp() {
                     DesktopPageBackdrop(
                         artworkUrl = ambientArtworkUrl,
                         transparentBase = transparentBase,
+                        flatDominant = !overlays.replay && ambientBackdrop && ambientBackdropStyle == DesktopAmbientBackdropStyle.FLAT_DOMINANT,
                     )
                 },
                 modifier = Modifier
@@ -4089,6 +4092,21 @@ fun BitChordDesktopApp() {
                 },
                 overlay = {
                     val playerSheetVisible = overlays.nowPlaying && selectedSong != null
+                    val versionSwitching by DesktopVersionSwitcher.switching.collectAsState()
+                    val audioOnlyVideos by DesktopVersionSwitcher.audioOnlyVideos.collectAsState()
+                    val missingAudioVideo by DesktopVersionSwitcher.missingVersions.collectAsState()
+                    fun toggleCurrentAudioVideo(targetSong: Song) {
+                        DesktopVersionSwitcher.toggleCurrentTrack(
+                            song = targetSong,
+                            engine = playbackEngine,
+                            onReplaced = { oldVideoId, newSong ->
+                                liveQueue = liveQueue.replaceCurrentVersion(oldVideoId, newSong)
+                                if (selectedSong?.videoId == oldVideoId) selectedSong = newSong
+                                saveQueue()
+                                scope.launch { DesktopScrobbling.updateNowPlaying(newSong) }
+                            },
+                        )
+                    }
                     DesktopPlayerSheet(
                         visible = playerSheetVisible,
                         onDismiss = {
@@ -4126,7 +4144,7 @@ fun BitChordDesktopApp() {
                             isLoading = playback.isLoading,
                             position = playerPosition,
                             durationMs = playback.durationMs,
-                            audioVersionSwitching = false,
+                            audioVersionSwitching = versionSwitching,
                             qualityUpgraded = false,
                             queue = liveQueue.songs,
                             queueIndex = liveQueue.index,
@@ -4329,6 +4347,8 @@ fun BitChordDesktopApp() {
                                                 IntOffset(targetX, targetY)
                                             },
                                     ) {
+                                        val playerShowingVideo = current.isVideo && current.videoId !in audioOnlyVideos
+                                        val playerVideoMissing = !playerShowingVideo && current.videoId in missingAudioVideo
                                         DesktopSongMenuFor(
                                             song = playerSong,
                                             liked = current.videoId in likedIds,
@@ -4347,6 +4367,11 @@ fun BitChordDesktopApp() {
                                                 DesktopOriginalVersion.clear(current.videoId)
                                                 playbackEngine.reloadCurrent(forceSourceRefresh = true)
                                             }.takeIf { DesktopOriginalVersion.isPinned(current.videoId) },
+                                            onToggleAudioVideo = { toggleCurrentAudioVideo(current) }
+                                                .takeIf { DesktopVersionSwitcher.canOfferSwitch(current) },
+                                            isShowingVideo = playerShowingVideo,
+                                            audioVersionMissing = playerVideoMissing,
+                                            audioVersionSwitching = versionSwitching,
                                             onSwitchLyricsQueue = {
                                                 playerMenuOpen = false
                                                 playerQueueToggle.value = true
@@ -8060,7 +8085,11 @@ private fun DesktopFrame(
  * ink so a page of text stays readable over it.
  */
 @Composable
-private fun DesktopPageBackdrop(artworkUrl: String?, transparentBase: Boolean) {
+private fun DesktopPageBackdrop(
+    artworkUrl: String?,
+    transparentBase: Boolean,
+    flatDominant: Boolean = false,
+) {
     val disableBlendEffects by DesktopAppearanceSettings.disableBlendEffects.collectAsState()
     val isDark = DesktopIsDark
     val bg = DesktopBackground
@@ -8070,6 +8099,10 @@ private fun DesktopPageBackdrop(artworkUrl: String?, transparentBase: Boolean) {
             .then(if (transparentBase) Modifier else Modifier.background(bg)),
     ) {
         if (artworkUrl == null || disableBlendEffects) return@Box
+        if (flatDominant) {
+            DesktopFlatDominantBackdrop(artworkUrl, lightTheme = !isDark)
+            return@Box
+        }
         DesktopMesh(artworkUrl, lightTheme = !isDark)
         Box(
             Modifier.fillMaxSize().background(

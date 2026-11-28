@@ -679,6 +679,25 @@ internal fun DesktopMesh(url: String?, lightTheme: Boolean = false) {
     }
 }
 
+/** Single flat solid backdrop filled with the dominant tone of [url]'s cover artwork. */
+@Composable
+internal fun DesktopFlatDominantBackdrop(url: String?, lightTheme: Boolean = false) {
+    val fallback = DesktopBackground
+    val targetColor by produceState(initialValue = fallback, key1 = url, key2 = lightTheme) {
+        val loaded = withContext(Dispatchers.IO) {
+            DesktopArtworkCache.load(url.artworkAt(MESH_SOURCE_PX) ?: url)
+                ?.let { DesktopArtworkMesh.dominantFlatColor(it, lightTheme = lightTheme) }
+        }
+        value = loaded ?: fallback
+    }
+    val animatedColor by animateColorAsState(
+        targetValue = targetColor,
+        animationSpec = tween(durationMillis = 500),
+        label = "flatAmbientColor",
+    )
+    Box(Modifier.fillMaxSize().background(animatedColor))
+}
+
 // ── Rows and cards, derived from a summary ──────────────────────────────────
 
 /** One row of a chart. */

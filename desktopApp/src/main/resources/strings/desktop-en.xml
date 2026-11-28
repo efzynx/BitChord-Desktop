@@ -493,4 +493,13 @@
     <string name="d_drive_delete_device_title">Delete device %1$s?</string>
     <string name="d_drive_delete_device_body">This permanently removes all %1$d backup files for this device from your Google Drive app folder.</string>
     <string name="d_drive_delete_snapshot_title">Delete backup from %1$s?</string>
+    <string name="d_ambient_style_label">Glow style</string>
+    <string name="d_ambient_style_mesh">Cover mesh</string>
+    <string name="d_ambient_style_flat">Flat color</string>
+    <string name="d_ambient_style_flat_hint">Uses one flat color extracted from the current cover\'s dominant tone.</string>
+    <string name="d_ambient_style_mesh_hint">Blends a soft multi-color mesh sampled directly from the cover artwork.</string>
+    <string name="d_switch_to_video">Switch to video</string>
+    <string name="d_switch_to_audio">Switch to audio only</string>
+    <string name="d_no_video_version">No video version found for this song</string>
+    <string name="d_version_switch_in_party">Everyone in Listen Together hears the same version</string>
 </resources>
