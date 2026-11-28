@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.music.bitchord.data.model.Song
 
 /**
  * Which of the app's dialogs, sheets and full-page overlays are showing.
@@ -17,6 +18,9 @@ internal class DesktopOverlays {
 
     /** The signal-chain readout behind the player's quality badge. */
     var pipeline by mutableStateOf(false)
+
+    /** Spectral inspector and Lossless / Hi-Res comparison modal for a local audio track. */
+    var spectrumTarget by mutableStateOf<Song?>(null)
 
     /** Which device playback is sent to. */
     var audioOutput by mutableStateOf(false)

@@ -104,6 +104,8 @@ object DesktopLocalMusic {
      */
     private const val MIN_MUSIC_BYTES = 240L * 1024
 
+    internal fun songForFile(path: Path): Song = path.toSong()
+
     internal const val KEY_FILTER_NON_MUSIC_AUDIO = "filter_non_music_audio"
 
     private fun Path.toSong(): Song {

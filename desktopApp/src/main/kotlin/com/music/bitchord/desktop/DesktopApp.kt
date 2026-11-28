@@ -2322,6 +2322,8 @@ fun BitChordDesktopApp() {
         onToggleLike = { toggleLike(song) },
         onRevertToOriginal = null,
         onUpgradeQuality = null,
+        onInspectSpectrum = { overlays.spectrumTarget = song }
+            .takeIf { song.localUri != null || song.localPath != null },
     )
 
     /** Replay counts artists by name, so the page has to be found from the name alone. */
@@ -4052,6 +4054,8 @@ fun BitChordDesktopApp() {
                                     onUpgradeQuality = null,
                                     onOpenLyrics = { overlays.toggleSidePanel(DesktopSidePanel.LYRICS) },
                                     onOpenQueue = { overlays.toggleSidePanel(DesktopSidePanel.QUEUE) },
+                                    onInspectSpectrum = { overlays.spectrumTarget = s }
+                                        .takeIf { s.localUri != null || s.localPath != null },
                                 )
                             }
                         },
@@ -4372,6 +4376,8 @@ fun BitChordDesktopApp() {
                                             isShowingVideo = playerShowingVideo,
                                             audioVersionMissing = playerVideoMissing,
                                             audioVersionSwitching = versionSwitching,
+                                            onInspectSpectrum = { overlays.spectrumTarget = current }
+                                                .takeIf { current.localUri != null || current.localPath != null },
                                             onSwitchLyricsQueue = {
                                                 playerMenuOpen = false
                                                 playerQueueToggle.value = true
@@ -4567,6 +4573,8 @@ fun BitChordDesktopApp() {
                                     onToggleLike = { toggleLike(song) },
                                     onRevertToOriginal = null,
                                     onUpgradeQuality = null,
+                                    onInspectSpectrum = { overlays.spectrumTarget = song }
+                                        .takeIf { song.localUri != null || song.localPath != null },
                                     onDismiss = onDismiss,
                                 )
                             },
@@ -4602,6 +4610,13 @@ fun BitChordDesktopApp() {
                             pipeline = playbackEngine.pipeline(),
                             isPlaying = playback.isPlaying,
                             onDismiss = { overlays.pipeline = false },
+                        )
+                    }
+                    overlays.spectrumTarget?.let { target ->
+                        DesktopAudioSpectrumDialog(
+                            initialSong = target,
+                            availableLocalSongs = (localSongs + downloads).distinctBy { it.localPath ?: it.videoId },
+                            onDismiss = { overlays.spectrumTarget = null },
                         )
                     }
                     }
@@ -4657,6 +4672,8 @@ fun BitChordDesktopApp() {
                             onToggleLike = { toggleLike(song) },
                             onRevertToOriginal = null,
                             onUpgradeQuality = null,
+                            onInspectSpectrum = { overlays.spectrumTarget = song }
+                                .takeIf { song.localUri != null || song.localPath != null },
                             onDismiss = onDismiss,
                         )
                     },
@@ -5516,6 +5533,11 @@ fun BitChordDesktopApp() {
                                 onOpenPlaylist = ::openPlaylist,
                                 showPlaylistsAndFolders = true,
                                 contentPadding = contentPadding,
+                                onOpenSpectrum = {
+                                    val target = selectedSong?.takeIf { it.localUri != null || it.localPath != null }
+                                        ?: localSongs.firstOrNull()
+                                    if (target != null) overlays.spectrumTarget = target
+                                }.takeIf { localSongs.isNotEmpty() },
                                 menu = { song -> songMenu(song) },
                             )
                         }
@@ -9058,6 +9080,7 @@ private fun DesktopLocalMusicPage(
     emptyTitle: String = DesktopStrings["d_no_local_music", "No local music"],
     emptyDescription: String = DesktopStrings["d_local_music_empty_hint", "Put audio files in your Music folder and reopen this page."],
     persistenceKey: String = "local",
+    onOpenSpectrum: (() -> Unit)? = null,
     menu: (@Composable (Song) -> Unit)? = null,
 ) {
     val persistence = remember { DesktopPersistence() }
@@ -9332,6 +9355,7 @@ private fun DesktopLocalMusicPage(
                                     view = if (view == DesktopLibraryView.LIST) DesktopLibraryView.GRID else DesktopLibraryView.LIST
                                     persistence.saveString("${persistenceKey}_view", view.name)
                                 },
+                                onOpenSpectrum = onOpenSpectrum,
                             )
                             Spacer(Modifier.height(10.dp))
                             Row(
@@ -9683,6 +9707,7 @@ private fun DesktopLocalMusicPage(
                                     view = if (view == DesktopLibraryView.LIST) DesktopLibraryView.GRID else DesktopLibraryView.LIST
                                     persistence.saveString("${persistenceKey}_view", view.name)
                                 },
+                                onOpenSpectrum = onOpenSpectrum,
                             )
                             Spacer(Modifier.height(10.dp))
                             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -9723,6 +9748,7 @@ private fun DesktopLocalControlsRow(
     onCycleSort: () -> Unit,
     view: DesktopLibraryView,
     onToggleView: () -> Unit,
+    onOpenSpectrum: (() -> Unit)? = null,
 ) {
     val liquidGlass by DesktopAppearanceSettings.liquidGlass.collectAsState()
     val reduceDynamicBlur by DesktopAppearanceSettings.reduceDynamicBlur.collectAsState()
@@ -9769,6 +9795,17 @@ private fun DesktopLocalControlsRow(
                 tint = DesktopInk,
                 modifier = Modifier.size(18.dp),
             )
+        }
+        if (onOpenSpectrum != null) {
+            Spacer(Modifier.width(6.dp))
+            DesktopToolbarButton(onClick = onOpenSpectrum, size = 34.dp) {
+                Icon(
+                    Icons.Rounded.GraphicEq,
+                    DesktopStrings["d_spectrum_menu_inspect", "Inspect audio spectrum"],
+                    tint = DesktopInk,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
     }
 }
